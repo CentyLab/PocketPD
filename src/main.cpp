@@ -325,7 +325,7 @@ void updateOLED(float voltage, float current)
   u8g2.setBitmapMode(1);
   //Start-Fixed
   u8g2.setFont(u8g2_font_profont22_tr);
-  u8g2.drawStr(1, 46, "I");
+  u8g2.drawStr(1, 46, "A");
   u8g2.drawStr(1, 14, "V");
   if(usbpd.existPPS)
   {

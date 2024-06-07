@@ -13,6 +13,7 @@ class Button
 public:
     int isButtonPressed(void);
     Button(int buttonNum, int mode) : button(buttonNum, mode) {button.setDebounceTime(debounceTime);}
+    Button(int buttonNum) : button(buttonNum, INPUT_PULLUP) {button.setDebounceTime(debounceTime);}
     void clearLongPressedFlag(void) {longPressedFlag = false;} //Call after a succesful long press trigger
     bool longPressedFlag = false;
 private:
