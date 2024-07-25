@@ -155,7 +155,7 @@ void loop()
     }
 
 
-  ////Need to make seperate function
+  //Need to make seperate function
   if(output_Button.isPressed())
   {
       Serial.print("Output button pressed \n");
@@ -191,15 +191,19 @@ void loop()
       else if (currentIncrement == 50)
         currentIncrement = 200;
     }
-    
   }
 
   //Rotary check
-  encoder_read_update();
+  update_request_voltage_current();
 
 }
 
-void encoder_read_update()
+/**
+ * update_request_voltage_current
+ * @brief Read changes from encoder, compute request voltage/current
+ * Sent request to AP33772 to update
+ */
+void update_request_voltage_current()
 {
   static int val;
   if(val = (int8_t)encoder.getDirection())
@@ -247,27 +251,6 @@ void encoder_read_update()
 }
 
 
-// /**
-//  * @brief Read voltage rotary encoder. Supress noise using state transision check
-//  * @returns A valid CW return 1 or valid CCW returns -1, invalid returns 0.
-// */
-// int8_t read_rotaryEncoder() {
-//   static int8_t rot_enc_table[] = {0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0};
-
-//   prevNextCode_V <<= 2;
-//   if (digitalRead(pinB)) prevNextCode_V |= 0x02;
-//   if (digitalRead(pinA)) prevNextCode_V |= 0x01;
-//   prevNextCode_V &= 0x0f;
-
-//    // If valid then store_V as 16 bit data.
-//    if  (rot_enc_table[prevNextCode_V] ) {
-//       store_V <<= 4;
-//       store_V |= prevNextCode_V;
-//       if ((store_V&0xff)==0x2b) return 1;
-//       if ((store_V&0xff)==0x17) return -1;
-//    }
-//    return 0;
-// }
 
 void updateSupplyMode()
 {
