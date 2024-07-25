@@ -7,21 +7,23 @@
 #include <neotimer.h>
 #include <ezButton.h>
 #include <INA226.h>
+#include <RotaryEncoder.h>
 
 #define output_SW_Button 10
 #define outputSWPin 1
 
-// https://github.com/olikraus/u8g2/issues/2289
-// Do not pass SCL SDA into u8g2 constructor, or the I2C bus will break
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE); //No rotation, no reset, SCL=5 SDA=4
-INA226 ina226(0x40);
-AP33772 usbpd;                          // Automatically wire to Wire0,
-Neotimer mytimer_100ms = Neotimer(100); // Set timer's preset to 1s
-Neotimer mytimer_500ms = Neotimer(500); // Set timer's preset to 1s
+
 
 enum Supply_Mode {MODE_CV, MODE_CC};
 enum Supply_Capability {NON_PPS, WITH_PPS};
 enum Supply_Adjust_Mode {VOTLAGE_ADJUST, CURRENT_ADJUST};
+
+
+/**
+ * Function declare
+ */
+void encoderISR();
+
 
 bool state = 0; 
 int targetVoltage; // Unit mV
@@ -30,6 +32,8 @@ int voltageIncrement; // unit mV
 int currentIncrement; // Unit mA
 float ina_current_ma; // Unit
 float vbus_voltage; // Unit mV
+int encoder_position;
+int encoder_newPos;
 
 #define switchPin_V  18       // button pin
 #define pinA  19             // Rotary encoder Pin A //CLK
@@ -52,12 +56,22 @@ static uint16_t store_I=0;
 static Supply_Mode supply_mode = MODE_CV;
 static Supply_Adjust_Mode supply_adjust_mode = VOTLAGE_ADJUST;
 
+// https://github.com/olikraus/u8g2/issues/2289
+// Do not pass SCL SDA into u8g2 constructor, or the I2C bus will break
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE); //No rotation, no reset, SCL=5 SDA=4
+INA226 ina226(0x40);
+AP33772 usbpd;                          // Automatically wire to Wire0,
+Neotimer mytimer_100ms = Neotimer(100); // Set timer's preset to 1s
+Neotimer mytimer_500ms = Neotimer(500); // Set timer's preset to 1s
+RotaryEncoder encoder(pinA, pinB, RotaryEncoder::LatchMode::FOUR3);
+
 int8_t read_rotaryEncoder();
 void printBootingScreen();
 void printProfile();
 void printOLED_fixed();
 void updateSupplyMode();
 void updateOLED(float voltage, float current);
+void encoder_read_update();
 
 static const unsigned char image_check_contour_bits[] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x04,0x00,0x0a,0x04,0x11,0x8a,0x08,0x51,0x04,0x22,0x02,0x04,0x01,0x88,0x00,0x50,0x00,0x20,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 static const unsigned char image_cross_contour_bits[] = {0x00,0x00,0x00,0x00,0x00,0x00,0x04,0x01,0x8a,0x02,0x51,0x04,0x22,0x02,0x04,0x01,0x88,0x00,0x04,0x01,0x22,0x02,0x51,0x04,0x8a,0x02,0x04,0x01,0x00,0x00,0x00,0x00};
@@ -140,9 +154,12 @@ void setup()
   //Wire.begin();
   u8g2.begin();
 
-  pinMode(switchPin_V, INPUT_PULLUP);
-  pinMode(pinA, INPUT_PULLUP);
-  pinMode(pinB, INPUT_PULLUP);
+  // pinMode(switchPin_V, INPUT_PULLUP);
+  // pinMode(pinA, INPUT_PULLUP);
+  // pinMode(pinB, INPUT_PULLUP);
+
+  attachInterrupt(digitalPinToInterrupt(pinA),encoderISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(pinB),encoderISR, CHANGE);
 
   pinMode(output_SW_Button, INPUT_PULLUP);
   pinMode(selectVI_SW_Button, INPUT_PULLUP);
@@ -183,10 +200,9 @@ void setup()
 
 void loop()
 {
-  static int8_t c,val;
+  static int8_t c;
 
   // MUST call the loop() function first
-  encoder_SW.loop(); 
   output_Button.loop();
   selectVI_Button.loop();
 
@@ -235,7 +251,14 @@ void loop()
   }
 
   //Rotary check
-  if(val = read_rotaryEncoder())
+  encoder_read_update();
+
+}
+
+void encoder_read_update()
+{
+  static int val;
+  if(val = (int8_t)encoder.getDirection())
   {
     if(supply_adjust_mode == VOTLAGE_ADJUST)
     {
@@ -277,30 +300,30 @@ void loop()
       else targetCurrent = usbpd.getMaxCurrent(); //Pull current base on current PDO
       }
   }
-
 }
 
-/**
- * @brief Read voltage rotary encoder. Supress noise using state transision check
- * @returns A valid CW return 1 or valid CCW returns -1, invalid returns 0.
-*/
-int8_t read_rotaryEncoder() {
-  static int8_t rot_enc_table[] = {0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0};
 
-  prevNextCode_V <<= 2;
-  if (digitalRead(pinB)) prevNextCode_V |= 0x02;
-  if (digitalRead(pinA)) prevNextCode_V |= 0x01;
-  prevNextCode_V &= 0x0f;
+// /**
+//  * @brief Read voltage rotary encoder. Supress noise using state transision check
+//  * @returns A valid CW return 1 or valid CCW returns -1, invalid returns 0.
+// */
+// int8_t read_rotaryEncoder() {
+//   static int8_t rot_enc_table[] = {0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0};
 
-   // If valid then store_V as 16 bit data.
-   if  (rot_enc_table[prevNextCode_V] ) {
-      store_V <<= 4;
-      store_V |= prevNextCode_V;
-      if ((store_V&0xff)==0x2b) return 1;
-      if ((store_V&0xff)==0x17) return -1;
-   }
-   return 0;
-}
+//   prevNextCode_V <<= 2;
+//   if (digitalRead(pinB)) prevNextCode_V |= 0x02;
+//   if (digitalRead(pinA)) prevNextCode_V |= 0x01;
+//   prevNextCode_V &= 0x0f;
+
+//    // If valid then store_V as 16 bit data.
+//    if  (rot_enc_table[prevNextCode_V] ) {
+//       store_V <<= 4;
+//       store_V |= prevNextCode_V;
+//       if ((store_V&0xff)==0x2b) return 1;
+//       if ((store_V&0xff)==0x17) return -1;
+//    }
+//    return 0;
+// }
 
 void updateSupplyMode()
 {
@@ -419,4 +442,10 @@ void printProfile()
   }
   u8g2.sendBuffer();
   delay(3000);
+}
+
+
+void encoderISR()
+{
+  encoder.tick(); //Just call tick() to check the state
 }
