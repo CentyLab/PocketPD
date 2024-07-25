@@ -187,8 +187,8 @@ void setup()
   usbpd.begin(); // Start pulling the PDOs from power supply
   printProfile();
 
-  targetVoltage = 5000; //Start with just 5V
-  targetCurrent = 3000; //Maxout standard current
+  targetVoltage = 5000; //Default start up voltage
+  targetCurrent = 1000; //Default start up current
   voltageIncrement = 20; // 20mV
   currentIncrement = 50; // 50mA
 
@@ -200,8 +200,6 @@ void setup()
 
 void loop()
 {
-  static int8_t c;
-
   // MUST call the loop() function first
   output_Button.loop();
   selectVI_Button.loop();

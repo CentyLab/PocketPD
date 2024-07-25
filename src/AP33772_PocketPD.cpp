@@ -48,7 +48,7 @@ void AP33772::begin()
     delay(10);
 
     // If negotiation is good, let's load in some PDOs from charger
-    if (event_flag.newNegoSuccess)      
+    if (event_flag.newNegoSuccess | event_flag.negoSuccess)
     {
         event_flag.newNegoSuccess = 0;
 
