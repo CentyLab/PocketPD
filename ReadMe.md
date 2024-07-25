@@ -1,7 +1,7 @@
 List of requested UI changes:
 + [x] Change screen from "I" to "A" for current fixed reading
 + [ ] Indication if encoder is mapped to voltage to current setting. With blinking digit can set increment to 1V, 100mV, or 20mV.
-+ [ ] Bootup voltage 5A with limit at 1A is best.
++ [x] Bootup voltage 5A with limit at 1A is best.
 + [ ] Add mV suffix to set value
 + [ ] Pressing encoder in current mode can change between 50mA to 500mA
 + [ ] Skipping bootup screen by pressing any button
