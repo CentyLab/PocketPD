@@ -16,3 +16,10 @@ Add QC3.0 support:
 + [ ] Request voltage from QC3.0 charger after PD profile detection
 + [ ] Display QC3.0 profile at boot screen
 + [ ] Press encoder at bootup to select profile between fixed PDO, PPS, or QC3.0
+
+Before letting Platform IO pulling the pico-sdk file. Follow [Important steps for Windows users, before installing](https://arduino-pico.readthedocs.io/en/latest/platformio.html#important-steps-for-windows-users-before-installing)
+Else you will encounter:
+
+```
+VCSBaseException: VCS: Could not process command ['git', 'clone', '--recursive', 'https://github.com/earlephilhower/arduino-pico.git', 'C:\\Users\\keylo\\.platformio\\.cache\\tmp\\pkg-installing-iypaogfn']
+```
