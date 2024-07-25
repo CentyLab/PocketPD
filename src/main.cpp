@@ -116,7 +116,7 @@ void setup()
   ina226.setMaxCurrentShunt(6, 0.01); //Set max current to 6A with shunt resistance of 10mOhm
 
   printBootingScreen();
-  delay(2000);
+  delay(2000); // TODO, remove delay and make it skipable
   usbpd.begin(); // Start pulling the PDOs from power supply
   printProfile();
 
@@ -175,11 +175,23 @@ void loop()
   //Button press
   if(encoder_SW.isPressed())
   {
-    Serial.println("Changing voltage increment \n");
-    if(voltageIncrement == 200)
-      voltageIncrement = 20;
-    else if (voltageIncrement == 20)
-      voltageIncrement = 200;
+    if(supply_adjust_mode == VOTLAGE_ADJUST)
+    {
+      Serial.println("Changing voltage increment \n");
+      if(voltageIncrement == 200)
+        voltageIncrement = 20;
+      else if (voltageIncrement == 20)
+        voltageIncrement = 200;
+    }
+    else
+    {
+      Serial.println("Changing current increment \n");
+      if(currentIncrement == 200)
+        currentIncrement = 50;
+      else if (currentIncrement == 50)
+        currentIncrement = 200;
+    }
+    
   }
 
   //Rotary check
@@ -284,41 +296,41 @@ void updateOLED(float voltage, float current)
   u8g2.drawStr(1, 14, "V");
   if(usbpd.existPPS)
   {
-    u8g2.drawXBM(86, 45, 11, 16, image_check_contour_bits);
+    u8g2.drawXBM(95, 45, 11, 16, image_check_contour_bits);
   }
   else
   {
-    u8g2.drawXBM(86, 45, 11, 16, image_cross_contour_bits);
+    u8g2.drawXBM(95, 45, 11, 16, image_cross_contour_bits);
   }
   u8g2.setFont(u8g2_font_profont12_tr);
-  u8g2.drawStr(102, 58, "PPS");
+  u8g2.drawStr(110, 58, "PPS");
   //End-Fixed
   u8g2.setFont(u8g2_font_profont22_tr);
   sprintf(buffer, "%.2f", voltage);
-  u8g2.drawStr(80-u8g2.getStrWidth(buffer), 14, buffer); //Right adjust
+  u8g2.drawStr(75-u8g2.getStrWidth(buffer), 14, buffer); //Right adjust
   sprintf(buffer, "%.2f", current);
-  u8g2.drawStr(80-u8g2.getStrWidth(buffer), 45, buffer); //Right adjust
+  u8g2.drawStr(75-u8g2.getStrWidth(buffer), 45, buffer); //Right adjust
 
   //https://github.com/olikraus/u8g2/discussions/2028
   u8g2.setFont(u8g2_font_profont15_tr);
   sprintf(buffer, "%d mV", targetVoltage);
-  u8g2.drawStr(80-u8g2.getStrWidth(buffer), 27, buffer); //Right adjust
+  u8g2.drawStr(75-u8g2.getStrWidth(buffer), 27, buffer); //Right adjust
   sprintf(buffer, "%d mA", targetCurrent);
-  u8g2.drawStr(80-u8g2.getStrWidth(buffer), 58, buffer); //Right adjust
+  u8g2.drawStr(75-u8g2.getStrWidth(buffer), 58, buffer); //Right adjust
   u8g2.setFont(u8g2_font_profont12_tr);
   if(supply_mode) //CV = 0, CC = 1
   {
-    u8g2.drawStr(101, 13, "CV");
-    u8g2.drawStr(101, 26, "CC");
+    u8g2.drawStr(110, 13, "CV");
+    u8g2.drawStr(110, 26, "CC");
     u8g2.setDrawColor(2);
-    u8g2.drawBox(95, 16, 23, 12); // CC
+    u8g2.drawBox(104, 16, 23, 12); // CC
   }
   else
   {
-    u8g2.drawStr(101, 13, "CV");
-    u8g2.drawStr(101, 26, "CC");
+    u8g2.drawStr(110, 13, "CV");
+    u8g2.drawStr(110, 26, "CC");
     u8g2.setDrawColor(2);
-    u8g2.drawBox(95, 3, 23, 12); // CV
+    u8g2.drawBox(104, 3, 23, 12); // CV
   }
 
   u8g2.sendBuffer();
