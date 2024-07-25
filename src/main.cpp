@@ -205,6 +205,7 @@ void loop()
   // MUST call the loop() function first
   output_Button.loop();
   selectVI_Button.loop();
+  encoder_SW.loop();
 
   if (mytimer_100ms.repeat()) //Reduce refresh rate of OLED
   {
