@@ -74,9 +74,143 @@ void updateSupplyMode();
 void updateOLED(float voltage, float current);
 void encoder_read_update();
 
-
-
 char buffer[10]; //Buffer for OLED
+
+/**
+ * State Start here
+ */
+enum class State {BOOT, CAPABILITY, NORMAL, MENU};
+
+class StateMachine {
+public:
+    StateMachine() 
+        : state(State::BOOT), startTime(std::chrono::steady_clock::now()), bootInitialized(false), buttonPressed(false) {}
+
+    void update() {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
+
+        switch (state) {
+            case State::BOOT:
+                handleBootState();
+                if (buttonPressed) {
+                    transitionTo(State::NORMAL);
+                } else if (elapsed >= BOOT_TO_CAPABILITY_TIMEOUT) {
+                    transitionTo(State::CAPABILITY);
+                }
+                break;
+
+            case State::CAPABILITY:
+                handleCapabilityState();
+                if (elapsed >= CAPABILITY_TO_NORMAL_TIMEOUT) {
+                    transitionTo(State::NORMAL);
+                }
+                break;
+
+            case State::NORMAL:
+                handleNormalState();
+                if (buttonPressed) {
+                    transitionTo(State::MENU);
+                }
+                break;
+
+            case State::MENU:
+                handleMenuState();
+                break;
+        }
+    }
+
+    void pressButton() {
+        buttonPressed = true;
+    }
+
+    void releaseButton() {
+        buttonPressed = false;
+    }
+
+    std::string getState() const {
+        switch (state) {
+            case State::BOOT: return "BOOT";
+            case State::CAPABILITY: return "CAPABILITY";
+            case State::NORMAL: return "NORMAL";
+            case State::MENU: return "MENU";
+            default: return "UNKNOWN";
+        }
+    }
+private:
+    State state;
+    std::chrono::steady_clock::time_point startTime;
+    LED led;
+    bool bootInitialized;
+    bool buttonPressed;
+
+    static constexpr int BOOT_TO_CAPABILITY_TIMEOUT = 5;   // Timeout for BOOT to CAPABILITY state in seconds
+    static constexpr int CAPABILITY_TO_NORMAL_TIMEOUT = 10; // Timeout for CAPABILITY to NORMAL state in seconds
+
+    void handleBootState() {
+        if (!bootInitialized) {
+            led.turnOn(); // Turn on the LED when entering the BOOT state
+            bootInitialized = true; // Mark BOOT state as initialized
+            std::cout << "Initialized BOOT state" << std::endl;
+        }
+        // Add additional BOOT state routines here
+        std::cout << "Handling BOOT state" << std::endl;
+    }
+
+    void handleCapabilityState() {
+        // Add CAPABILITY state routines here
+        std::cout << "Handling CAPABILITY state" << std::endl;
+    }
+
+    void handleNormalState() {
+        // Add NORMAL state routines here
+        std::cout << "Handling NORMAL state" << std::endl;
+    }
+
+    void handleMenuState() {
+        // Add MENU state routines here
+        std::cout << "Handling MENU state" << std::endl;
+    }
+
+    void transitionTo(State newState) {
+        if (newState == State::BOOT) {
+            if (!bootInitialized) {
+                led.turnOn(); // Turn on the LED when entering the BOOT state
+                bootInitialized = true; // Mark BOOT state as initialized
+                std::cout << "Entered BOOT state" << std::endl;
+            }
+        } else {
+            if (state == State::BOOT) {
+                led.turnOff(); // Turn off the LED when leaving the BOOT state
+            }
+        }
+
+        std::cout << "Transitioning from " << getState() << " to " << (newState == State::BOOT ? "BOOT" :
+                                                                     newState == State::CAPABILITY ? "CAPABILITY" :
+                                                                     newState == State::NORMAL ? "NORMAL" :
+                                                                     "MENU") << std::endl;
+        state = newState;
+        startTime = std::chrono::steady_clock::now(); // Reset the timer
+
+        if (newState == State::BOOT) {
+            bootInitialized = false; // Reset the initialization flag when entering BOOT
+        }
+        buttonPressed = false; // Reset button press flag when transitioning to another state
+    }
+};
+/**
+ * State End here
+ */
+
+
+
+
+
+
+
+
+
+
 
 
 void setup()
@@ -119,6 +253,7 @@ void setup()
   delay(2000); // TODO, remove delay and make it skipable
   usbpd.begin(); // Start pulling the PDOs from power supply
   printProfile();
+  delay(3000);
 
   targetVoltage = 5000; //Default start up voltage
   targetCurrent = 1000; //Default start up current
@@ -131,12 +266,54 @@ void setup()
   //delay(2000); //Random delay, optional
 }
 
+class StateMachine
+
 void loop()
 {
+  // Initital state machine
+  MachineState currentState = BOOT;
+
+  //one example
+  //https://digint.ch/tinyfsm/doc/usage.html
+  switch (currentState)
+  {
+    case BOOT:
+      /**
+       * Booting screen and init all parameter as well as start collecting PDOs
+       */
+      break;
+    case DISPLAY:
+      /**
+       * Capability display, can do 2 pages if later support QC
+       */
+      break;
+    case NORMAL:
+      /**
+       * Normal loop to to check encoder, and update the target request
+       */
+      break;
+    case MENU:
+      /**
+       * Reserve for MENU function, like changing the PDOs, or to QC
+       */
+      break;
+    default:
+      Serial.println("Encounter Error. Just entered default state.");
+
+  }
+
   // MUST call the loop() function first
   output_Button.loop();
   selectVI_Button.loop();
   encoder_SW.loop();
+
+
+  //Appication with statemachine need to be here
+  /**
+   * State 1: Booting screen and init all parameter as well as start collecting PDOs
+   * State 3: Just normal loop
+   * State 4: Go into Menu Selection
+   */
 
   if (mytimer_100ms.repeat()) //Reduce refresh rate of OLED
   {
@@ -155,7 +332,19 @@ void loop()
     }
 
 
-  //Need to make seperate function
+  process_buttons_press();
+  //Rotary check
+  process_request_voltage_current();
+
+}
+
+/**
+ * @brief process_buttons_press
+ * Check isPressed flag and process shortPress, longPress
+ * output_Button, selectVI_Button, and  encoder_SW
+ */
+void process_buttons_press()
+{
   if(output_Button.isPressed())
   {
       Serial.print("Output button pressed \n");
@@ -192,10 +381,6 @@ void loop()
         currentIncrement = 200;
     }
   }
-
-  //Rotary check
-  update_request_voltage_current();
-
 }
 
 /**
@@ -203,7 +388,7 @@ void loop()
  * @brief Read changes from encoder, compute request voltage/current
  * Sent request to AP33772 to update
  */
-void update_request_voltage_current()
+void process_request_voltage_current()
 {
   static int val;
   if(val = (int8_t)encoder.getDirection())
@@ -368,10 +553,10 @@ void printProfile()
     }
   }
   u8g2.sendBuffer();
-  delay(3000);
+  
 }
 
-
+//Hardware improvement will reduce number of interrupt call
 void encoderISR()
 {
   encoder.tick(); //Just call tick() to check the state
