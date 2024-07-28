@@ -15,7 +15,9 @@ public:
     Button(int buttonNum, int mode) : button(buttonNum, mode) {button.setDebounceTime(debounceTime);}
     Button(int buttonNum) : button(buttonNum, INPUT_PULLUP) {button.setDebounceTime(debounceTime);}
     void clearLongPressedFlag(void) {longPressedFlag = false;} //Call after a succesful long press trigger
+    void setDebounceTime(unsigned long time);
     bool longPressedFlag = false;
+    
 private:
     ezButton button;
     unsigned long pressedTime = 0;

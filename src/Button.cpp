@@ -41,3 +41,9 @@ int Button::isButtonPressed (void)
     }
     return 0;
 }
+
+//Pass through function
+void Button::setDebounceTime(unsigned long time)
+{
+    button.setDebounceTime(time);
+}

@@ -6,6 +6,7 @@ bool StateMachine::timerFlag = true;
 
 void StateMachine::update()
 {
+
     auto now = millis();
         auto elapsed = now - startTime;
 
@@ -18,7 +19,10 @@ void StateMachine::update()
 
             case State::OBTAIN:
                 handleObtainState();
-                if (buttonPressed)
+                if ((button_encoder.isButtonPressed() 
+                    | button_output.isButtonPressed() 
+                    | button_selectVI.isButtonPressed())  
+                        == 1) //Short press
                     transitionTo(State::NORMAL);
                 else if(elapsed >= OBTAIN_TO_CAPDISPLAY_TIMEOUT)
                     transitionTo(State::CAPDISPLAY);
@@ -26,7 +30,12 @@ void StateMachine::update()
 
             case State::CAPDISPLAY:
                 handleDisplayCapState();
-                if (elapsed >= DISPLAYCCAP_TO_NORMAL_TIMEOUT)
+                if ((button_encoder.isButtonPressed() 
+                    | button_output.isButtonPressed() 
+                    | button_selectVI.isButtonPressed())  
+                        == 1) //Short press
+                    transitionTo(State::NORMAL);
+                else if (elapsed >= DISPLAYCCAP_TO_NORMAL_TIMEOUT)
                     transitionTo(State::NORMAL);
                 break;
 
@@ -191,6 +200,8 @@ void StateMachine::handleNormalState()
             updateOLED(usbpd.readVoltage() /1000.0, ina_current_ma/1000);
         }
         timerFlag = false;
+        Serial.print("motherfucker!!!  ");
+        Serial.println(millis());
     }
     // Add NORMAL state routines here
     Serial.println( "Handling NORMAL state" );
@@ -315,7 +326,6 @@ void StateMachine::printProfile()
         u8g2.setFont(u8g2_font_6x13_tr);
         u8g2.drawStr(8, 34, "No Profile Detected");
         u8g2.sendBuffer();
-        delay(3000);
         return;
     }
 

@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <INA226.h>
 #include <AP33772_PocketPD.h>
-#include <ezButton.h>
+#include <Button.h>
 #include <RotaryEncoder.h>
 #include <U8g2lib.h>
 #include <PocketPDPinOut.h>
@@ -50,9 +50,9 @@ class StateMachine {
         AP33772 usbpd;
         static RotaryEncoder encoder; //"static" Make sure there is only 1 copy for all object, shared variable
         U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2;
-        ezButton button_encoder;
-        ezButton button_output;
-        ezButton button_selectVI;
+        Button button_encoder;
+        Button button_output;
+        Button button_selectVI;
 
         unsigned long startTime;
         bool bootInitialized;
