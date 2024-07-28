@@ -12,25 +12,28 @@ void StateMachine::update()
         switch (state) {
             case State::BOOT:
                 handleBootState();
-                if (buttonPressed) {
-                    transitionTo(State::NORMAL);
-                } else if (elapsed >= BOOT_TO_CAPABILITY_TIMEOUT) {
-                    transitionTo(State::CAPABILITY);
-                }
+                if (elapsed >= BOOT_TO_OBTAIN_TIMEOUT)
+                    transitionTo(State::OBTAIN);
                 break;
 
-            case State::CAPABILITY:
-                handleCapabilityState();
-                if (elapsed >= CAPABILITY_TO_NORMAL_TIMEOUT) {
+            case State::OBTAIN:
+                handleObtainState();
+                if (buttonPressed)
                     transitionTo(State::NORMAL);
-                }
+                else if(elapsed >= OBTAIN_TO_CAPDISPLAY_TIMEOUT)
+                    transitionTo(State::CAPDISPLAY);
+                break;
+
+            case State::CAPDISPLAY:
+                handleDisplayCapState();
+                if (elapsed >= DISPLAYCCAP_TO_NORMAL_TIMEOUT)
+                    transitionTo(State::NORMAL);
                 break;
 
             case State::NORMAL:
                 handleNormalState();
-                if (buttonPressed) {
+                if (buttonPressed)
                     transitionTo(State::MENU);
-                }
                 break;
 
             case State::MENU:
@@ -39,6 +42,7 @@ void StateMachine::update()
         }
 }
 
+
 void StateMachine::pressButton(){};
 void StateMachine::releaseButton(){};
 
@@ -46,7 +50,8 @@ const char* StateMachine::getState()
 {
     switch (state) {
         case State::BOOT: return "BOOT";
-        case State::CAPABILITY: return "CAPABILITY";
+        case State::OBTAIN: return "OBTAIN";
+        case State::CAPDISPLAY: return "CAPABILITY";
         case State::NORMAL: return "NORMAL";
         case State::MENU: return "MENU";
         default: return "UNKNOWN";
@@ -97,7 +102,7 @@ void StateMachine::handleBootState()
             //led.turnOn(); // Turn on the LED when entering the BOOT state
             componentInit();
             printBootingScreen();
-
+            // ADD Check if connected to PC here
           //* END Only run once when entering the state */
             bootInitialized = true; // Mark BOOT state as initialized
             Serial.println( "Initialized BOOT state" );
@@ -110,21 +115,37 @@ void StateMachine::handleBootState()
         Serial.println( "Handling BOOT state" );
 }
 
-
-void StateMachine::handleCapabilityState()
+void StateMachine::handleObtainState()
 {
-    if(!capabilityInitialized)
+    if (!obtainInitialized) 
+        {
+          //* BEGIN Only run once when entering the state */
+            usbpd.begin(); // Start pulling the PDOs from power supply
+            // ADD check QC3.0 code here
+          //* END Only run once when entering the state */
+            bootInitialized = true; // Mark BOOT state as initialized
+            Serial.println( "Initialized BOOT state" );
+        }
+        //* BEGIN state routine */
+        // Add additional BOOT state routines here
+
+
+        //* END state routine */
+        Serial.println( "Handling BOOT state" );
+}
+
+void StateMachine::handleDisplayCapState()
+{
+    if(!displayCapInitialized)
       {
         //* BEGIN Only run once when entering the state */
             //led.turnOn(); // Turn on the LED when entering the BOOT state
-
-            usbpd.begin(); // Start pulling the PDOs from power supply
             printProfile();
             usbpd.setSupplyVoltageCurrent(targetVoltage, targetCurrent);
         
 
           //* END Only run once when entering the state */
-          capabilityInitialized = true;
+          displayCapInitialized = true;
       }
         // Add CAPABILITY state routines here
         Serial.println( "Handling CAPABILITY state" );
@@ -161,7 +182,7 @@ void StateMachine::transitionTo(State newState)
         Serial.print("Transitioning from ");
         Serial.print(getState());
         Serial.print("to ");
-        Serial.println((newState == State::BOOT ? "BOOT" :newState == State::CAPABILITY ? "CAPABILITY" :newState == State::NORMAL ? "NORMAL" :"MENU"));
+        Serial.println((newState == State::BOOT ? "BOOT" :newState == State::CAPDISPLAY ? "CAPABILITY" :newState == State::NORMAL ? "NORMAL" :"MENU"));
 
         state = newState;
         startTime = millis();

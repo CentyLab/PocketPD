@@ -8,7 +8,7 @@
 // #include <neotimer.h>
 #include <image.h>
 
-enum class State {BOOT, CAPABILITY, NORMAL, MENU};
+enum class State {BOOT, OBTAIN, CAPDISPLAY, NORMAL, MENU};
 
 enum Supply_Mode {MODE_CV, MODE_CC};
 enum Supply_Capability {NON_PPS, WITH_PPS};
@@ -27,7 +27,8 @@ class StateMachine {
             state(State::BOOT), 
             startTime(millis()), 
             bootInitialized(false), 
-            capabilityInitialized(false),
+            obtainInitialized(false),
+            displayCapInitialized(false),
             
             button_encoder(pin_encoder_SW),
             button_output(pin_button_outputSW),
@@ -53,7 +54,8 @@ class StateMachine {
 
         unsigned long startTime;
         bool bootInitialized;
-        bool capabilityInitialized;
+        bool obtainInitialized;
+        bool displayCapInitialized;
         bool buttonPressed;
 
         int targetVoltage;      // Unit mV
@@ -66,11 +68,13 @@ class StateMachine {
         int encoder_newPos;
         Supply_Mode supply_mode;
 
-        static constexpr long BOOT_TO_CAPABILITY_TIMEOUT = 2000;   // Timeout for BOOT to CAPABILITY state in seconds
-        static constexpr long CAPABILITY_TO_NORMAL_TIMEOUT = 3000; // Timeout for CAPABILITY to NORMAL state in seconds
+        static constexpr long BOOT_TO_OBTAIN_TIMEOUT = 500;   // Timeout for BOOT to OBTAIN state in seconds
+        static constexpr long OBTAIN_TO_CAPDISPLAY_TIMEOUT = 1500; // Timeout for OBTAIN to DISPLAYCAP state in seconds
+        static constexpr long DISPLAYCCAP_TO_NORMAL_TIMEOUT = 3000; // Timeout for DISPLAYCAP to NORMAL state in seconds
         void componentInit();
         void handleBootState();
-        void handleCapabilityState();
+        void handleObtainState();
+        void handleDisplayCapState();
         void handleNormalState();
         void handleMenuState();
         void transitionTo(State newState);
