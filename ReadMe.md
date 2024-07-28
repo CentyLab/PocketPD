@@ -4,7 +4,7 @@ List of requested UI changes:
 + [x] Bootup voltage 5A with limit at 1A is best.
 + [x] Add mV suffix to set value
 + [ ] Pressing encoder in current mode can change between 50mA to 500mA
-+ [ ] Skipping bootup screen by pressing any button
++ [x] Skipping bootup screen by pressing any button
 + [ ] Default is PPS but turning knob at bootup screen to select desire profile (PPS, PDO, QC3.0).
 + [ ] Corner of the screen now display protocol PPS, Fixed, or QC3.0
 + [ ] Addition all menu afterboot up to switch between mode if long press Voltage/Current button

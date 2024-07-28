@@ -72,6 +72,7 @@ class StateMachine {
         int encoder_position;
         int encoder_newPos;
         Supply_Mode supply_mode;
+        Supply_Adjust_Mode supply_adjust_mode;
 
         static constexpr long BOOT_TO_OBTAIN_TIMEOUT = 500;   // Timeout for BOOT to OBTAIN state in seconds
         static constexpr long OBTAIN_TO_CAPDISPLAY_TIMEOUT = 1500; // Timeout for OBTAIN to DISPLAYCAP state in seconds
@@ -87,7 +88,8 @@ class StateMachine {
         void printProfile();
         void printOLED_fixed();
         void updateOLED(float voltage, float current);
-
+        
+        void process_request_voltage_current();
         static void encoderISR();
         static void timerISR();
         char buffer[10];

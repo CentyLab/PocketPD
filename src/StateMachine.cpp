@@ -41,7 +41,7 @@ void StateMachine::update()
 
             case State::NORMAL:
                 handleNormalState();
-                if (buttonPressed)
+                if (button_selectVI.isButtonPressed() == 2) //Long press
                     transitionTo(State::MENU);
                 break;
 
@@ -64,7 +64,7 @@ const char* StateMachine::getState()
         case State::NORMAL: return "NORMAL";
         case State::MENU: return "MENU";
         default: return "UNKNOWN";
-}
+    }
 }
 
 
@@ -185,8 +185,12 @@ void StateMachine::handleNormalState()
         // Write the lower 32 bits of the target time to the alarm register, arming it.
         timer_hw->alarm[ALARM_NUM] = timer_hw->timerawl + DELAY ;
 
+        supply_adjust_mode = VOTLAGE_ADJUST;
+        
         normalInitialized = true;
     }
+
+    //START Routine 
     float ina_current_ma = abs(ina226.getCurrent_mA());
     
     if(timerFlag)
@@ -200,10 +204,38 @@ void StateMachine::handleNormalState()
             updateOLED(usbpd.readVoltage() /1000.0, ina_current_ma/1000);
         }
         timerFlag = false;
-        Serial.print("motherfucker!!!  ");
-        Serial.println(millis());
     }
-    // Add NORMAL state routines here
+
+    if(button_encoder.isButtonPressed() == 1)
+    {
+        if(supply_adjust_mode == VOTLAGE_ADJUST)
+        {
+            if(voltageIncrement == 200)
+                voltageIncrement = 20;
+            else if (voltageIncrement == 20)
+                voltageIncrement = 200;
+        }
+        else
+        {
+            if(currentIncrement == 200)
+                currentIncrement = 50;
+            else if (currentIncrement == 50)
+                currentIncrement = 200;
+        }
+    }
+    if(button_selectVI.isButtonPressed() == 1)
+    {
+        if(supply_adjust_mode == VOTLAGE_ADJUST)    supply_adjust_mode = CURRENT_ADJUST;
+        else                                        supply_adjust_mode = VOTLAGE_ADJUST;
+
+
+    }
+    if(button_output.isButtonPressed() == 1)
+    {
+        digitalWrite(pin_output_Enable, !digitalRead(pin_output_Enable));
+    }
+    process_request_voltage_current();
+    //END Routine 
     Serial.println( "Handling NORMAL state" );
 }
 
@@ -213,21 +245,7 @@ void StateMachine::handleMenuState(){
 }
 
 void StateMachine::transitionTo(State newState)
-{
-    // if (newState == State::BOOT) 
-    // {
-    //     if (!bootInitialized) 
-    //     {
-    //             //led.turnOn(); // Turn on the LED when entering the BOOT state
-    //             bootInitialized = true; // Mark BOOT state as initialized
-    //             Serial.println("Entered BOOT state");
-    //     }
-    // } else {
-    //         if (state == State::BOOT) {
-    //             //led.turnOff(); // Turn off the LED when leaving the BOOT state
-    //         }
-    // }
-        
+{     
         //Ex: Print: Transitioning from BOOT to CAPABILITY
         Serial.print("Transitioning from ");
         Serial.print(getState());
@@ -356,4 +374,56 @@ void StateMachine::printProfile()
         }
     }
     u8g2.sendBuffer();
+}
+
+/**
+ * update_request_voltage_current
+ * @brief Read changes from encoder, compute request voltage/current
+ * Sent request to AP33772 to update
+ */
+void StateMachine::process_request_voltage_current()
+{
+  static int val;
+  if(val = (int8_t)encoder.getDirection())
+  {
+    if(supply_adjust_mode == VOTLAGE_ADJUST)
+    {
+      targetVoltage = targetVoltage + val*voltageIncrement;
+      Serial.println(targetVoltage);
+      
+      if(usbpd.existPPS)
+      {
+        if((float)usbpd.getPPSMinVoltage(usbpd.getPPSIndex()) <= targetVoltage && (float)usbpd.getPPSMaxVoltage(usbpd.getPPSIndex()) >= targetVoltage)
+          //usbpd.setVoltage(targetVoltage);
+          usbpd.setSupplyVoltageCurrent(targetVoltage, targetCurrent);
+        else if (usbpd.getPPSMinVoltage(usbpd.getPPSIndex()) > targetVoltage)
+          targetVoltage = usbpd.getPPSMinVoltage(usbpd.getPPSIndex()); //No change
+        else if (usbpd.getPPSMaxVoltage(usbpd.getPPSIndex()) < targetVoltage)
+          targetVoltage = usbpd.getPPSMaxVoltage(usbpd.getPPSIndex()); //No change
+      }
+      else
+      { // PDOs only has profile between 5V and 20V
+        if(targetVoltage > 20000) targetVoltage = 20000;
+        else if (targetVoltage < 5000) targetVoltage = 5000;
+        usbpd.setVoltage(targetVoltage);
+      }
+    }
+
+    else
+    {
+      targetCurrent = targetCurrent + val*currentIncrement;
+      Serial.println(targetCurrent);
+      if(usbpd.existPPS)
+      {
+        if(targetCurrent < 1000)
+          targetCurrent = 1000; // Cap at 100mA minimum, no current update
+        else if(usbpd.getPPSMaxCurrent(usbpd.getPPSIndex()) >= targetCurrent)
+          //usbpd.setMaxCurrent(targetCurrent);
+          usbpd.setSupplyVoltageCurrent(targetVoltage, targetCurrent);
+        else if(usbpd.getPPSMaxCurrent(usbpd.getPPSIndex()) < targetCurrent)
+          targetCurrent = usbpd.getPPSMaxCurrent(usbpd.getPPSIndex()); //No change
+      }
+      else targetCurrent = usbpd.getMaxCurrent(); //Pull current base on current PDO
+      }
+  }
 }
