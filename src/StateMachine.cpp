@@ -2,7 +2,7 @@
 
 //Static object require separate implementation
 RotaryEncoder StateMachine::encoder(pin_encoder_A, pin_encoder_B, RotaryEncoder::LatchMode::FOUR3);
-
+bool StateMachine::timerFlag = true;
 
 void StateMachine::update()
 {
@@ -86,6 +86,9 @@ void StateMachine::componentInit()
     targetCurrent = 1000; //Default start up current
     voltageIncrement = 20; // 20mV
     currentIncrement = 50; // 50mA
+    
+
+
 }
 
 //Only need to declare static in header files
@@ -93,6 +96,18 @@ void StateMachine::encoderISR()
 {
     encoder.tick();
 }
+
+void StateMachine::timerISR()
+{
+    //Clear the alarm irq
+    hw_clear_bits(&timer_hw->intr, 1u << ALARM_NUM);
+
+    // Reset the alarm register
+    timer_hw->alarm[ALARM_NUM] = timer_hw->timerawl + DELAY ;
+
+    timerFlag = true;
+}
+
 
 void StateMachine::handleBootState()
 {
@@ -109,7 +124,6 @@ void StateMachine::handleBootState()
         }
         //* BEGIN state routine */
         // Add additional BOOT state routines here
-
 
         //* END state routine */
         Serial.println( "Handling BOOT state" );
@@ -128,7 +142,6 @@ void StateMachine::handleObtainState()
         }
         //* BEGIN state routine */
         // Add additional BOOT state routines here
-
 
         //* END state routine */
         Serial.println( "Handling BOOT state" );
@@ -153,6 +166,32 @@ void StateMachine::handleDisplayCapState()
 
 void StateMachine::handleNormalState()
 {
+    if(!normalInitialized)
+    {
+        hw_set_bits(&timer_hw->inte, 1u << ALARM_NUM) ;
+        // Associate an interrupt handler with the ALARM_IRQ
+        irq_set_exclusive_handler(ALARM_IRQ, timerISR) ;
+        // Enable the alarm interrupt
+        irq_set_enabled(ALARM_IRQ, true) ;
+        // Write the lower 32 bits of the target time to the alarm register, arming it.
+        timer_hw->alarm[ALARM_NUM] = timer_hw->timerawl + DELAY ;
+
+        normalInitialized = true;
+    }
+    float ina_current_ma = abs(ina226.getCurrent_mA());
+    
+    if(timerFlag)
+    {
+        if(digitalRead(pin_output_Enable))
+        {
+            updateOLED( ina226.getBusVoltage_mV() /1000.0, ina_current_ma/1000);
+        }
+        else
+        {
+            updateOLED(usbpd.readVoltage() /1000.0, ina_current_ma/1000);
+        }
+        timerFlag = false;
+    }
     // Add NORMAL state routines here
     Serial.println( "Handling NORMAL state" );
 }
@@ -164,21 +203,21 @@ void StateMachine::handleMenuState(){
 
 void StateMachine::transitionTo(State newState)
 {
-    if (newState == State::BOOT) 
-        {
-            if (!bootInitialized) 
-            {
-                //led.turnOn(); // Turn on the LED when entering the BOOT state
-                bootInitialized = true; // Mark BOOT state as initialized
-                Serial.println("Entered BOOT state");
-            }
-        } else {
-            if (state == State::BOOT) {
-                //led.turnOff(); // Turn off the LED when leaving the BOOT state
-            }
-        }
+    // if (newState == State::BOOT) 
+    // {
+    //     if (!bootInitialized) 
+    //     {
+    //             //led.turnOn(); // Turn on the LED when entering the BOOT state
+    //             bootInitialized = true; // Mark BOOT state as initialized
+    //             Serial.println("Entered BOOT state");
+    //     }
+    // } else {
+    //         if (state == State::BOOT) {
+    //             //led.turnOff(); // Turn off the LED when leaving the BOOT state
+    //         }
+    // }
         
-        //Transitioning from BOOT to CAPABILITY
+        //Ex: Print: Transitioning from BOOT to CAPABILITY
         Serial.print("Transitioning from ");
         Serial.print(getState());
         Serial.print("to ");
@@ -189,6 +228,12 @@ void StateMachine::transitionTo(State newState)
 
         if (newState == State::BOOT) {
             bootInitialized = false; // Reset the initialization flag when entering BOOT
+        }
+        if (newState == State::OBTAIN) {
+            obtainInitialized = false; // Reset the initialization flag when entering OBTAIN
+        }
+        if (newState == State::CAPDISPLAY) {
+            displayCapInitialized = false; // Reset the initialization flag when entering CAPDISPLAY
         }
         buttonPressed = false; // Reset button press flag when transitioning to another state
 }
@@ -201,56 +246,56 @@ void StateMachine::printBootingScreen()
     u8g2.sendBuffer();
 }
 
-// void StateMachine::updateOLED()
-// {
-//     u8g2.clearBuffer();
-//     u8g2.setFontMode(1);
-//     u8g2.setBitmapMode(1);
-//     //Start-Fixed
-//     u8g2.setFont(u8g2_font_profont22_tr);
-//     u8g2.drawStr(1, 46, "A");
-//     u8g2.drawStr(1, 14, "V");
-//     if(usbpd.existPPS)
-//     {
-//         u8g2.drawXBM(95, 45, 11, 16, image_check_contour_bits);
-//     }
-//     else
-//     {
-//         u8g2.drawXBM(95, 45, 11, 16, image_cross_contour_bits);
-//     }
-//     u8g2.setFont(u8g2_font_profont12_tr);
-//     u8g2.drawStr(110, 58, "PPS");
-//     //End-Fixed
-//     u8g2.setFont(u8g2_font_profont22_tr);
-//     sprintf(buffer, "%.2f", voltage);
-//     u8g2.drawStr(75-u8g2.getStrWidth(buffer), 14, buffer); //Right adjust
-//     sprintf(buffer, "%.2f", current);
-//     u8g2.drawStr(75-u8g2.getStrWidth(buffer), 45, buffer); //Right adjust
+void StateMachine::updateOLED(float voltage, float current)
+{
+    u8g2.clearBuffer();
+    u8g2.setFontMode(1);
+    u8g2.setBitmapMode(1);
+    //Start-Fixed
+    u8g2.setFont(u8g2_font_profont22_tr);
+    u8g2.drawStr(1, 46, "A");
+    u8g2.drawStr(1, 14, "V");
+    if(usbpd.existPPS)
+    {
+        u8g2.drawXBM(95, 45, 11, 16, image_check_contour_bits);
+    }
+    else
+    {
+        u8g2.drawXBM(95, 45, 11, 16, image_cross_contour_bits);
+    }
+    u8g2.setFont(u8g2_font_profont12_tr);
+    u8g2.drawStr(110, 58, "PPS");
+    //End-Fixed
+    u8g2.setFont(u8g2_font_profont22_tr);
+    sprintf(buffer, "%.2f", voltage);
+    u8g2.drawStr(75-u8g2.getStrWidth(buffer), 14, buffer); //Right adjust
+    sprintf(buffer, "%.2f", current);
+    u8g2.drawStr(75-u8g2.getStrWidth(buffer), 45, buffer); //Right adjust
 
-//     //https://github.com/olikraus/u8g2/discussions/2028
-//     u8g2.setFont(u8g2_font_profont15_tr);
-//     sprintf(buffer, "%d mV", targetVoltage);
-//     u8g2.drawStr(75-u8g2.getStrWidth(buffer), 27, buffer); //Right adjust
-//     sprintf(buffer, "%d mA", targetCurrent);
-//     u8g2.drawStr(75-u8g2.getStrWidth(buffer), 58, buffer); //Right adjust
-//     u8g2.setFont(u8g2_font_profont12_tr);
-//     if(supply_mode) //CV = 0, CC = 1
-//     {
-//         u8g2.drawStr(110, 13, "CV");
-//         u8g2.drawStr(110, 26, "CC");
-//         u8g2.setDrawColor(2);
-//         u8g2.drawBox(104, 16, 23, 12); // CC
-//     }
-//     else
-//     {
-//         u8g2.drawStr(110, 13, "CV");
-//         u8g2.drawStr(110, 26, "CC");
-//         u8g2.setDrawColor(2);
-//         u8g2.drawBox(104, 3, 23, 12); // CV
-//     }
+    //https://github.com/olikraus/u8g2/discussions/2028
+    u8g2.setFont(u8g2_font_profont15_tr);
+    sprintf(buffer, "%d mV", targetVoltage);
+    u8g2.drawStr(75-u8g2.getStrWidth(buffer), 27, buffer); //Right adjust
+    sprintf(buffer, "%d mA", targetCurrent);
+    u8g2.drawStr(75-u8g2.getStrWidth(buffer), 58, buffer); //Right adjust
+    u8g2.setFont(u8g2_font_profont12_tr);
+    if(supply_mode) //CV = 0, CC = 1
+    {
+        u8g2.drawStr(110, 13, "CV");
+        u8g2.drawStr(110, 26, "CC");
+        u8g2.setDrawColor(2);
+        u8g2.drawBox(104, 16, 23, 12); // CC
+    }
+    else
+    {
+        u8g2.drawStr(110, 13, "CV");
+        u8g2.drawStr(110, 26, "CC");
+        u8g2.setDrawColor(2);
+        u8g2.drawBox(104, 3, 23, 12); // CV
+    }
 
-//     u8g2.sendBuffer();
-// }
+    u8g2.sendBuffer();
+}
 
 /**
    * Print out PPS/PDO profiles

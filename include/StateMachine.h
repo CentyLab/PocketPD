@@ -5,15 +5,19 @@
 #include <RotaryEncoder.h>
 #include <U8g2lib.h>
 #include <PocketPDPinOut.h>
-// #include <neotimer.h>
 #include <image.h>
 
+#define ALARM_NUM                   0       //Timer 0
+#define ALARM_IRQ                   TIMER_IRQ_0
+#define DELAY                       100000     //In usecond
+
 enum class State {BOOT, OBTAIN, CAPDISPLAY, NORMAL, MENU};
+
+
 
 enum Supply_Mode {MODE_CV, MODE_CC};
 enum Supply_Capability {NON_PPS, WITH_PPS};
 enum Supply_Adjust_Mode {VOTLAGE_ADJUST, CURRENT_ADJUST};
-
 
 #ifndef STATEMACHINE_H
 #define STATEMACHINE_H
@@ -23,17 +27,17 @@ class StateMachine {
         StateMachine():
             ina226(0x40),
             u8g2(U8G2_R0, U8X8_PIN_NONE),
-            //mytimer_100ms(Neotimer(100)),
-            state(State::BOOT), 
+            state(State::BOOT),
             startTime(millis()), 
             bootInitialized(false), 
             obtainInitialized(false),
             displayCapInitialized(false),
-            
+            normalInitialized(false),
             button_encoder(pin_encoder_SW),
             button_output(pin_button_outputSW),
             button_selectVI(pin_button_selectVI),
             supply_mode(MODE_CV){};
+            
 
         void update();
         void pressButton();
@@ -46,8 +50,6 @@ class StateMachine {
         AP33772 usbpd;
         static RotaryEncoder encoder; //"static" Make sure there is only 1 copy for all object, shared variable
         U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2;
-        // Neotimer mytimer_100ms;
-
         ezButton button_encoder;
         ezButton button_output;
         ezButton button_selectVI;
@@ -56,7 +58,10 @@ class StateMachine {
         bool bootInitialized;
         bool obtainInitialized;
         bool displayCapInitialized;
+        bool normalInitialized;
         bool buttonPressed;
+
+        static bool timerFlag;
 
         int targetVoltage;      // Unit mV
         int targetCurrent;      // Unit mA
@@ -81,9 +86,10 @@ class StateMachine {
         void printBootingScreen();
         void printProfile();
         void printOLED_fixed();
-        void updateOLED();
+        void updateOLED(float voltage, float current);
 
         static void encoderISR();
+        static void timerISR();
         char buffer[10];
 };
 

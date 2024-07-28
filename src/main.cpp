@@ -4,7 +4,6 @@
 #include <AP33772_PocketPD.h>
 #include <U8g2lib.h>
 #include <Wire.h>
-// #include <neotimer.h>
 #include <ezButton.h>
 #include <INA226.h>
 #include <RotaryEncoder.h>
@@ -21,7 +20,6 @@ StateMachine statemachine;
 /**
  * Function declare
  */
-void encoderISR();
 
 
 bool state = 0; 
