@@ -40,8 +40,6 @@ class StateMachine {
             
 
         void update();
-        void pressButton();
-        void releaseButton();
         const char* getState();
 
     private:

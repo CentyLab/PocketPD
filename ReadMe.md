@@ -1,3 +1,15 @@
+## System flow chart
+
+```mermaid
+flowchart LR
+    A[Boot up] --> |0.5s|B[Obtain charger capability]
+    B --> |1.5s|C[Display capabilities]
+    C --> |3s|D[Normal operation]
+    D --> |Long Press V/I|E[Menu]
+    B --> |Short Press any button|D
+    C --> |Short Press any button|D
+```
+
 List of requested UI changes:
 + [x] Change screen from "I" to "A" for current fixed reading
 + [ ] Indication if encoder is mapped to voltage to current setting. With blinking digit can set increment to 1V, 100mV, or 20mV.
@@ -17,7 +29,9 @@ Add QC3.0 support:
 + [ ] Display QC3.0 profile at boot screen
 + [ ] Press encoder at bootup to select profile between fixed PDO, PPS, or QC3.0
 
-Before letting Platform IO pulling the pico-sdk file. Follow [Important steps for Windows users, before installing](https://arduino-pico.readthedocs.io/en/latest/platformio.html#important-steps-for-windows-users-before-installing)
+
+## How to compile
+Before letting Platform IO pulling the pico-sdk files. Follow [Important steps for Windows users, before installing](https://arduino-pico.readthedocs.io/en/latest/platformio.html#important-steps-for-windows-users-before-installing)
 Else you will encounter:
 
 ```

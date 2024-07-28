@@ -52,9 +52,6 @@ void StateMachine::update()
 }
 
 
-void StateMachine::pressButton(){};
-void StateMachine::releaseButton(){};
-
 const char* StateMachine::getState()
 {
     switch (state) {
