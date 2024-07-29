@@ -1,9 +1,9 @@
 List of requested UI changes:
 + [x] Change screen from "I" to "A" for current fixed reading
-+ [ ] Indication if encoder is mapped to voltage to current setting. With blinking digit can set increment to 1V, 100mV, or 20mV.
++ [x] Indication if encoder is mapped to voltage to current setting. With blinking digit can set increment to 1V, 100mV, or 20mV.
 + [x] Bootup voltage 5A with limit at 1A is best.
 + [x] Add mV suffix to set value
-+ [ ] Pressing encoder in current mode can change between 50mA to 500mA
++ [x] Pressing encoder in current mode can change between 50mA to 200mA
 + [x] Skipping bootup screen by pressing any button
 + [ ] Default is PPS but turning knob at bootup screen to select desire profile (PPS, PDO, QC3.0).
 + [ ] Corner of the screen now display protocol PPS, Fixed, or QC3.0

@@ -83,7 +83,7 @@ class StateMachine {
         static constexpr long BOOT_TO_OBTAIN_TIMEOUT = 500;   // Timeout for BOOT to OBTAIN state in seconds
         static constexpr long OBTAIN_TO_CAPDISPLAY_TIMEOUT = 1500; // Timeout for OBTAIN to DISPLAYCAP state in seconds
         static constexpr long DISPLAYCCAP_TO_NORMAL_TIMEOUT = 3000; // Timeout for DISPLAYCAP to NORMAL state in seconds
-        static constexpr int voltage_cursor_position[] = {41, 34, 26};
+        static constexpr int voltage_cursor_position[] = {40, 33, 26};
         static constexpr int current_cursor_position[] = {41, 34};
         void componentInit();
         void handleBootState();

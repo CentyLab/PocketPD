@@ -122,7 +122,7 @@ void StateMachine::timerISR1()
     // Reset the alarm register
     timer_hw->alarm[ALARM_NUM1] = timer_hw->timerawl + DELAY1 ;
 
-    timerFlag1 = true;
+    timerFlag1 = !timerFlag1; //toggle
 }
 
 
@@ -342,10 +342,9 @@ void StateMachine::updateOLED(float voltage, float current)
     if(timerFlag1)
     {
         if(supply_adjust_mode == VOTLAGE_ADJUST)
-            u8g2.drawLine(voltage_cursor_position[voltageIncrementIndex],28,voltage_cursor_position[voltageIncrementIndex] + 4,28);
+            u8g2.drawLine(voltage_cursor_position[voltageIncrementIndex],28,voltage_cursor_position[voltageIncrementIndex] + 5,28);
         else
-            u8g2.drawLine(current_cursor_position[currentIncrementIndex],63,current_cursor_position[currentIncrementIndex] + 4,63);
-        timerFlag1 = false;
+            u8g2.drawLine(current_cursor_position[currentIncrementIndex],63,current_cursor_position[currentIncrementIndex] + 5,63);
     }
 
     u8g2.sendBuffer();
