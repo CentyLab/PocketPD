@@ -12,9 +12,6 @@
 #define DELAY                       100000     //In usecond
 
 enum class State {BOOT, OBTAIN, CAPDISPLAY, NORMAL, MENU};
-
-
-
 enum Supply_Mode {MODE_CV, MODE_CC};
 enum Supply_Capability {NON_PPS, WITH_PPS};
 enum Supply_Adjust_Mode {VOTLAGE_ADJUST, CURRENT_ADJUST};
@@ -36,7 +33,9 @@ class StateMachine {
             button_encoder(pin_encoder_SW),
             button_output(pin_button_outputSW),
             button_selectVI(pin_button_selectVI),
-            supply_mode(MODE_CV){};
+            supply_mode(MODE_CV),
+            voltageIncrement{20,100,1000},
+            currentIncrement{50, 200}{};
             
 
         void update();
@@ -63,8 +62,10 @@ class StateMachine {
 
         int targetVoltage;      // Unit mV
         int targetCurrent;      // Unit mA
-        int voltageIncrement;   // unit mV
-        int currentIncrement;   // Unit mA
+        int voltageIncrementIndex;   // unit mV
+        int currentIncrementIndex;   // Unit mA
+        int voltageIncrement[3];
+        int currentIncrement[3];
         float ina_current_ma;   // Unit
         float vbus_voltage;     // Unit mV
         int encoder_position;

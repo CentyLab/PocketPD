@@ -2,7 +2,7 @@
 
 //Static object require separate implementation
 RotaryEncoder StateMachine::encoder(pin_encoder_A, pin_encoder_B, RotaryEncoder::LatchMode::FOUR3);
-bool StateMachine::timerFlag = true;
+bool StateMachine::timerFlag = true; //Need to initilize Static variable
 
 void StateMachine::update()
 {
@@ -90,11 +90,8 @@ void StateMachine::componentInit()
 
     targetVoltage = 5000; //Default start up voltage
     targetCurrent = 1000; //Default start up current
-    voltageIncrement = 20; // 20mV
-    currentIncrement = 50; // 50mA
-    
-
-
+    voltageIncrementIndex = 0; // 20mV
+    currentIncrementIndex = 0; // 50mA
 }
 
 //Only need to declare static in header files
@@ -207,17 +204,12 @@ void StateMachine::handleNormalState()
     {
         if(supply_adjust_mode == VOTLAGE_ADJUST)
         {
-            if(voltageIncrement == 200)
-                voltageIncrement = 20;
-            else if (voltageIncrement == 20)
-                voltageIncrement = 200;
+            //Make sure the valve loop around
+            voltageIncrementIndex = (voltageIncrementIndex + 1)% (sizeof(voltageIncrement)/sizeof(int));
         }
         else
         {
-            if(currentIncrement == 200)
-                currentIncrement = 50;
-            else if (currentIncrement == 50)
-                currentIncrement = 200;
+            currentIncrementIndex = (currentIncrementIndex + 1)% (sizeof(currentIncrement)/sizeof(int));
         }
     }
     if(button_selectVI.isButtonPressed() == 1)
@@ -385,7 +377,7 @@ void StateMachine::process_request_voltage_current()
   {
     if(supply_adjust_mode == VOTLAGE_ADJUST)
     {
-      targetVoltage = targetVoltage + val*voltageIncrement;
+      targetVoltage = targetVoltage + val*voltageIncrement[voltageIncrementIndex];
       Serial.println(targetVoltage);
       
       if(usbpd.existPPS)
@@ -408,7 +400,7 @@ void StateMachine::process_request_voltage_current()
 
     else
     {
-      targetCurrent = targetCurrent + val*currentIncrement;
+      targetCurrent = targetCurrent + val*currentIncrement[currentIncrementIndex];
       Serial.println(targetCurrent);
       if(usbpd.existPPS)
       {
