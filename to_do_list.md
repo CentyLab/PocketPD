@@ -16,3 +16,15 @@ Nice to have, add QC3.0 support:
 + [ ] Request voltage from QC3.0 charger after PD profile detection
 + [ ] Display QC3.0 profile at boot screen
 + [ ] Press encoder at bootup to select profile between fixed PDO, PPS, or QC3.0
+
+```
+//Tested with USB-C to USB-A, and USB-C to USB-C on PC/Mac, Anker PowerCore24k, and UGREEN 140W
+#define MEM32(address) (*(volatile uint32_t*)(address))
+#define ADDR_ENDP MEM32(USBCTRL_REGS_BASE + 0x00)
+
+value = MEM32(USBCTRL_REGS_BASE + 0x00) & 0x007F; //Masking is only to read bit 0 to 6
+if(value != 0)
+    //USB is acting as device.
+else
+    //Not connected to PC
+```

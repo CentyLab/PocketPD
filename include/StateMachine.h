@@ -7,9 +7,15 @@
 #include <PocketPDPinOut.h>
 #include <image.h>
 
-#define ALARM_NUM                   0       //Timer 0
-#define ALARM_IRQ                   TIMER_IRQ_0
-#define DELAY                       100000     //In usecond
+#define ALARM_NUM0                   0       //Timer 0
+#define ALARM_IRQ0                   TIMER_IRQ_0
+#define DELAY0                       100000     //In usecond , 100ms
+
+#define ALARM_NUM1                   1       //Timer 1
+#define ALARM_IRQ1                   TIMER_IRQ_1
+#define DELAY1                       1000000    //In usecond , 1s
+
+
 
 enum class State {BOOT, OBTAIN, CAPDISPLAY, NORMAL, MENU};
 enum Supply_Mode {MODE_CV, MODE_CC};
@@ -58,7 +64,8 @@ class StateMachine {
         bool normalInitialized;
         bool buttonPressed;
 
-        static bool timerFlag;
+        static bool timerFlag0;
+        static bool timerFlag1;
 
         int targetVoltage;      // Unit mV
         int targetCurrent;      // Unit mA
@@ -76,6 +83,8 @@ class StateMachine {
         static constexpr long BOOT_TO_OBTAIN_TIMEOUT = 500;   // Timeout for BOOT to OBTAIN state in seconds
         static constexpr long OBTAIN_TO_CAPDISPLAY_TIMEOUT = 1500; // Timeout for OBTAIN to DISPLAYCAP state in seconds
         static constexpr long DISPLAYCCAP_TO_NORMAL_TIMEOUT = 3000; // Timeout for DISPLAYCAP to NORMAL state in seconds
+        static constexpr int voltage_cursor_position[] = {41, 34, 26};
+        static constexpr int current_cursor_position[] = {41, 34};
         void componentInit();
         void handleBootState();
         void handleObtainState();
@@ -90,7 +99,8 @@ class StateMachine {
         
         void process_request_voltage_current();
         static void encoderISR();
-        static void timerISR();
+        static void timerISR0();    // 100ms
+        static void timerISR1();    // 1s
         char buffer[10];
 };
 

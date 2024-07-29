@@ -2,7 +2,8 @@
 
 //Static object require separate implementation
 RotaryEncoder StateMachine::encoder(pin_encoder_A, pin_encoder_B, RotaryEncoder::LatchMode::FOUR3);
-bool StateMachine::timerFlag = true; //Need to initilize Static variable
+bool StateMachine::timerFlag0 = false; //Need to initilize Static variable
+bool StateMachine::timerFlag1 = false; //Need to initilize Static variable
 
 void StateMachine::update()
 {
@@ -100,15 +101,28 @@ void StateMachine::encoderISR()
     encoder.tick();
 }
 
-void StateMachine::timerISR()
+// ISR for 100ms timer
+void StateMachine::timerISR0()
 {
     //Clear the alarm irq
-    hw_clear_bits(&timer_hw->intr, 1u << ALARM_NUM);
+    hw_clear_bits(&timer_hw->intr, 1u << ALARM_NUM0);
 
     // Reset the alarm register
-    timer_hw->alarm[ALARM_NUM] = timer_hw->timerawl + DELAY ;
+    timer_hw->alarm[ALARM_NUM0] = timer_hw->timerawl + DELAY0 ;
 
-    timerFlag = true;
+    timerFlag0 = true;
+}
+
+// ISR for 1s timer
+void StateMachine::timerISR1()
+{
+    //Clear the alarm irq
+    hw_clear_bits(&timer_hw->intr, 1u << ALARM_NUM1);
+
+    // Reset the alarm register
+    timer_hw->alarm[ALARM_NUM1] = timer_hw->timerawl + DELAY1 ;
+
+    timerFlag1 = true;
 }
 
 
@@ -171,13 +185,24 @@ void StateMachine::handleNormalState()
 {
     if(!normalInitialized)
     {
-        hw_set_bits(&timer_hw->inte, 1u << ALARM_NUM) ;
+        //Set up 100ms timer using timer0
+        hw_set_bits(&timer_hw->inte, 1u << ALARM_NUM0) ;
         // Associate an interrupt handler with the ALARM_IRQ
-        irq_set_exclusive_handler(ALARM_IRQ, timerISR) ;
+        irq_set_exclusive_handler(ALARM_IRQ0, timerISR0) ;
         // Enable the alarm interrupt
-        irq_set_enabled(ALARM_IRQ, true) ;
+        irq_set_enabled(ALARM_IRQ0, true) ;
         // Write the lower 32 bits of the target time to the alarm register, arming it.
-        timer_hw->alarm[ALARM_NUM] = timer_hw->timerawl + DELAY ;
+        timer_hw->alarm[ALARM_NUM0] = timer_hw->timerawl + DELAY0 ;
+
+        //Set up 1s timer using timer1
+        hw_set_bits(&timer_hw->inte, 1u << ALARM_NUM1) ;
+        // Associate an interrupt handler with the ALARM_IRQ
+        irq_set_exclusive_handler(ALARM_IRQ1, timerISR1) ;
+        // Enable the alarm interrupt
+        irq_set_enabled(ALARM_IRQ1, true) ;
+        // Write the lower 32 bits of the target time to the alarm register, arming it.
+        timer_hw->alarm[ALARM_NUM1] = timer_hw->timerawl + DELAY1 ;
+        
 
         supply_adjust_mode = VOTLAGE_ADJUST;
         
@@ -187,7 +212,7 @@ void StateMachine::handleNormalState()
     //START Routine 
     float ina_current_ma = abs(ina226.getCurrent_mA());
     
-    if(timerFlag)
+    if(timerFlag0)
     {
         if(digitalRead(pin_output_Enable))
         {
@@ -197,7 +222,7 @@ void StateMachine::handleNormalState()
         {
             updateOLED(usbpd.readVoltage() /1000.0, ina_current_ma/1000);
         }
-        timerFlag = false;
+        timerFlag0 = false;
     }
 
     if(button_encoder.isButtonPressed() == 1)
@@ -271,8 +296,9 @@ void StateMachine::updateOLED(float voltage, float current)
     u8g2.setBitmapMode(1);
     //Start-Fixed
     u8g2.setFont(u8g2_font_profont22_tr);
-    u8g2.drawStr(1, 46, "A");
     u8g2.drawStr(1, 14, "V");
+    u8g2.drawStr(1, 47, "A");
+
     if(usbpd.existPPS)
     {
         u8g2.drawXBM(95, 45, 11, 16, image_check_contour_bits);
@@ -288,14 +314,14 @@ void StateMachine::updateOLED(float voltage, float current)
     sprintf(buffer, "%.2f", voltage);
     u8g2.drawStr(75-u8g2.getStrWidth(buffer), 14, buffer); //Right adjust
     sprintf(buffer, "%.2f", current);
-    u8g2.drawStr(75-u8g2.getStrWidth(buffer), 45, buffer); //Right adjust
+    u8g2.drawStr(75-u8g2.getStrWidth(buffer), 47, buffer); //Right adjust
 
     //https://github.com/olikraus/u8g2/discussions/2028
     u8g2.setFont(u8g2_font_profont15_tr);
     sprintf(buffer, "%d mV", targetVoltage);
     u8g2.drawStr(75-u8g2.getStrWidth(buffer), 27, buffer); //Right adjust
     sprintf(buffer, "%d mA", targetCurrent);
-    u8g2.drawStr(75-u8g2.getStrWidth(buffer), 58, buffer); //Right adjust
+    u8g2.drawStr(75-u8g2.getStrWidth(buffer), 62, buffer); //Right adjust
     u8g2.setFont(u8g2_font_profont12_tr);
     if(supply_mode) //CV = 0, CC = 1
     {
@@ -310,6 +336,16 @@ void StateMachine::updateOLED(float voltage, float current)
         u8g2.drawStr(110, 26, "CC");
         u8g2.setDrawColor(2);
         u8g2.drawBox(104, 3, 23, 12); // CV
+    }
+
+    //Blinking cursor
+    if(timerFlag1)
+    {
+        if(supply_adjust_mode == VOTLAGE_ADJUST)
+            u8g2.drawLine(voltage_cursor_position[voltageIncrementIndex],28,voltage_cursor_position[voltageIncrementIndex] + 4,28);
+        else
+            u8g2.drawLine(current_cursor_position[currentIncrementIndex],63,current_cursor_position[currentIncrementIndex] + 4,63);
+        timerFlag1 = false;
     }
 
     u8g2.sendBuffer();
