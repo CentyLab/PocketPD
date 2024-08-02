@@ -156,6 +156,7 @@ public:
   AP33772(TwoWire &wire = Wire);
   void begin();
   void setVoltage(int targetVoltage); // Unit in mV
+  void setPDO(uint8_t PDOindex);
   void setMaxCurrent(int targetMaxCurrent); // Unit in mA
   void setNTC(int TR25, int TR50, int TR75, int TR100);
   void setDeratingTemp(int temperature);

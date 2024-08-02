@@ -150,6 +150,28 @@ void AP33772::setVoltage(int targetVoltage)
 }
 
 /**
+ * @brief Request PDO profile.
+ * @param PDOindex start from index 0 to (PDONum - 1) if no PPS, (PDONum -2) if PPS found
+ */
+void AP33772::setPDO(uint8_t PDOindex)
+{
+    uint8_t guarding;
+
+    if(PPSindex)
+        guarding = numPDO - 2;
+    else
+        guarding = numPDO - 1; // Example array[4] only exist index 0,1,2,3
+
+    if(PDOindex <= guarding)
+    {
+        rdoData.fixed.objPosition = indexPDO + 1; // Index 0 to Index 1
+        rdoData.fixed.maxCurrent = pdoData[indexPDO].fixed.maxCurrent;
+        rdoData.fixed.opCurrent = pdoData[indexPDO].fixed.maxCurrent;
+        writeRDO();
+    }
+}
+
+/**
  * @brief Set max current before tripping at wall plug
  * @param targetMaxCurrent in mA
  */
