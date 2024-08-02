@@ -17,7 +17,7 @@ public:
     void clearLongPressedFlag(void) {longPressedFlag = false;} //Call after a succesful long press trigger
     void setDebounceTime(unsigned long time);
     bool longPressedFlag = false;
-    
+    void loop();
 private:
     ezButton button;
     unsigned long pressedTime = 0;

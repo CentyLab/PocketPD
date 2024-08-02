@@ -17,7 +17,7 @@ flowchart LR
 
 
 ## Compile the code
-+ You will need VSCode with Platform IO extension.
++ You will need [VSCode](https://code.visualstudio.com/download) with [Platform IO extension](https://docs.platformio.org/en/latest/integration/ide/vscode.html#installation).
 
 + Before letting Platform IO pulling the pico-sdk files. Follow [Important steps for Windows users, before installing](https://arduino-pico.readthedocs.io/en/latest/platformio.html#important-steps-for-windows-users-before-installing)
 Else you will encounter:

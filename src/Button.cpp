@@ -28,6 +28,8 @@ int Button::isButtonPressed (void)
             return 1;
     }
 
+    //TODO: Trim implementation, right now you have two way if signaling longpress
+    // One is the return of the function, one is the longPressedFlag
     if(isPressing == true && isLongDetected == false)
     {
         long pressDuration = millis() - pressedTime;
@@ -40,6 +42,11 @@ int Button::isButtonPressed (void)
         }
     }
     return 0;
+}
+
+void Button::loop()
+{
+    button.loop();
 }
 
 //Pass through function

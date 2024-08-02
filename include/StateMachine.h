@@ -6,6 +6,7 @@
 #include <U8g2lib.h>
 #include <PocketPDPinOut.h>
 #include <image.h>
+#include <Menu.h>
 
 #define ALARM_NUM0                   0       //Timer 0
 #define ALARM_IRQ0                   TIMER_IRQ_0
@@ -41,7 +42,8 @@ class StateMachine {
             button_selectVI(pin_button_selectVI),
             supply_mode(MODE_CV),
             voltageIncrement{20,100,1000},
-            currentIncrement{50, 200}{};
+            currentIncrement{50, 200},
+            menu(&u8g2, &usbpd, &encoder, &button_encoder, &button_output, &button_selectVI){};
             
 
         void update();
@@ -56,6 +58,7 @@ class StateMachine {
         Button button_encoder;
         Button button_output;
         Button button_selectVI;
+        Menu menu;
 
         unsigned long startTime;
         bool bootInitialized;

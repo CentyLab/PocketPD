@@ -5,9 +5,9 @@ RotaryEncoder StateMachine::encoder(pin_encoder_A, pin_encoder_B, RotaryEncoder:
 bool StateMachine::timerFlag0 = false; //Need to initilize Static variable
 bool StateMachine::timerFlag1 = false; //Need to initilize Static variable
 
+
 void StateMachine::update()
 {
-
     auto now = millis();
         auto elapsed = now - startTime;
 
@@ -42,15 +42,28 @@ void StateMachine::update()
 
             case State::NORMAL:
                 handleNormalState();
-                if (button_selectVI.isButtonPressed() == 2) //Long press
+                if (button_selectVI.longPressedFlag) //Long press
+                {
+                    button_selectVI.clearLongPressedFlag();
                     transitionTo(State::MENU);
+                }  
                 break;
 
             case State::MENU:
                 handleMenuState();
+                
+                button_encoder.isButtonPressed(); 
+                button_output.isButtonPressed() ;
+                button_selectVI.isButtonPressed();
+
+                if (button_selectVI.longPressedFlag) //Long press
+                {
+                    button_selectVI.clearLongPressedFlag();
+                    transitionTo(State::NORMAL);
+                }
                 break;
         }
-}
+} 
 
 
 const char* StateMachine::getState()
@@ -152,6 +165,7 @@ void StateMachine::handleObtainState()
         {
           //* BEGIN Only run once when entering the state */
             usbpd.begin(); // Start pulling the PDOs from power supply
+            menu.get_numPDO(); // Call after usbpd.begin()
             // ADD check QC3.0 code here
           //* END Only run once when entering the state */
             bootInitialized = true; // Mark BOOT state as initialized
@@ -255,7 +269,7 @@ void StateMachine::handleNormalState()
 
 void StateMachine::handleMenuState(){
     // Add MENU state routines here
-
+    menu.page_selectCapability();
     //Check out https://github.com/shuzonudas/monoview/blob/master/U8g2/Examples/Menu/simpleMenu/simpleMenu.ino
     Serial.println( "Handling MENU state" );
 }
