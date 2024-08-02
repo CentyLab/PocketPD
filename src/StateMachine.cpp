@@ -255,6 +255,8 @@ void StateMachine::handleNormalState()
 
 void StateMachine::handleMenuState(){
     // Add MENU state routines here
+
+    //Check out https://github.com/shuzonudas/monoview/blob/master/U8g2/Examples/Menu/simpleMenu/simpleMenu.ino
     Serial.println( "Handling MENU state" );
 }
 
