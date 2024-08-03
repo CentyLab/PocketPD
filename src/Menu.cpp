@@ -14,7 +14,7 @@ Menu::Menu(U8G2_SSD1306_128X64_NONAME_F_HW_I2C* oled, AP33772* usb, RotaryEncode
     _button_selectVI = button_selectVI;
 
     menuPosition = 0;
-    _numPDO = 0;
+    numPDO = 0;
     qc3_0available = 0;
 }
 
@@ -26,8 +26,8 @@ void Menu::page_selectCapability()
     if(val = (int8_t)_encoder->getDirection())
     {
         menuPosition = menuPosition - val;
-        if(menuPosition < 0) menuPosition = _numPDO + qc3_0available - 1; //wrap around
-        if(menuPosition > (_numPDO + qc3_0available - 1)) menuPosition = 0; //wrap around
+        if(menuPosition < 0) menuPosition = numPDO + qc3_0available - 1; //wrap around
+        if(menuPosition > (numPDO + qc3_0available - 1)) menuPosition = 0; //wrap around
     }
     
     u8g2->clearBuffer();
@@ -68,11 +68,11 @@ void Menu::page_bootProfile()
     
 }
 
-/**
- * Call this function after usbpd.begin()
- */
-void Menu::get_numPDO()
-{
-    //Pass in AP33772 flag
-    _numPDO = usbpd->getNumPDO();
-}
+// /**
+//  * Call this function after usbpd.begin()
+//  */
+// void Menu::getnumPDO()
+// {
+//     //Pass in AP33772 flag
+//     numPDO = usbpd->getNumPDO();
+// }

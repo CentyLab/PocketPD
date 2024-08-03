@@ -164,9 +164,9 @@ void AP33772::setPDO(uint8_t PDOindex)
 
     if(PDOindex <= guarding)
     {
-        rdoData.fixed.objPosition = indexPDO + 1; // Index 0 to Index 1
-        rdoData.fixed.maxCurrent = pdoData[indexPDO].fixed.maxCurrent;
-        rdoData.fixed.opCurrent = pdoData[indexPDO].fixed.maxCurrent;
+        rdoData.fixed.objPosition = PDOindex + 1; // Index 0 to Index 1
+        rdoData.fixed.maxCurrent = pdoData[PDOindex].fixed.maxCurrent;
+        rdoData.fixed.opCurrent = pdoData[PDOindex].fixed.maxCurrent;
         writeRDO();
     }
 }

@@ -50,6 +50,7 @@ void StateMachine::update()
                 break;
             case State::NORMAL_PDO:
                 handleNormalPDOState();
+                button_selectVI.isButtonPressed(); //Call to update long press flag
                 if (button_selectVI.longPressedFlag) //Long press isButtonPressed() is called inside the state
                 {
                     button_selectVI.clearLongPressedFlag();
@@ -76,6 +77,14 @@ void StateMachine::update()
                 {
                     button_selectVI.clearLongPressedFlag();
                     transitionTo(State::NORMAL_PPS);
+                }
+                if (button_encoder.longPressedFlag) //Long press
+                {
+                    button_encoder.clearLongPressedFlag();
+                    if(menu.menuPosition == usbpd.getPPSIndex())
+                        transitionTo(State::NORMAL_PPS);
+                    else
+                        transitionTo(State::NORMAL_PDO);
                 }
                 break;
         }
@@ -120,8 +129,6 @@ void StateMachine::componentInit()
     ina226.begin();
     ina226.setMaxCurrentShunt(6, 0.01);
 
-    targetVoltage = 5000; //Default start up voltage
-    targetCurrent = 1000; //Default start up current
     voltageIncrementIndex = 0; // 20mV
     currentIncrementIndex = 0; // 50mA
 
@@ -201,7 +208,7 @@ void StateMachine::handleObtainState()
         {
           //* BEGIN Only run once when entering the state */
             usbpd.begin(); // Start pulling the PDOs from power supply
-            menu.get_numPDO(); // Call after usbpd.begin()
+            menu.numPDO = usbpd.getNumPDO(); // Call after usbpd.begin()
             // ADD check QC3.0 code here
           //* END Only run once when entering the state */
             bootInitialized = true; // Mark BOOT state as initialized
@@ -232,8 +239,11 @@ void StateMachine::handleDisplayCapState()
 
 void StateMachine::handleNormalPPSState()
 {
+    //Run once
     if(!normalPPSInitialized)
     {
+        targetVoltage = 5000; //Default start up voltage
+        targetCurrent = 1000; //Default start up current
         supply_adjust_mode = VOTLAGE_ADJUST;
         
         normalPPSInitialized = true;
@@ -290,6 +300,19 @@ void StateMachine::handleNormalPPSState()
  */
 void StateMachine::handleNormalPDOState()
 {
+    //Run once
+    if(!normalPDOInitialized)
+    {
+        usbpd.setPDO(menu.menuPosition);
+        //Now targetVoltage/targetCurrent is just for display. Do not pass over to AP33772
+        targetVoltage = usbpd.getPDOVoltage(menu.menuPosition); //For display
+        targetCurrent = usbpd.getPDOMaxcurrent(menu.menuPosition); //For display
+        supply_adjust_mode = VOTLAGE_ADJUST;
+        
+        normalPDOInitialized = true;
+        Serial.println( "Initialized NORMAL_PDO state" );
+    }
+
     //Routine
     float ina_current_ma = abs(ina226.getCurrent_mA());
     
@@ -297,11 +320,11 @@ void StateMachine::handleNormalPDOState()
     {
         if(digitalRead(pin_output_Enable))
         {
-            updateOLED( ina226.getBusVoltage_mV() /1000.0, ina_current_ma/1000, false);
+            updateOLED( ina226.getBusVoltage_mV() /1000.0, ina_current_ma/1000, true);
         }
         else
         {
-            updateOLED(usbpd.readVoltage() /1000.0, ina_current_ma/1000, false);
+            updateOLED(usbpd.readVoltage() /1000.0, ina_current_ma/1000, true);
         }
         timerFlag0 = false;
     }
@@ -312,7 +335,7 @@ void StateMachine::handleNormalPDOState()
     }
     
     //END Routine 
-    Serial.println( "Handling NORMAL_PDO state" );
+    //Serial.println( "Handling NORMAL_PDO state" );
 }
 
 void StateMachine::handleNormalQCState()
@@ -350,7 +373,8 @@ void StateMachine::transitionTo(State newState)
         }
         if (newState == State::NORMAL_PPS ||
             newState == State::NORMAL_PDO ||
-            newState == State::NORMAL_QC  ) {
+            newState == State::NORMAL_QC  ||
+            newState == State::MENU) {
             normalPPSInitialized = false; // Reset the initialization flag when entering CAPDISPLAY
             normalPDOInitialized = false;
             normalQCInitialized = false;
@@ -371,22 +395,26 @@ void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
     u8g2.clearBuffer();
     u8g2.setFontMode(1);
     u8g2.setBitmapMode(1);
-    //Start-Fixed
+
+    //Start-Fixed Component
     u8g2.setFont(u8g2_font_profont22_tr);
     u8g2.drawStr(1, 14, "V");
     u8g2.drawStr(1, 47, "A");
-
-    if(usbpd.existPPS)
-    {
-        u8g2.drawXBM(95, 45, 11, 16, image_check_contour_bits);
-    }
-    else
-    {
-        u8g2.drawXBM(95, 45, 11, 16, image_cross_contour_bits);
-    }
     u8g2.setFont(u8g2_font_profont12_tr);
-    u8g2.drawStr(110, 58, "PPS");
-    //End-Fixed
+    switch (state){
+        case State::NORMAL_PPS:
+            u8g2.drawStr(110, 58, "PPS"); //TODO update according to mode
+            break;
+        case State::NORMAL_PDO:
+            u8g2.drawStr(110, 58, "PDO"); //TODO update according to mode
+            break;
+        case State::NORMAL_QC:
+            u8g2.drawStr(110, 58, "QC3.0"); //TODO update according to mode
+            break;
+    }
+    //End-Fixed Component
+
+    //Start-Dynamic component
     u8g2.setFont(u8g2_font_profont22_tr);
     sprintf(buffer, "%.2f", voltage);
     u8g2.drawStr(75-u8g2.getStrWidth(buffer), 14, buffer); //Right adjust
@@ -400,25 +428,28 @@ void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
     u8g2.drawStr(75-u8g2.getStrWidth(buffer), 27, buffer); //Right adjust
     sprintf(buffer, "%d mA", targetCurrent);
     u8g2.drawStr(75-u8g2.getStrWidth(buffer), 62, buffer); //Right adjust
-    u8g2.setFont(u8g2_font_profont12_tr);
     }
+    
     if(supply_mode) //CV = 0, CC = 1
     {
-        u8g2.drawStr(110, 13, "CV");
-        u8g2.drawStr(110, 26, "CC");
+        u8g2.setFont(u8g2_font_profont12_tr);
+        u8g2.drawStr(110, 10, "CV");
+        u8g2.drawStr(110, 23, "CC");
         u8g2.setDrawColor(2);
-        u8g2.drawBox(104, 16, 23, 12); // CC
+        u8g2.drawBox(104, 13, 23, 12); // CC
     }
     else
     {
-        u8g2.drawStr(110, 13, "CV");
-        u8g2.drawStr(110, 26, "CC");
+        u8g2.setFont(u8g2_font_profont12_tr);
+        u8g2.drawStr(110, 10, "CV");
+        u8g2.drawStr(110, 23, "CC");
         u8g2.setDrawColor(2);
-        u8g2.drawBox(104, 3, 23, 12); // CV
+        u8g2.drawBox(104, 0, 23, 12); // CV
     }
+    //End-Dynamic component
 
     //Blinking cursor
-    if(timerFlag1)
+    if(timerFlag1 && (state==State::NORMAL_PPS || state == State::NORMAL_QC))
     {
         if(supply_adjust_mode == VOTLAGE_ADJUST)
             u8g2.drawLine(voltage_cursor_position[voltageIncrementIndex],28,voltage_cursor_position[voltageIncrementIndex] + 5,28);

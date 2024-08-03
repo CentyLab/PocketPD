@@ -22,7 +22,9 @@ class Menu
 {
     public:
         Menu(U8G2_SSD1306_128X64_NONAME_F_HW_I2C* oled, AP33772* usb, RotaryEncoder* encoder, Button* button_encoder, Button* button_output, Button* button_selectVI);
-        void get_numPDO();
+        uint8_t numPDO; //include both fixed PDO and PPS
+        int menuPosition;
+        //void get_numPDO();
         void set_qc3flag(bool flag);
         void page_selectCapability();
         void page_bootProfile();
@@ -33,8 +35,7 @@ class Menu
         Button* _button_encoder;
         Button* _button_output;
         Button* _button_selectVI;
-        int menuPosition;
-        uint8_t _numPDO; //include both fixed PDO and PPS
+        
         bool qc3_0available;
     
 };

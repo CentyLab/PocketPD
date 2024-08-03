@@ -28,3 +28,12 @@ if(value != 0)
 else
     //Not connected to PC
 ```
+
+
+Code structure note:
+Right now the statemachine is handlding the voltage calling as well as OLED update. 
+OLED update function is a one big function that is now taking in 1 flag to determine what to display and what not to display.
+
+Increments.. is currently one single global variable but PPS and QC has different adjustment.
+
+Best if each stage has its own OLED print method, and increment setting or button mapping.
