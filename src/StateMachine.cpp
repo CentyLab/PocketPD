@@ -7,7 +7,7 @@ bool StateMachine::timerFlag1 = false; //Need to initilize Static variable
 
 
 /**
- * @brief update() transistion condition between states. Call in main.cpp
+ * @brief Transistion conditions between states. Call in main.cpp
  */
 void StateMachine::update()
 {
@@ -97,7 +97,7 @@ void StateMachine::update()
 } 
 
 /**
- * @brief getState() return current state in string
+ * @return Return current state in string
  */
 const char* StateMachine::getState()
 {
@@ -189,7 +189,9 @@ void StateMachine::timerISR1()
     timerFlag1 = !timerFlag1; //toggle
 }
 
-
+/**
+ * @brief Tasks for Boot state
+ */
 void StateMachine::handleBootState()
 {
     if (!bootInitialized) 
@@ -210,6 +212,9 @@ void StateMachine::handleBootState()
         Serial.println( "Handling BOOT state" );
 }
 
+/**
+ * @brief Tasks for Obtain state
+ */
 void StateMachine::handleObtainState()
 {
     if (!obtainInitialized) 
@@ -226,9 +231,12 @@ void StateMachine::handleObtainState()
         // Add additional BOOT state routines here
 
         //* END state routine */
-        Serial.println( "Handling BOOT state" );
+        //Serial.println( "Handling BOOT state" );
 }
 
+/**
+ * @brief Tasks for DisplayCapability state
+ */
 void StateMachine::handleDisplayCapState()
 {
     if(!displayCapInitialized)
@@ -242,27 +250,30 @@ void StateMachine::handleDisplayCapState()
             displayCapInitialized = true;
         }
         // Add CAPABILITY state routines here
-        Serial.println( "Handling CAPABILITY state" );
+        //Serial.println( "Handling CAPABILITY state" );
 }
 
+/**
+ * @brief Tasks for Normal with PPS state
+ */
 void StateMachine::handleNormalPPSState()
 {
     //Run once
     if(!normalPPSInitialized)
     {
+        //* BEGIN Only run once when entering the state */
         targetVoltage = 5000; //Default start up voltage
         targetCurrent = 1000; //Default start up current
 
         supply_adjust_mode = VOTLAGE_ADJUST;
         usbpd.setSupplyVoltageCurrent(targetVoltage, targetCurrent);
 
+        //* END Only run once when entering the state */
         normalPPSInitialized = true;
         Serial.println( "Initialized NORMAL_PPS state" );
     }
 
-    //START Routine 
-    
-
+    //* BEGIN state routine */
     if(timerFlag0)
     {
         ina_current_ma = abs(ina226.getCurrent_mA());
@@ -304,30 +315,31 @@ void StateMachine::handleNormalPPSState()
     }
     process_request_voltage_current();
     
-    //END Routine 
+    //* END state routine */
     //Serial.println( "Handling NORMAL_PPS state" );
 }
 
 /**
- * In NormalPDO we only want to display
- * Reading Voltage and Current. We should also display max current allow
+ * @brief Tasks for Normal with fixed PDO state
  */
 void StateMachine::handleNormalPDOState()
 {
     //Run once
     if(!normalPDOInitialized)
     {
+        //* BEGIN Only run once when entering the state */
         usbpd.setPDO(menu.menuPosition);
         //Now targetVoltage/targetCurrent is just for display. Do not pass over to AP33772
         targetVoltage = usbpd.getPDOVoltage(menu.menuPosition); //For display
         targetCurrent = usbpd.getPDOMaxcurrent(menu.menuPosition); //For display
         supply_adjust_mode = VOTLAGE_ADJUST;
         
+        //* END Only run once when entering the state */
         normalPDOInitialized = true;
         Serial.println( "Initialized NORMAL_PDO state" );
     }
 
-    //START Routine 
+    //* BEGIN state routine */ 
     float ina_current_ma = abs(ina226.getCurrent_mA());
     
     if(timerFlag0)
@@ -352,21 +364,26 @@ void StateMachine::handleNormalPDOState()
         digitalWrite(pin_output_Enable, !digitalRead(pin_output_Enable));
     }
     
-    //END Routine 
+    //* END state routine */
     //Serial.println( "Handling NORMAL_PDO state" );
 }
 
+/**
+ * @brief tasks for Normal with QC3.0 state
+ */
 void StateMachine::handleNormalQCState()
 {
     //Run once
     if(!normalQCInitialized)
     {
+        //* BEGIN Only run once when entering the state */
         //TODO QC implmentation
+        //* END Only run once when entering the state */
         normalQCInitialized = true;
         Serial.println( "Initialized NORMAL_QC state" );
     }
 
-    //START Routine 
+    //* BEGIN state routine */
     float ina_current_ma = abs(ina226.getCurrent_mA());
     
     if(timerFlag0)
@@ -388,18 +405,25 @@ void StateMachine::handleNormalQCState()
     }
     //TODO QC implmentation
 
-    //END Routine 
+    //* END state routine */
     //Serial.println( "Handling NORMAL_QC state" );
 }
 
-
+/**
+ * @brief Tasks for Menu state. Just a wrapper function
+ */
 void StateMachine::handleMenuState(){
-    // Add MENU state routines here
+    //* BEGIN state routine */
     menu.page_selectCapability();
+    //* END state routine */
     //Check out https://github.com/shuzonudas/monoview/blob/master/U8g2/Examples/Menu/simpleMenu/simpleMenu.ino
-    Serial.println( "Handling MENU state" );
+    //Serial.println( "Handling MENU state" );
 }
 
+/**
+ * @brief transitionTo perform flags clear before transisiton. Enable entry tasks in each state.
+ * @param State::newstate input the next state to transistion
+ */
 void StateMachine::transitionTo(State newState)
 {     
         //Ex: Print: Transitioning from BOOT to CAPABILITY
@@ -439,8 +463,15 @@ void StateMachine::printBootingScreen()
     u8g2.sendBuffer();
 }
 
+/**
+ * @brief Update value on OLED screen
+ * @param voltage voltage (mV) to display, big text
+ * @param current current (mA) to display, big text
+ * @param requestEN flag to show/not show smaller text. Used for PPS request.
+ */
 void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
 {
+    // TODO Can optimize away requestEN
     u8g2.clearBuffer();
     u8g2.setFontMode(1);
     u8g2.setBitmapMode(1);
@@ -522,8 +553,8 @@ void StateMachine::update_supply_mode()
 
 
 /**
-   * Print out PPS/PDO profiles
-  */
+ * @brief Print out PPS/PDO profiles onto OLED
+ */
 void StateMachine::printProfile()
 {
     int linelocation = 9;
@@ -572,7 +603,6 @@ void StateMachine::printProfile()
 }
 
 /**
- * update_request_voltage_current
  * @brief Read changes from encoder, compute request voltage/current
  * Sent request to AP33772 to update
  */
