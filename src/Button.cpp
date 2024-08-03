@@ -28,7 +28,7 @@ int Button::isButtonPressed (void)
             return 1;
     }
 
-    //TODO: Trim implementation, right now you have two way if signaling longpress
+    //TODO: Trim implementation, right now you have two way of signaling longpress
     // One is the return of the function, one is the longPressedFlag
     if(isPressing == true && isLongDetected == false)
     {

@@ -24,7 +24,7 @@ void StateMachine::update()
                     | button_output.isButtonPressed() 
                     | button_selectVI.isButtonPressed())  
                         == 1) //Short press
-                    transitionTo(State::NORMAL);
+                    transitionTo(State::NORMAL_PPS);
                 else if(elapsed >= OBTAIN_TO_CAPDISPLAY_TIMEOUT)
                     transitionTo(State::CAPDISPLAY);
                 break;
@@ -35,14 +35,30 @@ void StateMachine::update()
                     | button_output.isButtonPressed() 
                     | button_selectVI.isButtonPressed())  
                         == 1) //Short press
-                    transitionTo(State::NORMAL);
+                    transitionTo(State::NORMAL_PPS);
                 else if (elapsed >= DISPLAYCCAP_TO_NORMAL_TIMEOUT)
-                    transitionTo(State::NORMAL);
+                    transitionTo(State::NORMAL_PPS);
                 break;
 
-            case State::NORMAL:
-                handleNormalState();
-                if (button_selectVI.longPressedFlag) //Long press
+            case State::NORMAL_PPS:
+                handleNormalPPSState();
+                if (button_selectVI.longPressedFlag) //Long press isButtonPressed() is called inside the state
+                {
+                    button_selectVI.clearLongPressedFlag();
+                    transitionTo(State::MENU);
+                }  
+                break;
+            case State::NORMAL_PDO:
+                handleNormalPDOState();
+                if (button_selectVI.longPressedFlag) //Long press isButtonPressed() is called inside the state
+                {
+                    button_selectVI.clearLongPressedFlag();
+                    transitionTo(State::MENU);
+                }  
+                break;
+            case State::NORMAL_QC:
+                handleNormalQCState();
+                if (button_selectVI.longPressedFlag) //Long press isButtonPressed() is called inside the state
                 {
                     button_selectVI.clearLongPressedFlag();
                     transitionTo(State::MENU);
@@ -59,7 +75,7 @@ void StateMachine::update()
                 if (button_selectVI.longPressedFlag) //Long press
                 {
                     button_selectVI.clearLongPressedFlag();
-                    transitionTo(State::NORMAL);
+                    transitionTo(State::NORMAL_PPS);
                 }
                 break;
         }
@@ -72,7 +88,9 @@ const char* StateMachine::getState()
         case State::BOOT: return "BOOT";
         case State::OBTAIN: return "OBTAIN";
         case State::CAPDISPLAY: return "CAPABILITY";
-        case State::NORMAL: return "NORMAL";
+        case State::NORMAL_PPS: return "NORMAL_PPS";
+        case State::NORMAL_PDO: return "NORMAL_PDO";
+        case State::NORMAL_QC: return "NORMAL_QC";
         case State::MENU: return "MENU";
         default: return "UNKNOWN";
     }
@@ -106,6 +124,24 @@ void StateMachine::componentInit()
     targetCurrent = 1000; //Default start up current
     voltageIncrementIndex = 0; // 20mV
     currentIncrementIndex = 0; // 50mA
+
+    //Setup timmer:
+    hw_set_bits(&timer_hw->inte, 1u << ALARM_NUM0) ;
+    // Associate an interrupt handler with the ALARM_IRQ
+    irq_set_exclusive_handler(ALARM_IRQ0, timerISR0) ;
+    // Enable the alarm interrupt
+    irq_set_enabled(ALARM_IRQ0, true) ;
+    // Write the lower 32 bits of the target time to the alarm register, arming it.
+    timer_hw->alarm[ALARM_NUM0] = timer_hw->timerawl + DELAY0 ;
+
+    //Set up 1s timer using timer1
+    hw_set_bits(&timer_hw->inte, 1u << ALARM_NUM1) ;
+    // Associate an interrupt handler with the ALARM_IRQ
+    irq_set_exclusive_handler(ALARM_IRQ1, timerISR1) ;
+    // Enable the alarm interrupt
+    irq_set_enabled(ALARM_IRQ1, true) ;
+    // Write the lower 32 bits of the target time to the alarm register, arming it.
+    timer_hw->alarm[ALARM_NUM1] = timer_hw->timerawl + DELAY1 ;
 }
 
 //Only need to declare static in header files
@@ -181,46 +217,27 @@ void StateMachine::handleObtainState()
 void StateMachine::handleDisplayCapState()
 {
     if(!displayCapInitialized)
-      {
+        {
         //* BEGIN Only run once when entering the state */
             //led.turnOn(); // Turn on the LED when entering the BOOT state
             printProfile();
             usbpd.setSupplyVoltageCurrent(targetVoltage, targetCurrent);
         
-
-          //* END Only run once when entering the state */
-          displayCapInitialized = true;
-      }
+            //* END Only run once when entering the state */
+            displayCapInitialized = true;
+        }
         // Add CAPABILITY state routines here
         Serial.println( "Handling CAPABILITY state" );
 }
 
-void StateMachine::handleNormalState()
+void StateMachine::handleNormalPPSState()
 {
-    if(!normalInitialized)
+    if(!normalPPSInitialized)
     {
-        //Set up 100ms timer using timer0
-        hw_set_bits(&timer_hw->inte, 1u << ALARM_NUM0) ;
-        // Associate an interrupt handler with the ALARM_IRQ
-        irq_set_exclusive_handler(ALARM_IRQ0, timerISR0) ;
-        // Enable the alarm interrupt
-        irq_set_enabled(ALARM_IRQ0, true) ;
-        // Write the lower 32 bits of the target time to the alarm register, arming it.
-        timer_hw->alarm[ALARM_NUM0] = timer_hw->timerawl + DELAY0 ;
-
-        //Set up 1s timer using timer1
-        hw_set_bits(&timer_hw->inte, 1u << ALARM_NUM1) ;
-        // Associate an interrupt handler with the ALARM_IRQ
-        irq_set_exclusive_handler(ALARM_IRQ1, timerISR1) ;
-        // Enable the alarm interrupt
-        irq_set_enabled(ALARM_IRQ1, true) ;
-        // Write the lower 32 bits of the target time to the alarm register, arming it.
-        timer_hw->alarm[ALARM_NUM1] = timer_hw->timerawl + DELAY1 ;
-        
-
         supply_adjust_mode = VOTLAGE_ADJUST;
         
-        normalInitialized = true;
+        normalPPSInitialized = true;
+        Serial.println( "Initialized NORMAL_PPS state" );
     }
 
     //START Routine 
@@ -230,11 +247,11 @@ void StateMachine::handleNormalState()
     {
         if(digitalRead(pin_output_Enable))
         {
-            updateOLED( ina226.getBusVoltage_mV() /1000.0, ina_current_ma/1000);
+            updateOLED( ina226.getBusVoltage_mV() /1000.0, ina_current_ma/1000, true);
         }
         else
         {
-            updateOLED(usbpd.readVoltage() /1000.0, ina_current_ma/1000);
+            updateOLED(usbpd.readVoltage() /1000.0, ina_current_ma/1000, true);
         }
         timerFlag0 = false;
     }
@@ -255,17 +272,54 @@ void StateMachine::handleNormalState()
     {
         if(supply_adjust_mode == VOTLAGE_ADJUST)    supply_adjust_mode = CURRENT_ADJUST;
         else                                        supply_adjust_mode = VOTLAGE_ADJUST;
-
-
     }
+    
     if(button_output.isButtonPressed() == 1)
     {
         digitalWrite(pin_output_Enable, !digitalRead(pin_output_Enable));
     }
     process_request_voltage_current();
+    update_supply_mode();
     //END Routine 
-    Serial.println( "Handling NORMAL state" );
+    Serial.println( "Handling NORMAL_PPS state" );
 }
+
+/**
+ * In NormalPDO we only want to display
+ * Reading Voltage and Current. We should also display max current allow
+ */
+void StateMachine::handleNormalPDOState()
+{
+    //Routine
+    float ina_current_ma = abs(ina226.getCurrent_mA());
+    
+    if(timerFlag0)
+    {
+        if(digitalRead(pin_output_Enable))
+        {
+            updateOLED( ina226.getBusVoltage_mV() /1000.0, ina_current_ma/1000, false);
+        }
+        else
+        {
+            updateOLED(usbpd.readVoltage() /1000.0, ina_current_ma/1000, false);
+        }
+        timerFlag0 = false;
+    }
+
+    if(button_output.isButtonPressed() == 1)
+    {
+        digitalWrite(pin_output_Enable, !digitalRead(pin_output_Enable));
+    }
+    
+    //END Routine 
+    Serial.println( "Handling NORMAL_PDO state" );
+}
+
+void StateMachine::handleNormalQCState()
+{
+
+}
+
 
 void StateMachine::handleMenuState(){
     // Add MENU state routines here
@@ -280,7 +334,7 @@ void StateMachine::transitionTo(State newState)
         Serial.print("Transitioning from ");
         Serial.print(getState());
         Serial.print("to ");
-        Serial.println((newState == State::BOOT ? "BOOT" :newState == State::CAPDISPLAY ? "CAPABILITY" :newState == State::NORMAL ? "NORMAL" :"MENU"));
+        Serial.println((newState == State::BOOT ? "BOOT" :newState == State::CAPDISPLAY ? "CAPABILITY" :newState == State::NORMAL_PPS ? "NORMAL" :"MENU"));
 
         state = newState;
         startTime = millis();
@@ -294,6 +348,13 @@ void StateMachine::transitionTo(State newState)
         if (newState == State::CAPDISPLAY) {
             displayCapInitialized = false; // Reset the initialization flag when entering CAPDISPLAY
         }
+        if (newState == State::NORMAL_PPS ||
+            newState == State::NORMAL_PDO ||
+            newState == State::NORMAL_QC  ) {
+            normalPPSInitialized = false; // Reset the initialization flag when entering CAPDISPLAY
+            normalPDOInitialized = false;
+            normalQCInitialized = false;
+        }
         buttonPressed = false; // Reset button press flag when transitioning to another state
 }
 
@@ -305,7 +366,7 @@ void StateMachine::printBootingScreen()
     u8g2.sendBuffer();
 }
 
-void StateMachine::updateOLED(float voltage, float current)
+void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
 {
     u8g2.clearBuffer();
     u8g2.setFontMode(1);
@@ -333,12 +394,14 @@ void StateMachine::updateOLED(float voltage, float current)
     u8g2.drawStr(75-u8g2.getStrWidth(buffer), 47, buffer); //Right adjust
 
     //https://github.com/olikraus/u8g2/discussions/2028
+    if(requestEN == 1){
     u8g2.setFont(u8g2_font_profont15_tr);
     sprintf(buffer, "%d mV", targetVoltage);
     u8g2.drawStr(75-u8g2.getStrWidth(buffer), 27, buffer); //Right adjust
     sprintf(buffer, "%d mA", targetCurrent);
     u8g2.drawStr(75-u8g2.getStrWidth(buffer), 62, buffer); //Right adjust
     u8g2.setFont(u8g2_font_profont12_tr);
+    }
     if(supply_mode) //CV = 0, CC = 1
     {
         u8g2.drawStr(110, 13, "CV");
@@ -365,6 +428,19 @@ void StateMachine::updateOLED(float voltage, float current)
 
     u8g2.sendBuffer();
 }
+
+void StateMachine::update_supply_mode()
+{
+    
+    if( state == State::OBTAIN && 
+        usbpd.existPPS && 
+        (targetVoltage >= (vbus_voltage + ina_current_ma*0.314 + 50)) && 
+        digitalRead(pin_output_Enable) ) //0.25Ohm for max round trip resistance + 0.02 Ohm for connector + 0.044 Ohm switch + 50mV margin
+    supply_mode = MODE_CC;
+    else // Other state only display CV mode
+    supply_mode = MODE_CV; 
+}
+
 
 /**
    * Print out PPS/PDO profiles

@@ -18,7 +18,8 @@
 
 
 
-enum class State {BOOT, OBTAIN, CAPDISPLAY, NORMAL, MENU};
+enum class State {BOOT, OBTAIN, CAPDISPLAY, NORMAL_PPS, NORMAL_PDO, NORMAL_QC, MENU};
+enum Supply_Profile {PROFILE_PPS, PROFILE_PDO, PROFILE_QC};
 enum Supply_Mode {MODE_CV, MODE_CC};
 enum Supply_Capability {NON_PPS, WITH_PPS};
 enum Supply_Adjust_Mode {VOTLAGE_ADJUST, CURRENT_ADJUST};
@@ -36,7 +37,9 @@ class StateMachine {
             bootInitialized(false), 
             obtainInitialized(false),
             displayCapInitialized(false),
-            normalInitialized(false),
+            normalPPSInitialized(false),
+            normalPDOInitialized(false),
+            normalQCInitialized(false),
             button_encoder(pin_encoder_SW),
             button_output(pin_button_outputSW),
             button_selectVI(pin_button_selectVI),
@@ -64,7 +67,9 @@ class StateMachine {
         bool bootInitialized;
         bool obtainInitialized;
         bool displayCapInitialized;
-        bool normalInitialized;
+        bool normalPPSInitialized;
+        bool normalPDOInitialized;
+        bool normalQCInitialized;
         bool buttonPressed;
 
         static bool timerFlag0;
@@ -89,16 +94,21 @@ class StateMachine {
         static constexpr int voltage_cursor_position[] = {40, 33, 26};
         static constexpr int current_cursor_position[] = {41, 34};
         void componentInit();
+
         void handleBootState();
         void handleObtainState();
         void handleDisplayCapState();
-        void handleNormalState();
+        void handleNormalPPSState();
+        void handleNormalPDOState();
+        void handleNormalQCState();
         void handleMenuState();
+
         void transitionTo(State newState);
         void printBootingScreen();
         void printProfile();
         void printOLED_fixed();
-        void updateOLED(float voltage, float current);
+        void updateOLED(float voltage, float current, uint8_t requestEN);
+        void update_supply_mode();
         
         void process_request_voltage_current();
         static void encoderISR();
