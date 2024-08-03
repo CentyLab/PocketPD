@@ -6,8 +6,8 @@ List of requested UI changes:
 + [x] Pressing encoder in current mode can change between 50mA to 200mA
 + [x] Skipping bootup screen by pressing any button
 + [ ] Default is PPS but turning knob at bootup screen to select desire profile (PPS, PDO, QC3.0).
-+ [ ] Corner of the screen now display protocol PPS, Fixed, or QC3.0
-+ [ ] Addition all menu afterboot up to switch between mode if long press Voltage/Current button
++ [x] Corner of the screen now display protocol PPS, Fixed, or QC3.0
++ [x] Addition all menu afterboot up to switch between mode if long press Voltage/Current button
 
 
 Nice to have, add QC3.0 support:
