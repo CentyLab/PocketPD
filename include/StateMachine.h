@@ -82,7 +82,7 @@ class StateMachine {
         int voltageIncrement[3];
         int currentIncrement[2];
         float ina_current_ma;   // Unit
-        float vbus_voltage;     // Unit mV
+        float vbus_voltage_mv;     // Unit mV
         int encoder_position;
         int encoder_newPos;
         Supply_Mode supply_mode;

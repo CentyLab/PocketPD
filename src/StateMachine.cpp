@@ -6,6 +6,9 @@ bool StateMachine::timerFlag0 = false; //Need to initilize Static variable
 bool StateMachine::timerFlag1 = false; //Need to initilize Static variable
 
 
+/**
+ * @brief update() transistion condition between states. Call in main.cpp
+ */
 void StateMachine::update()
 {
     auto now = millis();
@@ -20,11 +23,13 @@ void StateMachine::update()
 
             case State::OBTAIN:
                 handleObtainState();
-                if ((button_encoder.isButtonPressed() 
+                if (button_encoder.isButtonPressed() 
                     | button_output.isButtonPressed() 
-                    | button_selectVI.isButtonPressed())  
-                        == 1) //Short press
-                    transitionTo(State::NORMAL_PPS);
+                    | button_selectVI.isButtonPressed()) //Short press
+                    if(usbpd.existPPS)
+                        transitionTo(State::NORMAL_PPS);
+                    else
+                        transitionTo(State::NORMAL_PDO);
                 else if(elapsed >= OBTAIN_TO_CAPDISPLAY_TIMEOUT)
                     transitionTo(State::CAPDISPLAY);
                 break;
@@ -33,11 +38,12 @@ void StateMachine::update()
                 handleDisplayCapState();
                 if ((button_encoder.isButtonPressed() 
                     | button_output.isButtonPressed() 
-                    | button_selectVI.isButtonPressed())  
-                        == 1) //Short press
-                    transitionTo(State::NORMAL_PPS);
-                else if (elapsed >= DISPLAYCCAP_TO_NORMAL_TIMEOUT)
-                    transitionTo(State::NORMAL_PPS);
+                    | button_selectVI.isButtonPressed()
+                    | elapsed >= DISPLAYCCAP_TO_NORMAL_TIMEOUT)  ) //Short press + timeout
+                    if(usbpd.existPPS)
+                        transitionTo(State::NORMAL_PPS);
+                    else
+                        transitionTo(State::NORMAL_PDO);
                 break;
 
             case State::NORMAL_PPS:
@@ -90,7 +96,9 @@ void StateMachine::update()
         }
 } 
 
-
+/**
+ * @brief getState() return current state in string
+ */
 const char* StateMachine::getState()
 {
     switch (state) {
@@ -132,7 +140,7 @@ void StateMachine::componentInit()
     voltageIncrementIndex = 0; // 20mV
     currentIncrementIndex = 0; // 50mA
 
-    //Setup timmer:
+    //Set up 100ms timer using timer0
     hw_set_bits(&timer_hw->inte, 1u << ALARM_NUM0) ;
     // Associate an interrupt handler with the ALARM_IRQ
     irq_set_exclusive_handler(ALARM_IRQ0, timerISR0) ;
@@ -244,25 +252,31 @@ void StateMachine::handleNormalPPSState()
     {
         targetVoltage = 5000; //Default start up voltage
         targetCurrent = 1000; //Default start up current
+
         supply_adjust_mode = VOTLAGE_ADJUST;
-        
+        usbpd.setSupplyVoltageCurrent(targetVoltage, targetCurrent);
+
         normalPPSInitialized = true;
         Serial.println( "Initialized NORMAL_PPS state" );
     }
 
     //START Routine 
-    float ina_current_ma = abs(ina226.getCurrent_mA());
     
+
     if(timerFlag0)
     {
+        ina_current_ma = abs(ina226.getCurrent_mA());
+        vbus_voltage_mv = ina226.getBusVoltage_mV();
+
         if(digitalRead(pin_output_Enable))
         {
-            updateOLED( ina226.getBusVoltage_mV() /1000.0, ina_current_ma/1000, true);
+            updateOLED( vbus_voltage_mv /1000.0, ina_current_ma/1000, true);
         }
         else
         {
             updateOLED(usbpd.readVoltage() /1000.0, ina_current_ma/1000, true);
         }
+        update_supply_mode();
         timerFlag0 = false;
     }
 
@@ -289,9 +303,9 @@ void StateMachine::handleNormalPPSState()
         digitalWrite(pin_output_Enable, !digitalRead(pin_output_Enable));
     }
     process_request_voltage_current();
-    update_supply_mode();
+    
     //END Routine 
-    Serial.println( "Handling NORMAL_PPS state" );
+    //Serial.println( "Handling NORMAL_PPS state" );
 }
 
 /**
@@ -313,7 +327,46 @@ void StateMachine::handleNormalPDOState()
         Serial.println( "Initialized NORMAL_PDO state" );
     }
 
-    //Routine
+    //START Routine 
+    float ina_current_ma = abs(ina226.getCurrent_mA());
+    
+    if(timerFlag0)
+    {
+        ina_current_ma = abs(ina226.getCurrent_mA());
+        vbus_voltage_mv = ina226.getBusVoltage_mV();
+
+        if(digitalRead(pin_output_Enable))
+        {
+            updateOLED( vbus_voltage_mv /1000.0, ina_current_ma/1000, true);
+        }
+        else
+        {
+            updateOLED(usbpd.readVoltage() /1000.0, ina_current_ma/1000, true);
+        }
+        update_supply_mode();
+        timerFlag0 = false;
+    }
+
+    if(button_output.isButtonPressed() == 1)
+    {
+        digitalWrite(pin_output_Enable, !digitalRead(pin_output_Enable));
+    }
+    
+    //END Routine 
+    //Serial.println( "Handling NORMAL_PDO state" );
+}
+
+void StateMachine::handleNormalQCState()
+{
+    //Run once
+    if(!normalQCInitialized)
+    {
+        //TODO QC implmentation
+        normalQCInitialized = true;
+        Serial.println( "Initialized NORMAL_QC state" );
+    }
+
+    //START Routine 
     float ina_current_ma = abs(ina226.getCurrent_mA());
     
     if(timerFlag0)
@@ -333,14 +386,10 @@ void StateMachine::handleNormalPDOState()
     {
         digitalWrite(pin_output_Enable, !digitalRead(pin_output_Enable));
     }
-    
+    //TODO QC implmentation
+
     //END Routine 
-    //Serial.println( "Handling NORMAL_PDO state" );
-}
-
-void StateMachine::handleNormalQCState()
-{
-
+    //Serial.println( "Handling NORMAL_QC state" );
 }
 
 
@@ -403,13 +452,13 @@ void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
     u8g2.setFont(u8g2_font_profont12_tr);
     switch (state){
         case State::NORMAL_PPS:
-            u8g2.drawStr(110, 58, "PPS"); //TODO update according to mode
+            u8g2.drawStr(110, 58, "PPS");
             break;
         case State::NORMAL_PDO:
-            u8g2.drawStr(110, 58, "PDO"); //TODO update according to mode
+            u8g2.drawStr(110, 58, "PDO");
             break;
         case State::NORMAL_QC:
-            u8g2.drawStr(110, 58, "QC3.0"); //TODO update according to mode
+            u8g2.drawStr(110, 58, "QC3.0");
             break;
     }
     //End-Fixed Component
@@ -462,14 +511,13 @@ void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
 
 void StateMachine::update_supply_mode()
 {
-    
-    if( state == State::OBTAIN && 
-        usbpd.existPPS && 
-        (targetVoltage >= (vbus_voltage + ina_current_ma*0.314 + 50)) && 
+    if( state == State::NORMAL_PPS && 
+        (targetVoltage >= (vbus_voltage_mv + ina_current_ma*0.314 + 50)) && 
         digitalRead(pin_output_Enable) ) //0.25Ohm for max round trip resistance + 0.02 Ohm for connector + 0.044 Ohm switch + 50mV margin
     supply_mode = MODE_CC;
     else // Other state only display CV mode
     supply_mode = MODE_CV; 
+    Serial.println(vbus_voltage_mv + ina_current_ma*0.314 + 50);
 }
 
 
