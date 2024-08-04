@@ -15,6 +15,37 @@ flowchart LR
     C --> |Short Press any button|D
 ```
 
+## Operational manual
+If your charger support PPS (Programable Power Supply) mode, the charger will first enter BOOT screen.
+<center><img src="media/bootscreen.jpg" width="400" height="400"></center>
+The system will then display the available profile from the charger.
+<center><img src="media/ppsprofile.jpg" width="400" height="400"></center>
+After 3 seconds, the system will enter operating mode. If PPS mode exist, the system will request 5V @ 1A
+<center><img src="media/normalpps.jpg" width="400" height="400"></center>
+
+In NROMAL state:
++ Turning the encoder to increase/decrease voltage/current
++ Short press encoder to change increment from fine to corse
++ Short press Volt/Amp button to switch between adjusting Voltage or Current
++ Short press On/Off button to enable output
++ Long press Volt/Amp to enter MENU
+
+In MENU state:
++ Turning the encoder to select profile
++ Long press encoder to activate profile
++ Long press Volt/Amp to return to normal operation and cancel profile change
+
+<center><img src="media/ppsmenu.jpg" width="400" height="400"></center>
+
+Example when select 5V @ 3A profile 
+
+<center><img src="media/normalpdo5V.jpg" width="400" height="400"></center>
+
+<br>
+
+**Note**: If your charger doesn't support PPS profile, PocketPD will directly boot into the first 5V PDO profile. Your menu will looks like this:
+
+<center><img src="media/pdoprofile.jpg" width="400" height="400"></center>
 
 ## Compile the code
 + You will need [VSCode](https://code.visualstudio.com/download) with [Platform IO extension](https://docs.platformio.org/en/latest/integration/ide/vscode.html#installation).
@@ -36,3 +67,5 @@ You can mount the PocketPD as a removable drive by:
 + Short the BOOT pads at the back of the device with a tweezer, then plug the USB into your PC.
 
 Then you drag and drop the firmware.uf2 from .pio/build/pico/ in to the drive
+
+Detail guide [How to upload new firmware to PocketPD](https://github.com/CentyLab/PocketPD/wiki/How-to-upload-new-firmware-to-PocketPD)
