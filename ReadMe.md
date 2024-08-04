@@ -13,6 +13,8 @@ flowchart LR
     D --> |Long Press V/I|E[Menu]
     B --> |Short Press any button|D
     C --> |Short Press any button|D
+    E --> |Long Press V/I|D
+    E --> |Long Press Encoder|D
 ```
 
 ## Operational manual
@@ -36,15 +38,15 @@ After 3 seconds, the system will enter operating mode. If PPS mode exist, the sy
 
 In NORMAL state:
 + Turning the encoder to increase/decrease voltage/current
-+ Short press encoder to change increment from fine to corse
++ Short press encoder to change increment from fine to coarse
 + Short press Volt/Amp button to switch between adjusting Voltage or Current
 + Short press On/Off button to enable output
-+ Long press Volt/Amp to enter MENU
++ Long press Volt/Amp button to enter MENU
 
 In MENU state:
 + Turning the encoder to select profile
 + Long press encoder to activate profile
-+ Long press Volt/Amp to return to normal operation and cancel profile change
++ Long press Volt/Amp button to return to normal operation and cancel profile change
 
 <p align="center" width="100%">
     <img width="40%" src="media/ppsmenu.jpg">
