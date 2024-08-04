@@ -17,11 +17,22 @@ flowchart LR
 
 ## Operational manual
 If your charger support PPS (Programable Power Supply) mode, the charger will first enter BOOT screen.
-<center><img src="media/bootscreen.jpg" width="400" height="400"></center>
+
+<p align="center" width="100%">
+    <img width="400" src="media/bootscreen.jpg">
+</p>
+
 The system will then display the available profile from the charger.
-<center><img src="media/ppsprofile.jpg" width="400" height="400"></center>
+
+<p align="center" width="100%">
+    <img width="400" src="media/ppsprofile.jpg">
+</p>
 After 3 seconds, the system will enter operating mode. If PPS mode exist, the system will request 5V @ 1A
-<center><img src="media/normalpps.jpg" width="400" height="400"></center>
+
+<p align="center" width="100%">
+    <img width="400" src="media/normalpps.jpg">
+</p>
+
 
 In NROMAL state:
 + Turning the encoder to increase/decrease voltage/current
@@ -35,17 +46,23 @@ In MENU state:
 + Long press encoder to activate profile
 + Long press Volt/Amp to return to normal operation and cancel profile change
 
-<center><img src="media/ppsmenu.jpg" width="400" height="400"></center>
+<p align="center" width="100%">
+    <img width="400" src="media/ppsmenu.jpg">
+</p>
 
 Example when select 5V @ 3A profile 
 
-<center><img src="media/normalpdo5V.jpg" width="400" height="400"></center>
-
+<p align="center" width="100%">
+    <img width="400" src="media/normalpdo5V.jpg">
+</p>
 <br>
 
 **Note**: If your charger doesn't support PPS profile, PocketPD will directly boot into the first 5V PDO profile. Your menu will looks like this:
 
-<center><img src="media/pdoprofile.jpg" width="400" height="400"></center>
+<p align="center" width="100%">
+    <img width="400" src="media/pdoprofile.jpg">
+</p>
+
 
 ## Compile the code
 + You will need [VSCode](https://code.visualstudio.com/download) with [Platform IO extension](https://docs.platformio.org/en/latest/integration/ide/vscode.html#installation).
