@@ -155,8 +155,8 @@ void AP33772::setPDO(uint8_t PDOindex)
 {
     uint8_t guarding;
 
-    if (PPSindex)
-        guarding = numPDO - 2;
+    if (PPSindex == 1)
+        {guarding = numPDO - 2;}
     else
         guarding = numPDO - 1; // Example array[4] only exist index 0,1,2,3
 

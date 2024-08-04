@@ -211,7 +211,7 @@ void StateMachine::handleBootState()
     // Add additional BOOT state routines here
 
     //* END state routine */
-    Serial.println("Handling BOOT state");
+    //Serial.println("Handling BOOT state");
 }
 
 /**
@@ -340,6 +340,7 @@ void StateMachine::handleNormalPDOState()
 
         //* END Only run once when entering the state */
         normalPDOInitialized = true;
+        Serial.println(usbpd.getNumPDO());
         Serial.println("Initialized NORMAL_PDO state");
     }
 
@@ -560,7 +561,6 @@ void StateMachine::update_supply_mode()
         supply_mode = MODE_CC;
     else // Other state only display CV mode
         supply_mode = MODE_CV;
-    Serial.println(vbus_voltage_mv + ina_current_ma * 0.314 + 50);
 }
 
 /**
