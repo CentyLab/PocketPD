@@ -19,18 +19,18 @@ flowchart LR
 If your charger support PPS (Programable Power Supply) mode, the charger will first enter BOOT screen.
 
 <p align="center" width="100%">
-    <img width="33%" src="media/bootscreen.jpg">
+    <img width="40%" src="media/bootscreen.jpg">
 </p>
 
 The system will then display the available profile from the charger.
 
 <p align="center" width="100%">
-    <img width="33%" src="media/ppsprofile.jpg">
+    <img width="40%" src="media/ppsprofile.jpg">
 </p>
 After 3 seconds, the system will enter operating mode. If PPS mode exist, the system will request 5V @ 1A
 
 <p align="center" width="100%">
-    <img width="33%" src="media/normalpps.jpg">
+    <img width="40%" src="media/normalpps.jpg">
 </p>
 
 
@@ -47,20 +47,20 @@ In MENU state:
 + Long press Volt/Amp to return to normal operation and cancel profile change
 
 <p align="center" width="100%">
-    <img width="33%" src="media/ppsmenu.jpg">
+    <img width="40%" src="media/ppsmenu.jpg">
 </p>
 
 Example when select 5V @ 3A profile 
 
 <p align="center" width="100%">
-    <img width="33%" src="media/normalpdo5V.jpg">
+    <img width="40%" src="media/normalpdo5V.jpg">
 </p>
 <br>
 
 **Note**: If your charger doesn't support PPS profile, PocketPD will directly boot into the first 5V PDO profile. Your menu will looks like this:
 
 <p align="center" width="100%">
-    <img width="33%" src="media/pdoprofile.jpg">
+    <img width="40%" src="media/pdoprofile.jpg">
 </p>
 
 
