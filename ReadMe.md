@@ -80,7 +80,9 @@ VCSBaseException: VCS: Could not process command ['git', 'clone', '--recursive',
 
 + Output of the build process will be in .pio/build/pico/
 
+
 ## How to flash new firmware
+
 You can mount the PocketPD as a removable drive by:
 + Plug the device into your PC. Open Putty and open a Serial port with 1200 Baudrate.
 + Short the BOOT pads at the back of the device with a tweezer, then plug the USB into your PC.
