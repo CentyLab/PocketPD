@@ -21,18 +21,19 @@
 #define CMD_RDO 0x30
 
 #define AP33772_ADDRESS 0x51
-#define READ_BUFF_LENGTH     30
-#define WRITE_BUFF_LENGTH    6
-#define SRCPDO_LENGTH        28
+#define READ_BUFF_LENGTH 30
+#define WRITE_BUFF_LENGTH 6
+#define SRCPDO_LENGTH 28
 
-typedef enum{
-  READY_EN    = 1 << 0, // 0000 0001
-  SUCCESS_EN  = 1 << 1, // 0000 0010
-  NEWPDO_EN   = 1 << 2, // 0000 0100
-  OVP_EN      = 1 << 4, // 0001 0000
-  OCP_EN      = 1 << 5, // 0010 0000
-  OTP_EN      = 1 << 6, // 0100 0000
-  DR_EN       = 1 << 7  // 1000 0000
+typedef enum
+{
+  READY_EN = 1 << 0,   // 0000 0001
+  SUCCESS_EN = 1 << 1, // 0000 0010
+  NEWPDO_EN = 1 << 2,  // 0000 0100
+  OVP_EN = 1 << 4,     // 0001 0000
+  OCP_EN = 1 << 5,     // 0010 0000
+  OTP_EN = 1 << 6,     // 0100 0000
+  DR_EN = 1 << 7       // 1000 0000
 } AP33772_MASK;
 
 typedef struct
@@ -156,6 +157,7 @@ public:
   AP33772(TwoWire &wire = Wire);
   void begin();
   void setVoltage(int targetVoltage); // Unit in mV
+  void setPDO(uint8_t PDOindex);
   void setMaxCurrent(int targetMaxCurrent); // Unit in mA
   void setNTC(int TR25, int TR50, int TR75, int TR100);
   void setDeratingTemp(int temperature);
@@ -177,7 +179,7 @@ public:
   int getPPSMaxVoltage(uint8_t PPSindex);
   int getPPSMaxCurrent(uint8_t PPSindex);
   void setSupplyVoltageCurrent(int targetVoltage, int targetCurrent);
-  byte existPPS = 0;  // PPS flag for setVoltage()
+  byte existPPS = 0; // PPS flag for setVoltage()
 
 private:
   void i2c_read(byte slvAddr, byte cmdAddr, byte len);
@@ -188,9 +190,9 @@ private:
   byte numPDO = 0;    // source PDO number
   byte indexPDO = 0;  // PDO index, start from index 0
   int reqPpsVolt = 0; // requested PPS voltage, unit:20mV
-  
-  int8_t PPSindex = 8; 
-  
+
+  int8_t PPSindex = 8;
+
   AP33772_STATUS_T ap33772_status = {0};
   EVENT_FLAG_T event_flag = {0};
   RDO_DATA_T rdoData = {0};

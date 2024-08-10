@@ -4,8 +4,8 @@
 #define pin_encoder_A       19             // Rotary encoder Pin A //CLK
 #define pin_encoder_B       20            // Rotary encoder Pin B //DATA
 
-#define pin_output_Enable         1
-#define pin_button_outputSW    10
+#define pin_output_Enable    1
+#define pin_button_outputSW  10
 #define pin_button_selectVI  11
 
 
