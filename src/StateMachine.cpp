@@ -555,9 +555,10 @@ void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
 
 void StateMachine::update_supply_mode()
 {
-    if (state == State::NORMAL_PPS &&
-        (targetVoltage >= (vbus_voltage_mv + ina_current_ma * 0.314 + 50)) &&
-        digitalRead(pin_output_Enable)) // 0.25Ohm for max round trip resistance + 0.02 Ohm for connector + 0.044 Ohm switch + 50mV margin
+    if (state == State::NORMAL_PPS &&                                                       //Only PPS haas current limit
+        (targetVoltage >= (vbus_voltage_mv + ina_current_ma * 0.292 + 50)) &&               //Read voltage much be lower than set voltage + margin for voltage drop
+        (ina_current_ma >= targetCurrent * 0.9 || ina_current_ma <= targetCurrent * 1.1) && //Make sure current read is with in 90%-110% of the set limit
+        digitalRead(pin_output_Enable)) // 0.25Ohm for max round trip resistance + 0.02 Ohm for connector + 0.022 Ohm switch + 50mV margin
         supply_mode = MODE_CC;
     else // Other state only display CV mode
         supply_mode = MODE_CV;
