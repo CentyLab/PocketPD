@@ -8,7 +8,8 @@ List of requested UI changes:
 + [ ] Default is PPS but turning knob at bootup screen to select desire profile (PPS, PDO, QC3.0).
 + [x] Corner of the screen now display protocol PPS, Fixed, or QC3.0
 + [x] Addition all menu afterboot up to switch between mode if long press Voltage/Current button
-
++ [ ] Add company name, and version firmware number at boot up screen
++ [ ] When there is nothing in Menu, need to display: No profile detected
 
 Nice to have, add QC3.0 support:
 + [ ] Add QC3.0 detection
