@@ -10,11 +10,11 @@
 
 #define ALARM_NUM0 0 // Timer 0
 #define ALARM_IRQ0 TIMER_IRQ_0
-#define DELAY0 100000 // In usecond , 100ms
+#define DELAY0 33000 // In usecond , 33ms
 
 #define ALARM_NUM1 1 // Timer 1
 #define ALARM_IRQ1 TIMER_IRQ_1
-#define DELAY1 1000000 // In usecond , 1s
+#define DELAY1 500000 // In usecond , 500ms, used for cursor
 
 enum class State
 {
@@ -138,6 +138,8 @@ private:
     static void timerISR0(); // 100ms
     static void timerISR1(); // 1s
     char buffer[10];
+
+    int counter_gif = 0; //Count up to 27
 };
 
 #endif // STATEMACHINE_H

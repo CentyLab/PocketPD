@@ -137,7 +137,15 @@ void StateMachine::componentInit()
 
     u8g2.begin();
     ina226.begin();
-    ina226.setMaxCurrentShunt(6, 0.01);
+    // ina226.setMaxCurrentShunt(6, SENSERESISTOR);
+    // configure(shunt, current_LSB_mA, current_zero_offset_mA, bus_V_scaling_e4)
+    #ifdef HW1_0
+    ina226.configure(0.01023, 0.25, 6.4, 9972); //Factory calibration
+    #endif
+    
+    #ifdef HW1_1
+    ina226.configure(0.00528, 0.25, 10.4, 9972); //Factory calibration
+    #endif
 
     voltageIncrementIndex = 0; // 20mV
     currentIncrementIndex = 0; // 50mA
@@ -167,7 +175,7 @@ void StateMachine::encoderISR()
     encoder.tick();
 }
 
-// ISR for 100ms timer
+// ISR for 33ms timer
 void StateMachine::timerISR0()
 {
     // Clear the alarm irq
@@ -179,7 +187,7 @@ void StateMachine::timerISR0()
     timerFlag0 = true;
 }
 
-// ISR for 1s timer
+// ISR for 500ms timer
 void StateMachine::timerISR1()
 {
     // Clear the alarm irq
@@ -317,6 +325,7 @@ void StateMachine::handleNormalPPSState()
     {
         digitalWrite(pin_output_Enable, !digitalRead(pin_output_Enable));
     }
+
     process_request_voltage_current();
 
     //* END state routine */
@@ -471,6 +480,9 @@ void StateMachine::printBootingScreen()
 {
     u8g2.clearBuffer();
     u8g2.drawBitmap(0, 0, 128 / 8, 64, image_PocketPD_Logo);
+    u8g2.setFont(u8g2_font_profont12_tr);
+    u8g2.drawStr(67,64, "FW: ");
+    u8g2.drawStr(87,64, VERSION);
     u8g2.sendBuffer();
 }
 
@@ -495,13 +507,13 @@ void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
     switch (state)
     {
     case State::NORMAL_PPS:
-        u8g2.drawStr(110, 58, "PPS");
+        u8g2.drawStr(110, 62, "PPS");
         break;
     case State::NORMAL_PDO:
-        u8g2.drawStr(110, 58, "PDO");
+        u8g2.drawStr(110, 62, "PDO");
         break;
     case State::NORMAL_QC:
-        u8g2.drawStr(110, 58, "QC3.0");
+        u8g2.drawStr(110, 62, "QC3.0");
         break;
     }
     // End-Fixed Component
@@ -548,6 +560,13 @@ void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
             u8g2.drawLine(voltage_cursor_position[voltageIncrementIndex], 28, voltage_cursor_position[voltageIncrementIndex] + 5, 28);
         else
             u8g2.drawLine(current_cursor_position[currentIncrementIndex], 63, current_cursor_position[currentIncrementIndex] + 5, 63);
+    }
+
+    // Blinking output arrow
+    if(digitalRead(pin_output_Enable) == 1)
+    {
+        u8g2.drawXBMP(105, 28, 20, 20, arrow_bitmapallArray[counter_gif]); // draw arrow animation
+        counter_gif = (counter_gif + 1) % 28;
     }
 
     u8g2.sendBuffer();
