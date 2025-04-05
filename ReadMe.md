@@ -3,6 +3,9 @@ PocketPD is a portable USB-C bench power supply that can fit in your pocket. Com
 
 As the DIY community has grown, there are multiple ways to implement control features like adjusting parameters via Wifi, Bluetooth, or touch screen. We want to keep the design language simple, just physical knobs and buttons to control. This will give the system higher reliability when you need it to work.
 
+## Links
+* [PocketPD Hackaday's Project](https://hackaday.io/project/194295-pocketpd-usb-c-portable-bench-power-supply)
+
 ## System flow chart
 
 ```mermaid
@@ -82,11 +85,34 @@ VCSBaseException: VCS: Could not process command ['git', 'clone', '--recursive',
 
 
 ## How to flash new firmware
+Note: Firmware at and before `0.9.5` is only for `PocketPD HW1.0`
 
-You can mount the PocketPD as a removable drive by:
-+ Plug the device into your PC. Open Putty and open a Serial port with 1200 Baudrate.
-+ Short the BOOT pads at the back of the device with a tweezer, then plug the USB into your PC.
+Step 1: Select the correct hardware version from [PocketPD's Firmware Releases](https://github.com/CentyLab/PocketPD/releases)
 
-Then you drag and drop the firmware.uf2 from .pio/build/pico/ in to the drive
++ HW1.0: Also known as "Limited edition". Download `firmware_xx_HW1.0.uf2`
++ HW1.1: Our standard production version. Download `firmware_xx_HW1.1.uf2`
+
+Step 2: Mount PocketPD as a drive in your computer
+
+For MacBook user:
++ Method 1: (Easy)
+    + Short the BOOT pads at the back of the device with a tweezer in `HW1.0` or hold the BOOT button in `HW1.1`.
+    + Use a USB-A -> USB-C adapter, then use a USB-A -> USB-C cable to connect PocketPD to computer. PocketPD should pop up as `RPI_RP2` drive.
++ Method 2: (Intermediate)
+    + Use a USB-A -> USB-C adapter, then use a USB-A -> USB-C cable to connect PocketPD to computer. No drive will popup.
+    + Use any serial monitor, and start a Serial port with 1200 Baudrate. PocketPD should pop up as `RPI_RP2` drive.
+
+For Windows user: 
++ Method 1: (Easy)
+    + Short the BOOT pads at the back of the device with a tweezer in `HW1.0` or hold the BOOT button in `HW1.1`.
+    + Use any USB cable to connect PocketPD to computer. PocketPD should pop up as `RPI_RP2` drive.
++ Method 2: (Intermediate)
+    + Use any USB cable to connect PocketPD to computer. No drive will pop-up.
+    + Open [Putty](https://www.putty.org/) and open a Serial port with 1200 Baudrate. PocketPD should pop up as `RPI_RP2` drive.
+
+Step 3: Drag and drop the `.uf2` file into the drive
+
+
+If you build the firmware directly from VSCode, the `.uf2` file will be in `.pio/build/pico/`
 
 Detail guide [How to upload new firmware to PocketPD](https://github.com/CentyLab/PocketPD/wiki/How-to-upload-new-firmware-to-PocketPD)

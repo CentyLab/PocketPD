@@ -3,12 +3,9 @@
 // PURPOSE: accurate calibration of shunt resistance, current zero offset, bus voltage scaling and full user control
 //     url: https://github.com/pk17r/INA226
 
-
 #include "INA226.h"
 
-
 INA226 INA(0x40);
-
 
 void setup()
 {
@@ -18,13 +15,13 @@ void setup()
   Serial.print("INA226_LIB_VERSION: ");
   Serial.println(INA226_LIB_VERSION);
 
-    pinMode(1, OUTPUT); // Load Switch
-    digitalWrite(1, HIGH);
+  pinMode(1, OUTPUT); // Load Switch
+  digitalWrite(1, HIGH);
 
-    Wire.setSCL(5);
-    Wire.setSDA(4);
+  Wire.setSCL(5);
+  Wire.setSDA(4);
   Wire.begin();
-  if (!INA.begin() )
+  if (!INA.begin())
   {
     Serial.println("could not connect. Fix and Reboot");
   }
@@ -45,12 +42,12 @@ void setup()
 
   /* USER SET VALUES */
 
-  float shunt = 0.01023;                      /* shunt (Shunt Resistance in Ohms). Lower shunt gives higher accuracy but lower current measurement range. Recommended value 0.020 Ohm. Min 0.001 Ohm */
-  float current_LSB_mA = 0.25;              /* current_LSB_mA (Current Least Significant Bit in milli Amperes). Recommended values: 0.050, 0.100, 0.250, 0.500, 1, 2, 2.5 (in milli Ampere units) */
-  float current_zero_offset_mA = 6.4;         /* current_zero_offset_mA (Current Zero Offset in milli Amperes, default = 0) */
-  uint16_t bus_V_scaling_e4 = 10026;        /* bus_V_scaling_e4 (Bus Voltage Scaling Factor, default = 10000) */
+  float shunt = 0.01023;              /* shunt (Shunt Resistance in Ohms). Lower shunt gives higher accuracy but lower current measurement range. Recommended value 0.020 Ohm. Min 0.001 Ohm */
+  float current_LSB_mA = 0.25;        /* current_LSB_mA (Current Least Significant Bit in milli Amperes). Recommended values: 0.050, 0.100, 0.250, 0.500, 1, 2, 2.5 (in milli Ampere units) */
+  float current_zero_offset_mA = 6.4; /* current_zero_offset_mA (Current Zero Offset in milli Amperes, default = 0) */
+  uint16_t bus_V_scaling_e4 = 10026;  /* bus_V_scaling_e4 (Bus Voltage Scaling Factor, default = 10000) */
 
-  if(INA.configure(shunt, current_LSB_mA, current_zero_offset_mA, bus_V_scaling_e4))
+  if (INA.configure(shunt, current_LSB_mA, current_zero_offset_mA, bus_V_scaling_e4))
     Serial.println("\n***** Configuration Error! Chosen values outside range *****\n");
   else
     Serial.println("\n***** INA 226 CONFIGURE *****");
@@ -64,11 +61,11 @@ void setup()
   Serial.print(INA.getMaxCurrent(), 3);
   Serial.println(" A");
 
-
   /* CALIBRATION */
 
   float bv = 0, cu = 0;
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 10; i++)
+  {
     bv += INA.getBusVoltage();
     cu += INA.getCurrent_mA();
     delay(150);
@@ -77,7 +74,8 @@ void setup()
   cu /= 10;
   Serial.println("\nAverage Bus and Current values for use in Shunt Resistance, Bus Voltage and Current Zero Offset calibration:");
   bv = 0;
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 10; i++)
+  {
     bv += INA.getBusVoltage();
     delay(100);
   }
@@ -86,7 +84,8 @@ void setup()
   Serial.print(bv, 3);
   Serial.println("V");
   cu = 0;
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 10; i++)
+  {
     cu += INA.getCurrent_mA();
     delay(100);
   }
@@ -100,7 +99,7 @@ void setup()
   Serial.print("\tcurrent_zero_offset_mA = ");
   Serial.print(current_zero_offset_mA + cu, 3);
   Serial.println("mA");
-  if(cu > 5)
+  if (cu > 5)
     Serial.println("********** NOTE: No resistive load needs to be present during current_zero_offset_mA calibration. **********");
   Serial.print("\tbus_V_scaling_e4 = ");
   Serial.print(bus_V_scaling_e4);
@@ -113,7 +112,7 @@ void setup()
   Serial.print(" * ");
   Serial.print(cu, 3);
   Serial.println(" / (DMM Measured IOUT)");
-  if(cu < 40)
+  if (cu < 40)
     Serial.println("********** NOTE: IOUT needs to be more than 50mA for better shunt resistance calibration. **********");
   delay(1000);
 
@@ -140,7 +139,6 @@ void setup()
 
 void loop()
 {
-
 }
 
 //  -- END OF FILE --

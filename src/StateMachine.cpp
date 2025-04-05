@@ -295,7 +295,8 @@ void StateMachine::handleNormalPPSState()
         }
         else
         {
-            updateOLED(usbpd.readVoltage() / 1000.0, ina_current_ma / 1000, true);
+            //updateOLED(usbpd.readVoltage() / 1000.0, ina_current_ma / 1000, true);
+            updateOLED(usbpd.readVoltage() / 1000.0, 0, true);
         }
         update_supply_mode();
         timerFlag0 = false;
@@ -572,12 +573,17 @@ void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
     u8g2.sendBuffer();
 }
 
+/** Need fixing */
 void StateMachine::update_supply_mode()
 {
-    if (state == State::NORMAL_PPS &&                                                       //Only PPS haas current limit
-        (targetVoltage >= (vbus_voltage_mv + ina_current_ma * 0.292 + 50)) &&               //Read voltage much be lower than set voltage + margin for voltage drop
-        (ina_current_ma >= targetCurrent * 0.9 || ina_current_ma <= targetCurrent * 1.1) && //Make sure current read is with in 90%-110% of the set limit
-        digitalRead(pin_output_Enable)) // 0.25Ohm for max round trip resistance + 0.02 Ohm for connector + 0.022 Ohm switch + 50mV margin
+    Serial.println("Dumping start ");
+    Serial.println(targetVoltage);
+    Serial.println(vbus_voltage_mv);
+    Serial.println(ina_current_ma);
+    Serial.println(targetCurrent);
+    if(state == State::NORMAL_PPS && digitalRead(pin_output_Enable)                         &&
+        (targetVoltage >= vbus_voltage_mv + 50 + ina_current_ma*(0.166 + 0.022 + 0.005))    && 
+        (ina_current_ma >= targetCurrent - 150 && ina_current_ma <= targetCurrent + 150))   //Current read when hitting limit, need to be around 85-115% limit set
         supply_mode = MODE_CC;
     else // Other state only display CV mode
         supply_mode = MODE_CV;
@@ -648,7 +654,7 @@ void StateMachine::process_request_voltage_current()
         if (supply_adjust_mode == VOTLAGE_ADJUST)
         {
             targetVoltage = targetVoltage + val * voltageIncrement[voltageIncrementIndex];
-            Serial.println(targetVoltage);
+            //Serial.println(targetVoltage);
 
             if (usbpd.existPPS)
             {
@@ -673,7 +679,7 @@ void StateMachine::process_request_voltage_current()
         else
         {
             targetCurrent = targetCurrent + val * currentIncrement[currentIncrementIndex];
-            Serial.println(targetCurrent);
+            //Serial.println(targetCurrent);
             if (usbpd.existPPS)
             {
                 if (targetCurrent < 1000)
