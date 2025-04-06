@@ -9,11 +9,13 @@ List of requested UI changes:
 + [x] Corner of the screen now display protocol PPS, Fixed, or QC3.0
 + [x] Addition all menu afterboot up to switch between mode if long press Voltage/Current button
 
+
 + [x] Calibrate current sensor
 + [x] Delay CC/CV update to reduce mode flicker.
 + [x] Fix CC/CV bug at no load.
 
 + [ ] Add more cable loss when connect through Android adapter, detect computer connection.
+
 ```
 //Tested with USB-C to USB-A, and USB-C to USB-C on PC/Mac, Anker PowerCore24k, and UGREEN 140W
 #define MEM32(address) (*(volatile uint32_t*)(address))
