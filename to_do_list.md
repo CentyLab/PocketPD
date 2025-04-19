@@ -8,15 +8,13 @@ List of requested UI changes:
 + [ ] Default is PPS but turning knob at bootup screen to select desire profile (PPS, PDO, QC3.0).
 + [x] Corner of the screen now display protocol PPS, Fixed, or QC3.0
 + [x] Addition all menu afterboot up to switch between mode if long press Voltage/Current button
-+ [ ] Add company name, and version firmware number at boot up screen
-+ [ ] When there is nothing in Menu, need to display: No profile detected
 
-Nice to have, add QC3.0 support:
-+ [ ] Add QC3.0 detection
-+ [ ] Request voltage from QC3.0 charger
-+ [ ] Request voltage from QC3.0 charger after PD profile detection
-+ [ ] Display QC3.0 profile at boot screen
-+ [ ] Press encoder at bootup to select profile between fixed PDO, PPS, or QC3.0
+
++ [x] Calibrate current sensor
++ [x] Delay CC/CV update to reduce mode flicker.
++ [x] Fix CC/CV bug at no load.
+
++ [ ] Add more cable loss when connect through Android adapter, detect computer connection.
 
 ```
 //Tested with USB-C to USB-A, and USB-C to USB-C on PC/Mac, Anker PowerCore24k, and UGREEN 140W

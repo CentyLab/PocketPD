@@ -137,7 +137,15 @@ void StateMachine::componentInit()
 
     u8g2.begin();
     ina226.begin();
-    ina226.setMaxCurrentShunt(6, 0.01);
+    // ina226.setMaxCurrentShunt(6, SENSERESISTOR);
+    // configure(shunt, current_LSB_mA, current_zero_offset_mA, bus_V_scaling_e4)
+    #ifdef HW1_0
+    ina226.configure(0.01023, 0.25, 6.4, 9972); //Factory calibration
+    #endif
+    
+    #ifdef HW1_1
+    ina226.configure(0.00528, 0.25, 10.4, 9972); //Factory calibration
+    #endif
 
     voltageIncrementIndex = 0; // 20mV
     currentIncrementIndex = 0; // 50mA
@@ -167,7 +175,7 @@ void StateMachine::encoderISR()
     encoder.tick();
 }
 
-// ISR for 100ms timer
+// ISR for 33ms timer
 void StateMachine::timerISR0()
 {
     // Clear the alarm irq
@@ -179,7 +187,7 @@ void StateMachine::timerISR0()
     timerFlag0 = true;
 }
 
-// ISR for 1s timer
+// ISR for 500ms timer
 void StateMachine::timerISR1()
 {
     // Clear the alarm irq
@@ -287,7 +295,8 @@ void StateMachine::handleNormalPPSState()
         }
         else
         {
-            updateOLED(usbpd.readVoltage() / 1000.0, ina_current_ma / 1000, true);
+            //updateOLED(usbpd.readVoltage() / 1000.0, ina_current_ma / 1000, true);
+            updateOLED(usbpd.readVoltage() / 1000.0, 0, true);
         }
         update_supply_mode();
         timerFlag0 = false;
@@ -317,6 +326,7 @@ void StateMachine::handleNormalPPSState()
     {
         digitalWrite(pin_output_Enable, !digitalRead(pin_output_Enable));
     }
+
     process_request_voltage_current();
 
     //* END state routine */
@@ -471,6 +481,9 @@ void StateMachine::printBootingScreen()
 {
     u8g2.clearBuffer();
     u8g2.drawBitmap(0, 0, 128 / 8, 64, image_PocketPD_Logo);
+    u8g2.setFont(u8g2_font_profont12_tr);
+    u8g2.drawStr(67,64, "FW: ");
+    u8g2.drawStr(87,64, VERSION);
     u8g2.sendBuffer();
 }
 
@@ -495,13 +508,13 @@ void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
     switch (state)
     {
     case State::NORMAL_PPS:
-        u8g2.drawStr(110, 58, "PPS");
+        u8g2.drawStr(110, 62, "PPS");
         break;
     case State::NORMAL_PDO:
-        u8g2.drawStr(110, 58, "PDO");
+        u8g2.drawStr(110, 62, "PDO");
         break;
     case State::NORMAL_QC:
-        u8g2.drawStr(110, 58, "QC3.0");
+        u8g2.drawStr(110, 62, "QC3.0");
         break;
     }
     // End-Fixed Component
@@ -550,15 +563,27 @@ void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
             u8g2.drawLine(current_cursor_position[currentIncrementIndex], 63, current_cursor_position[currentIncrementIndex] + 5, 63);
     }
 
+    // Blinking output arrow
+    if(digitalRead(pin_output_Enable) == 1)
+    {
+        u8g2.drawXBMP(105, 28, 20, 20, arrow_bitmapallArray[counter_gif]); // draw arrow animation
+        counter_gif = (counter_gif + 1) % 28;
+    }
+
     u8g2.sendBuffer();
 }
 
+/** Need fixing */
 void StateMachine::update_supply_mode()
 {
-    if (state == State::NORMAL_PPS &&                                                       //Only PPS haas current limit
-        (targetVoltage >= (vbus_voltage_mv + ina_current_ma * 0.292 + 50)) &&               //Read voltage much be lower than set voltage + margin for voltage drop
-        (ina_current_ma >= targetCurrent * 0.9 || ina_current_ma <= targetCurrent * 1.1) && //Make sure current read is with in 90%-110% of the set limit
-        digitalRead(pin_output_Enable)) // 0.25Ohm for max round trip resistance + 0.02 Ohm for connector + 0.022 Ohm switch + 50mV margin
+    Serial.println("Dumping start ");
+    Serial.println(targetVoltage);
+    Serial.println(vbus_voltage_mv);
+    Serial.println(ina_current_ma);
+    Serial.println(targetCurrent);
+    if(state == State::NORMAL_PPS && digitalRead(pin_output_Enable)                         &&
+        (targetVoltage >= vbus_voltage_mv + 50 + ina_current_ma*(0.166 + 0.022 + 0.005))    && 
+        (ina_current_ma >= targetCurrent - 150 && ina_current_ma <= targetCurrent + 150))   //Current read when hitting limit, need to be around 85-115% limit set
         supply_mode = MODE_CC;
     else // Other state only display CV mode
         supply_mode = MODE_CV;
@@ -629,7 +654,7 @@ void StateMachine::process_request_voltage_current()
         if (supply_adjust_mode == VOTLAGE_ADJUST)
         {
             targetVoltage = targetVoltage + val * voltageIncrement[voltageIncrementIndex];
-            Serial.println(targetVoltage);
+            //Serial.println(targetVoltage);
 
             if (usbpd.existPPS)
             {
@@ -654,7 +679,7 @@ void StateMachine::process_request_voltage_current()
         else
         {
             targetCurrent = targetCurrent + val * currentIncrement[currentIncrementIndex];
-            Serial.println(targetCurrent);
+            //Serial.println(targetCurrent);
             if (usbpd.existPPS)
             {
                 if (targetCurrent < 1000)
