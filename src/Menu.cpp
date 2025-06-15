@@ -18,6 +18,26 @@ Menu::Menu(U8G2_SSD1306_128X64_NONAME_F_HW_I2C *oled, AP33772 *usb, RotaryEncode
     qc3_0available = 0;
 }
 
+/**
+ * @brief Check if menuPosition is within range, wrap around if not
+ * 
+ * @param wrapAround 
+ */
+void Menu::checkMenuPosition(bool wrapAround) {
+    if(usbpd) numPDO = usbpd->getNumPDO();
+    if (menuPosition < 0) {
+            if(wrapAround) menuPosition = numPDO + qc3_0available - 1; // wrap around
+            else menuPosition = 0; // reset to 0 if not wrapping around
+    }
+    if(menuPosition > (numPDO + qc3_0available - 1)) {
+        menuPosition = 0; // wrap around
+    }
+}
+
+/**
+ * @brief Handle main menu page for selecting capability
+ * 
+ */
 void Menu::page_selectCapability()
 {
     uint8_t linelocation;
@@ -26,10 +46,7 @@ void Menu::page_selectCapability()
     if (val = (int8_t)_encoder->getDirection())
     {
         menuPosition = menuPosition - val;
-        if (menuPosition < 0)
-            menuPosition = numPDO + qc3_0available - 1; // wrap around
-        if (menuPosition > (numPDO + qc3_0available - 1))
-            menuPosition = 0; // wrap around
+        checkMenuPosition(true);
     }
 
     u8g2->clearBuffer();

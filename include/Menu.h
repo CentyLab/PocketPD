@@ -27,6 +27,7 @@ public:
     void set_qc3flag(bool flag);
     void page_selectCapability();
     void page_bootProfile();
+    void checkMenuPosition(bool wrapAround); // Check if menuPosition is within range, wrap around if not
 
 private:
     U8G2_SSD1306_128X64_NONAME_F_HW_I2C *u8g2;
