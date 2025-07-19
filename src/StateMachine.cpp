@@ -19,26 +19,27 @@ void StateMachine::update()
         handleBootState();
         if (elapsed >= BOOT_TO_OBTAIN_TIMEOUT)
             transitionTo(State::OBTAIN);
+        
         break;
 
     case State::OBTAIN:
         handleObtainState();
-        if (button_encoder.isButtonPressed() | button_output.isButtonPressed() | button_selectVI.isButtonPressed()) // Short press
-            if (usbpd.existPPS)
-                transitionTo(State::NORMAL_PPS);
-            else
-                transitionTo(State::NORMAL_PDO);
+        if(encoder.getDirection() != RotaryEncoder::Direction::NOROTATION) { // Encoder rotation
+            transitionTo(State::MENU);
+        } else if (button_encoder.isButtonPressed() | button_output.isButtonPressed() | button_selectVI.isButtonPressed()) // Short press
+            handleInitialMode();
         else if (elapsed >= OBTAIN_TO_CAPDISPLAY_TIMEOUT)
             transitionTo(State::CAPDISPLAY);
+        
         break;
 
     case State::CAPDISPLAY:
         handleDisplayCapState();
-        if ((button_encoder.isButtonPressed() | button_output.isButtonPressed() | button_selectVI.isButtonPressed() | elapsed >= DISPLAYCCAP_TO_NORMAL_TIMEOUT)) // Short press + timeout
-            if (usbpd.existPPS)
-                transitionTo(State::NORMAL_PPS);
-            else
-                transitionTo(State::NORMAL_PDO);
+        if(encoder.getDirection() != RotaryEncoder::Direction::NOROTATION) { // Encoder rotation
+            transitionTo(State::MENU);
+        } else if ((button_encoder.isButtonPressed() | button_output.isButtonPressed() | button_selectVI.isButtonPressed() | elapsed >= DISPLAYCCAP_TO_NORMAL_TIMEOUT)) // Short press + timeout
+            handleInitialMode();
+        
         break;
 
     case State::NORMAL_PPS:
@@ -48,6 +49,7 @@ void StateMachine::update()
             button_selectVI.clearLongPressedFlag();
             transitionTo(State::MENU);
         }
+        saveSettingsToEEPROM();
         break;
     case State::NORMAL_PDO:
         handleNormalPDOState();
@@ -57,6 +59,7 @@ void StateMachine::update()
             button_selectVI.clearLongPressedFlag();
             transitionTo(State::MENU);
         }
+        saveSettingsToEEPROM();
         break;
     case State::NORMAL_QC:
         handleNormalQCState();
@@ -65,9 +68,14 @@ void StateMachine::update()
             button_selectVI.clearLongPressedFlag();
             transitionTo(State::MENU);
         }
+        saveSettingsToEEPROM();
         break;
 
     case State::MENU:
+        if(usbpd.getNumPDO() == 0) {
+            transitionTo(State::NORMAL_PDO);
+            break; // No PDO available, go back to NORMAL_PDO state
+        }
         handleMenuState();
 
         button_encoder.isButtonPressed();
@@ -82,10 +90,12 @@ void StateMachine::update()
         if (button_encoder.longPressedFlag) // Long press
         {
             button_encoder.clearLongPressedFlag();
-            if (menu.menuPosition == usbpd.getPPSIndex())
+            if (menu.menuPosition == usbpd.getPPSIndex()) {
                 transitionTo(State::NORMAL_PPS);
-            else
+            } else {
+                forceSave = true;
                 transitionTo(State::NORMAL_PDO);
+            }   
         }
         break;
     }
@@ -167,6 +177,9 @@ void StateMachine::componentInit()
     irq_set_enabled(ALARM_IRQ1, true);
     // Write the lower 32 bits of the target time to the alarm register, arming it.
     timer_hw->alarm[ALARM_NUM1] = timer_hw->timerawl + DELAY1;
+
+    // Init EEPROM
+    EEPROM.begin(EEPROM_SIZE);
 }
 
 // Only need to declare static in header files
@@ -272,9 +285,15 @@ void StateMachine::handleNormalPPSState()
     if (!normalPPSInitialized)
     {
         //* BEGIN Only run once when entering the state */
-        targetVoltage = 5000; // Default start up voltage
-        targetCurrent = 1000; // Default start up current
+        
 
+        // Load settings from EEPROM
+        if(loadSettingsFromEEPROM(true)) {
+            usbpd.checkVoltageCurrent(targetVoltage, targetCurrent);
+        } else {
+            targetVoltage = 5000; // Default start up voltage
+            targetCurrent = 1000; // Default start up current
+        }
         supply_adjust_mode = VOTLAGE_ADJUST;
         usbpd.setSupplyVoltageCurrent(targetVoltage, targetCurrent);
 
@@ -576,11 +595,11 @@ void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
 /** Need fixing */
 void StateMachine::update_supply_mode()
 {
-    Serial.println("Dumping start ");
-    Serial.println(targetVoltage);
-    Serial.println(vbus_voltage_mv);
-    Serial.println(ina_current_ma);
-    Serial.println(targetCurrent);
+    //Serial.println("Dumping start ");
+    //Serial.println(targetVoltage);
+    //Serial.println(vbus_voltage_mv);
+    //Serial.println(ina_current_ma);
+    //Serial.println(targetCurrent);
     if(state == State::NORMAL_PPS && digitalRead(pin_output_Enable)                         &&
         (targetVoltage >= vbus_voltage_mv + 50 + ina_current_ma*(0.166 + 0.022 + 0.005))    && 
         (ina_current_ma >= targetCurrent - 150 && ina_current_ma <= targetCurrent + 150))   //Current read when hitting limit, need to be around 85-115% limit set
@@ -619,7 +638,7 @@ void StateMachine::printProfile()
         if (i != usbpd.getPPSIndex())
         {
             linelocation = 9 * (i + 1);
-            u8g2.setCursor(0, linelocation);
+            u8g2.setCursor(5, linelocation);
             u8g2.print("PDO: ");
             u8g2.print(usbpd.getPDOVoltage(i) / 1000.0, 0);
             u8g2.print("V @ ");
@@ -629,7 +648,7 @@ void StateMachine::printProfile()
         else if (usbpd.existPPS)
         {
             linelocation = 9 * (i + 1);
-            u8g2.setCursor(0, linelocation);
+            u8g2.setCursor(5, linelocation);
             u8g2.print("PPS: ");
             u8g2.print(usbpd.getPPSMinVoltage(i) / 1000.0, 1);
             u8g2.print("V~");
@@ -693,5 +712,89 @@ void StateMachine::process_request_voltage_current()
             else
                 targetCurrent = usbpd.getMaxCurrent(); // Pull current base on current PDO
         }
+        updateSaveStamp(); // Update the save stamp to current time to debounce too many writes to EEPROM
     }
+}
+/**
+ * @brief Handle the initial mode when the device starts up
+ * This function checks if settings can be loaded from EEPROM and transitions to the appropriate state.
+ */
+void StateMachine::handleInitialMode() {
+    if(loadSettingsFromEEPROM(false)) {
+        if(menu.menuPosition == usbpd.getPPSIndex())
+            transitionTo(State::NORMAL_PPS);
+        else
+            transitionTo(State::NORMAL_PDO);
+    } else {
+        if(usbpd.existPPS)
+            transitionTo(State::NORMAL_PPS);
+        else
+            transitionTo(State::NORMAL_PDO);
+    }
+}
+
+/**
+ * @brief Save settings to EEPROM
+ * @return true if settings were saved successfully, false otherwise
+ */
+bool StateMachine::saveSettingsToEEPROM() {
+    uint32_t currentTime = millis();
+    bool ret = false;
+    bool saveVC = state == State::NORMAL_PPS; // Check if we are in NORMAL_PPS state to save PPS settings
+
+    if(forceSave || (currentTime - saveStamp >= EEPROM_SAVE_INTERVAL)) {
+        saveStamp = currentTime;
+        if(usbpd.getNumPDO() == 0) {
+            Serial.println("No PDOs available, cannot save settings.");
+            return false; // No PDOs available, cannot save settings
+        }
+        Settings newSettings = { 0 };
+        eepromHandler.loadSettings(newSettings); // Load current settings from EEPROM
+        if(saveVC) {
+            newSettings.targetVoltage = targetVoltage;
+            newSettings.targetCurrent = targetCurrent;
+            int32_t menuIndex = menu.menuPosition;
+            if(menuIndex == 0) { menuIndex = usbpd.getPPSIndex(); } // If menu position is 0, use PPS index
+            newSettings.menuPosition  = menuIndex; // Save current menu position
+        } else {
+            newSettings.menuPosition = menu.menuPosition;    // Save current menu position
+        }
+        
+        ret = eepromHandler.saveSettings(newSettings);
+        Serial.printf("Settings saved to EEPROM: %d\n\r", ret);
+        forceSave = !ret; // If save failed, set forceSave to true to retry next time
+    }
+    return ret;
+}
+
+/**
+ * @brief Load settings from EEPROM
+ * @param vc If true, load Voltage/Current settings, otherwise load menu position
+ * @return true if settings were loaded successfully, false otherwise
+ */
+bool StateMachine::loadSettingsFromEEPROM(bool vc) {
+    Settings loadedSettings;
+    bool ret = eepromHandler.loadSettings(loadedSettings);
+    if(ret) {
+        if(!vc) {
+            menu.menuPosition = loadedSettings.menuPosition; // Load menu position
+            menu.checkMenuPosition(false);
+        } else {
+            targetVoltage      = loadedSettings.targetVoltage;
+            targetCurrent      = loadedSettings.targetCurrent;
+        }
+        Serial.printf("Settings loaded from EEPROM: mV=%4d, mI=%4d, Menu position=%d\n\r", 
+                      targetVoltage, targetCurrent, menu.menuPosition);
+    } else {
+        Serial.println("Failed to load settings from EEPROM.");
+    }
+    return ret;
+}
+
+/**
+ * @brief Debounce the save stamp
+ * 
+ */
+void StateMachine::updateSaveStamp() {
+    saveStamp = millis(); // Update the save stamp to current time
 }

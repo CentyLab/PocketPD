@@ -74,6 +74,27 @@ void AP33772::begin()
 }
 
 /**
+ * @brief  Check if target voltage and current are in range
+ * 
+ * @param targetVoltage 
+ * @param targetCurrent 
+ */
+void AP33772::checkVoltageCurrent(int& targetVoltage, int& targetCurrent)
+{   int maxVoltage = pdoData[PPSindex].pps.maxVoltage * 100;
+    int minVoltage = pdoData[PPSindex].pps.minVoltage * 100;
+    // Check if target voltage is in range
+    if(targetVoltage < minVoltage)
+        targetVoltage = minVoltage; // Minimum 5V
+    else if (targetVoltage > maxVoltage)
+        targetVoltage = maxVoltage; // Maximum 20V
+
+    int maxCurrent = pdoData[PPSindex].pps.maxCurrent * 50; // Convert to mA
+    // Check if target current is in range
+    if(targetCurrent > maxCurrent)
+        targetCurrent = maxCurrent; // Maximum 3000mA
+}
+
+/**
  * @brief Set VBUS voltage and max current
  * Current will automatically be in limit mode
  * @param targetVoltage, targetCurrent, - mV and mA
@@ -162,9 +183,9 @@ void AP33772::setPDO(uint8_t PDOindex)
 
     if (PDOindex <= guarding)
     {
-        rdoData.fixed.objPosition = PDOindex + 1; // Index 0 to Index 1
-        rdoData.fixed.maxCurrent = pdoData[PDOindex].fixed.maxCurrent;
-        rdoData.fixed.opCurrent = pdoData[PDOindex].fixed.maxCurrent;
+        rdoData.fixed.objPosition   = PDOindex + 1; // Index 0 to Index 1
+        rdoData.fixed.maxCurrent    = pdoData[PDOindex].fixed.maxCurrent;
+        rdoData.fixed.opCurrent     = pdoData[PDOindex].fixed.maxCurrent;
         writeRDO();
     }
 }

@@ -181,6 +181,8 @@ public:
   void setSupplyVoltageCurrent(int targetVoltage, int targetCurrent);
   byte existPPS = 0; // PPS flag for setVoltage()
 
+  void checkVoltageCurrent(int &targetVoltage, int &targetCurrent);
+
 private:
   void i2c_read(byte slvAddr, byte cmdAddr, byte len);
   void i2c_write(byte slvAddr, byte cmdAddr, byte len);

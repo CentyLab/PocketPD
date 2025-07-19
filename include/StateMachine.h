@@ -7,6 +7,7 @@
 #include <PocketPDPinOut.h>
 #include <image.h>
 #include <Menu.h>
+#include <EEPROMHandler.hpp>
 
 #define ALARM_NUM0 0 // Timer 0
 #define ALARM_IRQ0 TIMER_IRQ_0
@@ -70,7 +71,10 @@ public:
                      supply_mode(MODE_CV),
                      voltageIncrement{20, 100, 1000},
                      currentIncrement{50, 200},
-                     menu(&u8g2, &usbpd, &encoder, &button_encoder, &button_output, &button_selectVI) {};
+                     menu(&u8g2, &usbpd, &encoder, &button_encoder, &button_output, &button_selectVI),
+                     eepromHandler(),
+                     forceSave(false),
+                     saveStamp(0) {};
 
     void update();
     const char *getState();
@@ -85,6 +89,9 @@ private:
     Button button_output;
     Button button_selectVI;
     Menu menu;
+    EEPROMHandler eepromHandler;
+    bool forceSave;
+    uint32_t saveStamp;
 
     unsigned long startTime;
     bool bootInitialized;
@@ -140,6 +147,11 @@ private:
     char buffer[10];
 
     int counter_gif = 0; //Count up to 27
+
+    void handleInitialMode();
+    bool saveSettingsToEEPROM();
+    bool loadSettingsFromEEPROM(bool vc);
+    void updateSaveStamp();
 };
 
 #endif // STATEMACHINE_H

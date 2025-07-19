@@ -26,7 +26,7 @@ private:
     bool isLongDetected = false;
     const int debounceTime = 50;                 // Set default debounce time to 50ms
     const unsigned long SHORT_PRESS_TIME = 1000; // Short is less than 1s, more than 50ms
-    const unsigned long LONG_PRESS_TIME = 3000;  // Long is longer than 4s
+    const unsigned long LONG_PRESS_TIME = 1500;  // Long is longer than 1.5s
 };
 
 #endif

@@ -5,7 +5,7 @@ List of requested UI changes:
 + [x] Add mV suffix to set value
 + [x] Pressing encoder in current mode can change between 50mA to 200mA
 + [x] Skipping bootup screen by pressing any button
-+ [ ] Default is PPS but turning knob at bootup screen to select desire profile (PPS, PDO, QC3.0).
++ [x] Default is PPS but turning knob at bootup screen to select desire profile (PPS, PDO, QC3.0).
 + [x] Corner of the screen now display protocol PPS, Fixed, or QC3.0
 + [x] Addition all menu afterboot up to switch between mode if long press Voltage/Current button
 
@@ -13,6 +13,8 @@ List of requested UI changes:
 + [x] Calibrate current sensor
 + [x] Delay CC/CV update to reduce mode flicker.
 + [x] Fix CC/CV bug at no load.
+
++ [x] Add EEPROM function to remember last used voltage/current and PD mode settings.
 
 + [ ] Add more cable loss when connect through Android adapter, detect computer connection.
 
