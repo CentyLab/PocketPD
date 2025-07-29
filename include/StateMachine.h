@@ -141,6 +141,7 @@ private:
     void update_supply_mode();
 
     void process_request_voltage_current();
+    void process_encoder_input();
     static void encoderISR();
     static void timerISR0(); // 100ms
     static void timerISR1(); // 1s

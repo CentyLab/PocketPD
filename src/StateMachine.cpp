@@ -303,10 +303,14 @@ void StateMachine::handleNormalPPSState()
     }
 
     //* BEGIN state routine */
-    if (timerFlag0)
+    if (timerFlag0) // Timer with DELAY0
     {
         ina_current_ma = abs(ina226.getCurrent_mA());
         vbus_voltage_mv = ina226.getBusVoltage_mV();
+
+        //Place before updateOLED to prevent voltage/current go out of bound, then recover.
+
+        process_request_voltage_current();
 
         if (digitalRead(pin_output_Enable))
         {
@@ -317,6 +321,7 @@ void StateMachine::handleNormalPPSState()
             //updateOLED(usbpd.readVoltage() / 1000.0, ina_current_ma / 1000, true);
             updateOLED(usbpd.readVoltage() / 1000.0, 0, true);
         }
+
         update_supply_mode();
         timerFlag0 = false;
     }
@@ -345,8 +350,8 @@ void StateMachine::handleNormalPPSState()
     {
         digitalWrite(pin_output_Enable, !digitalRead(pin_output_Enable));
     }
-
-    process_request_voltage_current();
+    process_encoder_input();
+    
 
     //* END state routine */
     // Serial.println( "Handling NORMAL_PPS state" );
@@ -662,19 +667,35 @@ void StateMachine::printProfile()
 }
 
 /**
+ * @brief Read changes from encoder, compute target voltage/current
+ * Just update targetVoltage and targetCurrent
+ */
+void StateMachine::process_encoder_input()
+{
+    static int val;
+    if (val = (int8_t)encoder.getDirection())
+    {
+        if (supply_adjust_mode == VOTLAGE_ADJUST) //If cursor is at voltage
+        {
+            targetVoltage = targetVoltage + val * voltageIncrement[voltageIncrementIndex];
+        }
+        else                                      //If cursor is at current
+        {
+            targetCurrent = targetCurrent + val * currentIncrement[currentIncrementIndex];
+        }
+        updateSaveStamp(); // Update the save stamp to current time to debounce too many writes to EEPROM
+    }
+}
+
+/**
  * @brief Read changes from encoder, compute request voltage/current
  * Sent request to AP33772 to update
  */
 void StateMachine::process_request_voltage_current()
 {
     static int val;
-    if (val = (int8_t)encoder.getDirection())
-    {
         if (supply_adjust_mode == VOTLAGE_ADJUST)
         {
-            targetVoltage = targetVoltage + val * voltageIncrement[voltageIncrementIndex];
-            //Serial.println(targetVoltage);
-
             if (usbpd.existPPS)
             {
                 if ((float)usbpd.getPPSMinVoltage(usbpd.getPPSIndex()) <= targetVoltage && (float)usbpd.getPPSMaxVoltage(usbpd.getPPSIndex()) >= targetVoltage)
@@ -694,11 +715,8 @@ void StateMachine::process_request_voltage_current()
                 usbpd.setVoltage(targetVoltage);
             }
         }
-
         else
         {
-            targetCurrent = targetCurrent + val * currentIncrement[currentIncrementIndex];
-            //Serial.println(targetCurrent);
             if (usbpd.existPPS)
             {
                 if (targetCurrent <= 1000)
@@ -712,9 +730,8 @@ void StateMachine::process_request_voltage_current()
             else
                 targetCurrent = usbpd.getMaxCurrent(); // Pull current base on current PDO
         }
-        updateSaveStamp(); // Update the save stamp to current time to debounce too many writes to EEPROM
-    }
 }
+
 /**
  * @brief Handle the initial mode when the device starts up
  * This function checks if settings can be loaded from EEPROM and transitions to the appropriate state.

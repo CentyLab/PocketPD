@@ -17,14 +17,15 @@ List of requested UI changes:
 
 + [x] Add EEPROM function to remember last used voltage/current and PD mode settings.
 
-+ [x] Change Startup PPS to be Corse
-+ [ ] Fix quickly turning the encoder makes the power supply not delivering the set voltage. #issue #11
-+ [ ] Fix Voltage selection bug near 3.3V #issue #3
++ [x] Change Startup PPS to be Corse **#issue #17**
++ [x] Fix quickly turning the encoder makes the power supply not delivering the set voltage. **#issue #11**
++ [x] Fix Voltage selection bug near 3.3V **#issue #3**
 
 Backlog:
 + [ ] Add more cable loss when connect through Android adapter, detect computer connection.
-+ [ ] Add counter for mAh or Wh used
-+ [ ] Add reminder boot screen for buttons function
++ [ ] Add counter for mAh or Wh used **#issue #13**
++ [ ] Add reminder boot screen for buttons function **#issue #14**
+
 ```
 //Tested with USB-C to USB-A, and USB-C to USB-C on PC/Mac, Anker PowerCore24k, and UGREEN 140W
 #define MEM32(address) (*(volatile uint32_t*)(address))
