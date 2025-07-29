@@ -4,7 +4,8 @@ PocketPD is a portable USB-C bench power supply that can fit in your pocket. Com
 As the DIY community has grown, there are multiple ways to implement control features like adjusting parameters via Wifi, Bluetooth, or touch screen. We want to keep the design language simple, just physical knobs and buttons to control. This will give the system higher reliability when you need it to work.
 
 ## Links
-* [PocketPD Hackaday's Project](https://hackaday.io/project/194295-pocketpd-usb-c-portable-bench-power-supply)
+* [PocketPD Project - Hackaday](https://hackaday.io/project/194295-pocketpd-usb-c-portable-bench-power-supply)
+* [PocketPD Hardware - GitHub](https://github.com/CentyLab/PocketPD_HW)
 
 ## System flow chart
 
@@ -21,6 +22,7 @@ flowchart LR
 ```
 
 ## Operational manual
+### 1. Boot up sequence
 If your charger support PPS (Programable Power Supply) mode, the charger will first enter BOOT screen.
 
 <p align="center" width="100%">
@@ -38,15 +40,19 @@ After 3 seconds, the system will enter operating mode. If PPS mode exist, the sy
     <img width="40%" src="media/normalpps.jpg">
 </p>
 
+### 2. Skip boot screen
+When the device is at boot screen:
++ Press any BUTTON, to skip to NORMAL state (operational screen)
++ Rotate ENCODER, to skip to MENU state (select power profile)
 
-In NORMAL state:
+### 3. In NORMAL state:
 + Turning the encoder to increase/decrease voltage/current
 + Short press encoder to change increment from fine to coarse
 + Short press Volt/Amp button to switch between adjusting Voltage or Current
 + Short press On/Off button to enable output
 + Long press Volt/Amp button to enter MENU
 
-In MENU state:
+### 4. In MENU state:
 + Turning the encoder to select profile
 + Long press encoder to activate profile
 + Long press Volt/Amp button to return to normal operation and cancel profile change
@@ -62,7 +68,8 @@ Example when select 5V @ 3A profile
 </p>
 <br>
 
-**Note**: If your charger doesn't support PPS profile, PocketPD will directly boot into the first 5V PDO profile. Your menu will looks like this:
+### 5. Profile example for non PPS charger
+If your charger doesn't support PPS profile, PocketPD will directly boot into the first 5V PDO profile. Your menu will looks like this:
 
 <p align="center" width="100%">
     <img width="40%" src="media/pdoprofile.jpg">

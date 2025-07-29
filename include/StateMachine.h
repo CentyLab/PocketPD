@@ -11,7 +11,7 @@
 
 #define ALARM_NUM0 0 // Timer 0
 #define ALARM_IRQ0 TIMER_IRQ_0
-#define DELAY0 33000 // In usecond , 33ms
+#define DELAY0 33000 // In usecond , 33ms, used for OLED update
 
 #define ALARM_NUM1 1 // Timer 1
 #define ALARM_IRQ1 TIMER_IRQ_1
@@ -70,7 +70,7 @@ public:
                      button_selectVI(pin_button_selectVI),
                      supply_mode(MODE_CV),
                      voltageIncrement{20, 100, 1000},
-                     currentIncrement{50, 200},
+                     currentIncrement{50, 100, 1000},
                      menu(&u8g2, &usbpd, &encoder, &button_encoder, &button_output, &button_selectVI),
                      eepromHandler(),
                      forceSave(false),
@@ -107,10 +107,10 @@ private:
 
     int targetVoltage;         // Unit mV
     int targetCurrent;         // Unit mA
-    int voltageIncrementIndex; // unit mV
-    int currentIncrementIndex; // Unit mA
+    int voltageIncrementIndex; // just 0,1, or 2
+    int currentIncrementIndex; // just 0,1, or 2
     int voltageIncrement[3];
-    int currentIncrement[2];
+    int currentIncrement[3];
     float ina_current_ma;  // Unit
     float vbus_voltage_mv; // Unit mV
     int encoder_position;
@@ -122,7 +122,7 @@ private:
     static constexpr long OBTAIN_TO_CAPDISPLAY_TIMEOUT = 1500;  // Timeout for OBTAIN to DISPLAYCAP state in seconds
     static constexpr long DISPLAYCCAP_TO_NORMAL_TIMEOUT = 3000; // Timeout for DISPLAYCAP to NORMAL state in seconds
     static constexpr int voltage_cursor_position[] = {40, 33, 26};
-    static constexpr int current_cursor_position[] = {41, 34};
+    static constexpr int current_cursor_position[] = {41, 34, 27};
     void componentInit();
 
     void handleBootState();
@@ -141,6 +141,7 @@ private:
     void update_supply_mode();
 
     void process_request_voltage_current();
+    void process_encoder_input();
     static void encoderISR();
     static void timerISR0(); // 100ms
     static void timerISR1(); // 1s
