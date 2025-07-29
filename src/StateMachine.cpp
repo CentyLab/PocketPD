@@ -157,8 +157,8 @@ void StateMachine::componentInit()
     ina226.configure(0.00528, 0.25, 10.4, 9972); //Factory calibration
     #endif
 
-    voltageIncrementIndex = 0; // 20mV
-    currentIncrementIndex = 0; // 50mA
+    voltageIncrementIndex = 2; // 0= 20mV, 1 = 100mV, 2 = 1000mV
+    currentIncrementIndex = 2; // 0= 50mA, 1 = 100mA, 2 = 1000mA
 
     // Set up 100ms timer using timer0
     hw_set_bits(&timer_hw->inte, 1u << ALARM_NUM0);
@@ -701,7 +701,7 @@ void StateMachine::process_request_voltage_current()
             //Serial.println(targetCurrent);
             if (usbpd.existPPS)
             {
-                if (targetCurrent < 1000)
+                if (targetCurrent <= 1000)
                     targetCurrent = 1000; // Cap at 100mA minimum, no current update
                 else if (usbpd.getPPSMaxCurrent(usbpd.getPPSIndex()) >= targetCurrent)
                     // usbpd.setMaxCurrent(targetCurrent);

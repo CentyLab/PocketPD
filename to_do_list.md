@@ -14,10 +14,17 @@ List of requested UI changes:
 + [x] Delay CC/CV update to reduce mode flicker.
 + [x] Fix CC/CV bug at no load.
 
+
 + [x] Add EEPROM function to remember last used voltage/current and PD mode settings.
 
-+ [ ] Add more cable loss when connect through Android adapter, detect computer connection.
++ [x] Change Startup PPS to be Corse
++ [ ] Fix quickly turning the encoder makes the power supply not delivering the set voltage. #issue #11
++ [ ] Fix Voltage selection bug near 3.3V #issue #3
 
+Backlog:
++ [ ] Add more cable loss when connect through Android adapter, detect computer connection.
++ [ ] Add counter for mAh or Wh used
++ [ ] Add reminder boot screen for buttons function
 ```
 //Tested with USB-C to USB-A, and USB-C to USB-C on PC/Mac, Anker PowerCore24k, and UGREEN 140W
 #define MEM32(address) (*(volatile uint32_t*)(address))
