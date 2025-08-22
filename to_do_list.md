@@ -20,6 +20,9 @@ List of requested UI changes:
 + [x] Change Startup PPS to be Corse **#issue #17**
 + [x] Fix quickly turning the encoder makes the power supply not delivering the set voltage. **#issue #11**
 + [x] Fix Voltage selection bug near 3.3V **#issue #3**
++ [x] Add temperature reading for internal circuit
++ [ ] Add auto cut off if internal circuit reach 76C
+NOT DONE, CC mode is still bug out if there is a big gap in accuracy of PPS Source current limit
 
 Backlog:
 + [ ] Add more cable loss when connect through Android adapter, detect computer connection.

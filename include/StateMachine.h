@@ -113,6 +113,7 @@ private:
     int currentIncrement[3];
     float ina_current_ma;  // Unit
     float vbus_voltage_mv; // Unit mV
+    int temp_C;            // Unit C
     int encoder_position;
     int encoder_newPos;
     Supply_Mode supply_mode;
@@ -137,7 +138,7 @@ private:
     void printBootingScreen();
     void printProfile();
     void printOLED_fixed();
-    void updateOLED(float voltage, float current, uint8_t requestEN);
+    void updateOLED(float voltage, float current, int temperture, uint8_t requestEN);
     void update_supply_mode();
 
     void process_request_voltage_current();

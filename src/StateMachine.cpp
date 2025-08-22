@@ -2,8 +2,8 @@
 
 // Static object require separate implementation
 RotaryEncoder StateMachine::encoder(pin_encoder_A, pin_encoder_B, RotaryEncoder::LatchMode::FOUR3);
-bool StateMachine::timerFlag0 = false; // Need to initilize Static variable
-bool StateMachine::timerFlag1 = false; // Need to initilize Static variable
+bool StateMachine::timerFlag0 = false; // 33ms. Need to initilize Static variable
+bool StateMachine::timerFlag1 = false; // 500ms. Need to initilize Static variable
 
 /**
  * @brief Transistion conditions between states. Call in main.cpp
@@ -307,6 +307,7 @@ void StateMachine::handleNormalPPSState()
     {
         ina_current_ma = abs(ina226.getCurrent_mA());
         vbus_voltage_mv = ina226.getBusVoltage_mV();
+        temp_C = usbpd.readTemp();
 
         //Place before updateOLED to prevent voltage/current go out of bound, then recover.
 
@@ -314,12 +315,12 @@ void StateMachine::handleNormalPPSState()
 
         if (digitalRead(pin_output_Enable))
         {
-            updateOLED(vbus_voltage_mv / 1000.0, ina_current_ma / 1000, true);
+            updateOLED(vbus_voltage_mv / 1000.0, ina_current_ma / 1000, temp_C, true);
         }
         else
         {
             //updateOLED(usbpd.readVoltage() / 1000.0, ina_current_ma / 1000, true);
-            updateOLED(usbpd.readVoltage() / 1000.0, 0, true);
+            updateOLED(usbpd.readVoltage() / 1000.0, 0, temp_C, true);
         }
 
         update_supply_mode();
@@ -362,6 +363,7 @@ void StateMachine::handleNormalPPSState()
  */
 void StateMachine::handleNormalPDOState()
 {
+    
     // Run once
     if (!normalPDOInitialized)
     {
@@ -385,14 +387,15 @@ void StateMachine::handleNormalPDOState()
     {
         ina_current_ma = abs(ina226.getCurrent_mA());
         vbus_voltage_mv = ina226.getBusVoltage_mV();
+        temp_C = usbpd.readTemp();
 
         if (digitalRead(pin_output_Enable))
         {
-            updateOLED(vbus_voltage_mv / 1000.0, ina_current_ma / 1000, true);
+            updateOLED(vbus_voltage_mv / 1000.0, ina_current_ma / 1000, temp_C, true);
         }
         else
         {
-            updateOLED(usbpd.readVoltage() / 1000.0, ina_current_ma / 1000, true);
+            updateOLED(usbpd.readVoltage() / 1000.0, ina_current_ma / 1000, temp_C, true);
         }
         update_supply_mode();
         timerFlag0 = false;
@@ -429,11 +432,11 @@ void StateMachine::handleNormalQCState()
     {
         if (digitalRead(pin_output_Enable))
         {
-            updateOLED(ina226.getBusVoltage_mV() / 1000.0, ina_current_ma / 1000, true);
+            updateOLED(ina226.getBusVoltage_mV() / 1000.0, ina_current_ma / 1000, temp_C, true);
         }
         else
         {
-            updateOLED(usbpd.readVoltage() / 1000.0, ina_current_ma / 1000, true);
+            updateOLED(usbpd.readVoltage() / 1000.0, ina_current_ma / 1000, temp_C, true);
         }
         timerFlag0 = false;
     }
@@ -515,9 +518,10 @@ void StateMachine::printBootingScreen()
  * @brief Update value on OLED screen
  * @param voltage voltage (mV) to display, big text
  * @param current current (mA) to display, big text
+ * @param temperature temperture (C) to display, small text
  * @param requestEN flag to show/not show smaller text. Used for PPS request.
  */
-void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
+void StateMachine::updateOLED(float voltage, float current, int temperture, uint8_t requestEN)
 {
     // TODO Can optimize away requestEN
     u8g2.clearBuffer();
@@ -550,6 +554,11 @@ void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
     sprintf(buffer, "%.2f", current);
     u8g2.drawStr(75 - u8g2.getStrWidth(buffer), 47, buffer); // Right adjust
 
+    u8g2.setFont(u8g2_font_profont12_tf);
+    u8g2.enableUTF8Print();
+    sprintf(buffer, "%d°C", temperture);
+    u8g2.drawUTF8(110 - u8g2.getStrWidth(buffer), 62, buffer); // Right adjust
+
     // https://github.com/olikraus/u8g2/discussions/2028
     if (requestEN == 1)
     {
@@ -558,6 +567,7 @@ void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
         u8g2.drawStr(75 - u8g2.getStrWidth(buffer), 27, buffer); // Right adjust
         sprintf(buffer, "%d mA", targetCurrent);
         u8g2.drawStr(75 - u8g2.getStrWidth(buffer), 62, buffer); // Right adjust
+        
     }
 
     if (supply_mode) // CV = 0, CC = 1
