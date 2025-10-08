@@ -363,28 +363,33 @@ void StateMachine::handleNormalPPSState()
         timerFlag0 = false;
     }
 
-    if (button_encoder.isButtonPressed() == 1)
+    // Disable encoder button and selectVI button in energy display mode
+    if (output_display_mode != OUTPUT_ENERGY)
     {
-        if (supply_adjust_mode == VOTLAGE_ADJUST)
+        if (button_encoder.isButtonPressed() == 1)
         {
-            // Make sure the valve loop around
-            voltageIncrementIndex = (voltageIncrementIndex + 1) % (sizeof(voltageIncrement) / sizeof(int));
+            if (supply_adjust_mode == VOTLAGE_ADJUST)
+            {
+                // Make sure the valve loop around
+                voltageIncrementIndex = (voltageIncrementIndex + 1) % (sizeof(voltageIncrement) / sizeof(int));
+            }
+            else
+            {
+                currentIncrementIndex = (currentIncrementIndex + 1) % (sizeof(currentIncrement) / sizeof(int));
+            }
         }
-        else
+        if (button_selectVI.isButtonPressed() == 1)
         {
-            currentIncrementIndex = (currentIncrementIndex + 1) % (sizeof(currentIncrement) / sizeof(int));
+            if (supply_adjust_mode == VOTLAGE_ADJUST)
+                supply_adjust_mode = CURRENT_ADJUST;
+            else
+                supply_adjust_mode = VOTLAGE_ADJUST;
         }
-    }
-    if (button_selectVI.isButtonPressed() == 1)
-    {
-        if (supply_adjust_mode == VOTLAGE_ADJUST)
-            supply_adjust_mode = CURRENT_ADJUST;
-        else
-            supply_adjust_mode = VOTLAGE_ADJUST;
+
+        process_encoder_input();
     }
 
     process_output_button();
-    process_encoder_input();
 
     //* END state routine */
     // Serial.println( "Handling NORMAL_PPS state" );
@@ -755,22 +760,12 @@ void StateMachine::updateOLED_Energy(float voltage, float current, uint8_t reque
         u8g2.drawStr(94, 10, "CV");
     }
 
-    // Underline indicator for V or A adjustment (only in PPS mode)
-    if (state == State::NORMAL_PPS)
+    // Animated arrow (only when output is enabled)
+    if (digitalRead(pin_output_Enable) == 1)
     {
-        if (supply_adjust_mode == VOTLAGE_ADJUST)
-        {
-            u8g2.drawLine(2, 12, 34, 12); // Underline voltage
-        }
-        else
-        {
-            u8g2.drawLine(48, 12, 80, 12); // Underline current
-        }
+        u8g2.drawXBMP(108, 0, 20, 20, arrow_bitmapallArray[counter_gif]);
+        counter_gif = (counter_gif + 1) % 28;
     }
-
-    // Animated arrow (always shown in energy display mode since output must be enabled)
-    u8g2.drawXBMP(108, 0, 20, 20, arrow_bitmapallArray[counter_gif]);
-    counter_gif = (counter_gif + 1) % 28;
 
     // Calculate total time: historical + current session
     unsigned long totalSeconds = historicalOutputTime;
@@ -959,25 +954,37 @@ void StateMachine::process_encoder_input()
 }
 
 /**
- * @brief Handle output button press - cycles through OFF -> NORMAL -> ENERGY -> OFF
+ * @brief Handle output button press
+ * Short press: Toggle output on/off (never changes display mode)
+ * Long press: Toggle between NORMAL and ENERGY display modes (never changes output)
  */
 void StateMachine::process_output_button()
 {
-    if (button_output.isButtonPressed() == 1)
+    int buttonState = button_output.isButtonPressed();
+
+    // Check for long press flag first
+    if (button_output.longPressedFlag)
     {
-        // Cycle through: OFF -> NORMAL -> ENERGY -> OFF
-        if (output_display_mode == OUTPUT_OFF)
-        {
-            output_display_mode = OUTPUT_NORMAL;
-            digitalWrite(pin_output_Enable, HIGH);
-        }
-        else if (output_display_mode == OUTPUT_NORMAL)
+        button_output.clearLongPressedFlag();
+        // Toggle between NORMAL and ENERGY display modes (output state unchanged)
+        if (output_display_mode == OUTPUT_NORMAL || output_display_mode == OUTPUT_OFF)
         {
             output_display_mode = OUTPUT_ENERGY;
         }
         else // OUTPUT_ENERGY
         {
-            output_display_mode = OUTPUT_OFF;
+            output_display_mode = OUTPUT_NORMAL;
+        }
+    }
+    else if (buttonState == 1) // Short press
+    {
+        // Toggle output on/off (display mode unchanged)
+        if (digitalRead(pin_output_Enable) == LOW) // Currently off
+        {
+            digitalWrite(pin_output_Enable, HIGH);
+        }
+        else // Currently on
+        {
             digitalWrite(pin_output_Enable, LOW);
         }
     }
