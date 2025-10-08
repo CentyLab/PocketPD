@@ -1,4 +1,5 @@
 #include <StateMachine.h>
+#include <math.h>
 
 // Static object require separate implementation
 RotaryEncoder StateMachine::encoder(pin_encoder_A, pin_encoder_B, RotaryEncoder::LatchMode::FOUR3);
@@ -19,27 +20,31 @@ void StateMachine::update()
         handleBootState();
         if (elapsed >= BOOT_TO_OBTAIN_TIMEOUT)
             transitionTo(State::OBTAIN);
-        
+
         break;
 
     case State::OBTAIN:
         handleObtainState();
-        if(encoder.getDirection() != RotaryEncoder::Direction::NOROTATION) { // Encoder rotation
+        if (encoder.getDirection() != RotaryEncoder::Direction::NOROTATION)
+        { // Encoder rotation
             transitionTo(State::MENU);
-        } else if (button_encoder.isButtonPressed() | button_output.isButtonPressed() | button_selectVI.isButtonPressed()) // Short press
+        }
+        else if (button_encoder.isButtonPressed() | button_output.isButtonPressed() | button_selectVI.isButtonPressed()) // Short press
             handleInitialMode();
         else if (elapsed >= OBTAIN_TO_CAPDISPLAY_TIMEOUT)
             transitionTo(State::CAPDISPLAY);
-        
+
         break;
 
     case State::CAPDISPLAY:
         handleDisplayCapState();
-        if(encoder.getDirection() != RotaryEncoder::Direction::NOROTATION) { // Encoder rotation
+        if (encoder.getDirection() != RotaryEncoder::Direction::NOROTATION)
+        { // Encoder rotation
             transitionTo(State::MENU);
-        } else if ((button_encoder.isButtonPressed() | button_output.isButtonPressed() | button_selectVI.isButtonPressed() | elapsed >= DISPLAYCCAP_TO_NORMAL_TIMEOUT)) // Short press + timeout
+        }
+        else if ((button_encoder.isButtonPressed() | button_output.isButtonPressed() | button_selectVI.isButtonPressed() | elapsed >= DISPLAYCCAP_TO_NORMAL_TIMEOUT)) // Short press + timeout
             handleInitialMode();
-        
+
         break;
 
     case State::NORMAL_PPS:
@@ -72,7 +77,8 @@ void StateMachine::update()
         break;
 
     case State::MENU:
-        if(usbpd.getNumPDO() == 0) {
+        if (usbpd.getNumPDO() == 0)
+        {
             transitionTo(State::NORMAL_PDO);
             break; // No PDO available, go back to NORMAL_PDO state
         }
@@ -90,12 +96,15 @@ void StateMachine::update()
         if (button_encoder.longPressedFlag) // Long press
         {
             button_encoder.clearLongPressedFlag();
-            if (menu.menuPosition == usbpd.getPPSIndex()) {
+            if (menu.menuPosition == usbpd.getPPSIndex())
+            {
                 transitionTo(State::NORMAL_PPS);
-            } else {
+            }
+            else
+            {
                 forceSave = true;
                 transitionTo(State::NORMAL_PDO);
-            }   
+            }
         }
         break;
     }
@@ -140,6 +149,7 @@ void StateMachine::componentInit()
 
     pinMode(pin_output_Enable, OUTPUT); // Load Switch
     digitalWrite(pin_output_Enable, LOW);
+    output_display_mode = OUTPUT_OFF;
 
     button_encoder.setDebounceTime(50); // set debounce time to 50 milliseconds
     button_output.setDebounceTime(50);
@@ -147,15 +157,18 @@ void StateMachine::componentInit()
 
     u8g2.begin();
     ina226.begin();
-    // ina226.setMaxCurrentShunt(6, SENSERESISTOR);
-    // configure(shunt, current_LSB_mA, current_zero_offset_mA, bus_V_scaling_e4)
-    #ifdef HW1_0
-    ina226.configure(0.01023, 0.25, 6.4, 9972); //Factory calibration
-    #endif
-    
-    #ifdef HW1_1
-    ina226.configure(0.00528, 0.25, 10.4, 9972); //Factory calibration
-    #endif
+
+    // Initialize energy tracking start time
+    energyStartTime = millis();
+// ina226.setMaxCurrentShunt(6, SENSERESISTOR);
+// configure(shunt, current_LSB_mA, current_zero_offset_mA, bus_V_scaling_e4)
+#ifdef HW1_0
+    ina226.configure(0.01023, 0.25, 6.4, 9972); // Factory calibration
+#endif
+
+#ifdef HW1_1
+    ina226.configure(0.00528, 0.25, 10.4, 9972); // Factory calibration
+#endif
 
     voltageIncrementIndex = 2; // 0= 20mV, 1 = 100mV, 2 = 1000mV
     currentIncrementIndex = 2; // 0= 50mA, 1 = 100mA, 2 = 1000mA
@@ -232,7 +245,7 @@ void StateMachine::handleBootState()
     // Add additional BOOT state routines here
 
     //* END state routine */
-    //Serial.println("Handling BOOT state");
+    // Serial.println("Handling BOOT state");
 }
 
 /**
@@ -285,12 +298,24 @@ void StateMachine::handleNormalPPSState()
     if (!normalPPSInitialized)
     {
         //* BEGIN Only run once when entering the state */
-        
+
+        // Sync display mode with actual pin state (in case we came from menu)
+        if (digitalRead(pin_output_Enable) == HIGH)
+        {
+            output_display_mode = OUTPUT_NORMAL; // Default to normal, not energy
+        }
+        else
+        {
+            output_display_mode = OUTPUT_OFF;
+        }
 
         // Load settings from EEPROM
-        if(loadSettingsFromEEPROM(true)) {
+        if (loadSettingsFromEEPROM(true))
+        {
             usbpd.checkVoltageCurrent(targetVoltage, targetCurrent);
-        } else {
+        }
+        else
+        {
             targetVoltage = 5000; // Default start up voltage
             targetCurrent = 1000; // Default start up current
         }
@@ -303,22 +328,34 @@ void StateMachine::handleNormalPPSState()
     }
 
     //* BEGIN state routine */
+    float currentReading = abs(ina226.getCurrent_mA());
+
     if (timerFlag0) // Timer with DELAY0
     {
-        ina_current_ma = abs(ina226.getCurrent_mA());
+        currentReading = abs(ina226.getCurrent_mA());
+        ina_current_ma = currentReading;
         vbus_voltage_mv = ina226.getBusVoltage_mV();
 
-        //Place before updateOLED to prevent voltage/current go out of bound, then recover.
+        // Place before updateOLED to prevent voltage/current go out of bound, then recover.
 
         process_request_voltage_current();
 
-        if (digitalRead(pin_output_Enable))
+        // Update energy accumulation
+        updateEnergyAccumulation();
+
+        if (output_display_mode == OUTPUT_ENERGY)
         {
-            updateOLED(vbus_voltage_mv / 1000.0, ina_current_ma / 1000, true);
+            // Show energy tracking display
+            updateOLED_Energy(vbus_voltage_mv / 1000.0, currentReading / 1000, true);
         }
-        else
+        else if (output_display_mode == OUTPUT_NORMAL)
         {
-            //updateOLED(usbpd.readVoltage() / 1000.0, ina_current_ma / 1000, true);
+            // Show normal display with output enabled
+            updateOLED(vbus_voltage_mv / 1000.0, currentReading / 1000, true);
+        }
+        else // OUTPUT_OFF
+        {
+            // Show normal display when output is off
             updateOLED(usbpd.readVoltage() / 1000.0, 0, true);
         }
 
@@ -346,12 +383,8 @@ void StateMachine::handleNormalPPSState()
             supply_adjust_mode = VOTLAGE_ADJUST;
     }
 
-    if (button_output.isButtonPressed() == 1)
-    {
-        digitalWrite(pin_output_Enable, !digitalRead(pin_output_Enable));
-    }
+    process_output_button();
     process_encoder_input();
-    
 
     //* END state routine */
     // Serial.println( "Handling NORMAL_PPS state" );
@@ -366,6 +399,17 @@ void StateMachine::handleNormalPDOState()
     if (!normalPDOInitialized)
     {
         //* BEGIN Only run once when entering the state */
+
+        // Sync display mode with actual pin state (in case we came from menu)
+        if (digitalRead(pin_output_Enable) == HIGH)
+        {
+            output_display_mode = OUTPUT_NORMAL; // Default to normal, not energy
+        }
+        else
+        {
+            output_display_mode = OUTPUT_OFF;
+        }
+
         usbpd.setPDO(menu.menuPosition);
         // Now targetVoltage/targetCurrent is just for display. Do not pass over to AP33772
         targetVoltage = usbpd.getPDOVoltage(menu.menuPosition);    // For display
@@ -379,29 +423,37 @@ void StateMachine::handleNormalPDOState()
     }
 
     //* BEGIN state routine */
-    float ina_current_ma = abs(ina226.getCurrent_mA());
+    float currentReading = abs(ina226.getCurrent_mA());
 
     if (timerFlag0)
     {
-        ina_current_ma = abs(ina226.getCurrent_mA());
+        currentReading = abs(ina226.getCurrent_mA());
+        ina_current_ma = currentReading;
         vbus_voltage_mv = ina226.getBusVoltage_mV();
 
-        if (digitalRead(pin_output_Enable))
+        // Update energy accumulation
+        updateEnergyAccumulation();
+
+        if (output_display_mode == OUTPUT_ENERGY)
         {
-            updateOLED(vbus_voltage_mv / 1000.0, ina_current_ma / 1000, true);
+            // Show energy tracking display
+            updateOLED_Energy(vbus_voltage_mv / 1000.0, currentReading / 1000, true);
         }
-        else
+        else if (output_display_mode == OUTPUT_NORMAL)
         {
-            updateOLED(usbpd.readVoltage() / 1000.0, ina_current_ma / 1000, true);
+            // Show normal display with output enabled
+            updateOLED(vbus_voltage_mv / 1000.0, currentReading / 1000, true);
+        }
+        else // OUTPUT_OFF
+        {
+            // Show normal display when output is off
+            updateOLED(usbpd.readVoltage() / 1000.0, 0, true);
         }
         update_supply_mode();
         timerFlag0 = false;
     }
 
-    if (button_output.isButtonPressed() == 1)
-    {
-        digitalWrite(pin_output_Enable, !digitalRead(pin_output_Enable));
-    }
+    process_output_button();
 
     //* END state routine */
     // Serial.println( "Handling NORMAL_PDO state" );
@@ -416,6 +468,17 @@ void StateMachine::handleNormalQCState()
     if (!normalQCInitialized)
     {
         //* BEGIN Only run once when entering the state */
+
+        // Sync display mode with actual pin state (in case we came from menu)
+        if (digitalRead(pin_output_Enable) == HIGH)
+        {
+            output_display_mode = OUTPUT_NORMAL; // Default to normal, not energy
+        }
+        else
+        {
+            output_display_mode = OUTPUT_OFF;
+        }
+
         // TODO QC implmentation
         //* END Only run once when entering the state */
         normalQCInitialized = true;
@@ -423,25 +486,36 @@ void StateMachine::handleNormalQCState()
     }
 
     //* BEGIN state routine */
-    float ina_current_ma = abs(ina226.getCurrent_mA());
+    float currentReading = abs(ina226.getCurrent_mA());
 
     if (timerFlag0)
     {
-        if (digitalRead(pin_output_Enable))
+        currentReading = abs(ina226.getCurrent_mA());
+        ina_current_ma = currentReading;
+        vbus_voltage_mv = ina226.getBusVoltage_mV();
+
+        // Update energy accumulation
+        updateEnergyAccumulation();
+
+        if (output_display_mode == OUTPUT_ENERGY)
         {
-            updateOLED(ina226.getBusVoltage_mV() / 1000.0, ina_current_ma / 1000, true);
+            // Show energy tracking display
+            updateOLED_Energy(vbus_voltage_mv / 1000.0, currentReading / 1000, true);
         }
-        else
+        else if (output_display_mode == OUTPUT_NORMAL)
         {
-            updateOLED(usbpd.readVoltage() / 1000.0, ina_current_ma / 1000, true);
+            // Show normal display with output enabled
+            updateOLED(vbus_voltage_mv / 1000.0, currentReading / 1000, true);
+        }
+        else // OUTPUT_OFF
+        {
+            // Show normal display when output is off
+            updateOLED(usbpd.readVoltage() / 1000.0, 0, true);
         }
         timerFlag0 = false;
     }
 
-    if (button_output.isButtonPressed() == 1)
-    {
-        digitalWrite(pin_output_Enable, !digitalRead(pin_output_Enable));
-    }
+    process_output_button();
     // TODO QC implmentation
 
     //* END state routine */
@@ -506,8 +580,8 @@ void StateMachine::printBootingScreen()
     u8g2.clearBuffer();
     u8g2.drawBitmap(0, 0, 128 / 8, 64, image_PocketPD_Logo);
     u8g2.setFont(u8g2_font_profont12_tr);
-    u8g2.drawStr(67,64, "FW: ");
-    u8g2.drawStr(87,64, VERSION);
+    u8g2.drawStr(67, 64, "FW: ");
+    u8g2.drawStr(87, 64, VERSION);
     u8g2.sendBuffer();
 }
 
@@ -588,7 +662,7 @@ void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
     }
 
     // Blinking output arrow
-    if(digitalRead(pin_output_Enable) == 1)
+    if (digitalRead(pin_output_Enable) == 1)
     {
         u8g2.drawXBMP(105, 28, 20, 20, arrow_bitmapallArray[counter_gif]); // draw arrow animation
         counter_gif = (counter_gif + 1) % 28;
@@ -597,17 +671,214 @@ void StateMachine::updateOLED(float voltage, float current, uint8_t requestEN)
     u8g2.sendBuffer();
 }
 
+/**
+ * @brief Update energy accumulation (Wh and Ah) - continuous tracking, only resets on power cycle
+ */
+void StateMachine::updateEnergyAccumulation()
+{
+    if (digitalRead(pin_output_Enable) == 1)
+    {
+        unsigned long currentTime = millis();
+
+        // Start new session if needed
+        if (currentSessionStartTime == 0)
+        {
+            currentSessionStartTime = currentTime;
+            lastEnergyUpdate = currentTime;
+            return;
+        }
+
+        // Accumulate energy since last update - ALWAYS accumulate when output enabled
+        unsigned long deltaMs = currentTime - lastEnergyUpdate;
+
+        // Only accumulate if we have a reasonable delta (not first call edge case, not huge jump)
+        if (deltaMs > 0 && deltaMs < 1000)
+        { // Between 0ms and 1 second
+            if (!isfinite(vbus_voltage_mv) || !isfinite(ina_current_ma))
+            {
+                lastEnergyUpdate = currentTime;
+                return;
+            }
+
+            double voltage_v = static_cast<double>(vbus_voltage_mv) / 1000.0;
+            double current_a = static_cast<double>(ina_current_ma) / 1000.0;
+
+            if (voltage_v >= 0.0 && current_a >= 0.0)
+            {
+                double power_w = voltage_v * current_a;
+                double deltaHours = static_cast<double>(deltaMs) / 3600000.0;
+
+                accumulatedWh += power_w * deltaHours;
+                accumulatedAh += current_a * deltaHours;
+            }
+        }
+
+        lastEnergyUpdate = currentTime;
+    }
+    else
+    {
+        // Output disabled - save current session time to historical
+        if (currentSessionStartTime > 0)
+        {
+            unsigned long sessionDuration = (millis() - currentSessionStartTime) / 1000;
+            historicalOutputTime += sessionDuration;
+            currentSessionStartTime = 0;
+        }
+        lastEnergyUpdate = 0;
+    }
+}
+
+/**
+ * @brief Energy tracking display - shows Wh/Ah with compact V/A at top
+ */
+void StateMachine::updateOLED_Energy(float voltage, float current, uint8_t requestEN)
+{
+    u8g2.clearBuffer();
+    u8g2.setDrawColor(1);
+    u8g2.setFontMode(1);
+    u8g2.setBitmapMode(1);
+
+    // Top section - Compact real-time V/A
+    u8g2.setFont(u8g2_font_profont12_tr);
+    sprintf(buffer, "%.2fV", voltage);
+    u8g2.drawStr(2, 10, buffer);
+    sprintf(buffer, "%.2fA", current);
+    u8g2.drawStr(48, 10, buffer);
+
+    // CV/CC indicator (same size and alignment as V/A)
+    if (supply_mode == MODE_CC)
+    {
+        u8g2.drawStr(94, 10, "CC");
+    }
+    else
+    {
+        u8g2.drawStr(94, 10, "CV");
+    }
+
+    // Underline indicator for V or A adjustment (only in PPS mode)
+    if (state == State::NORMAL_PPS)
+    {
+        if (supply_adjust_mode == VOTLAGE_ADJUST)
+        {
+            u8g2.drawLine(2, 12, 34, 12); // Underline voltage
+        }
+        else
+        {
+            u8g2.drawLine(48, 12, 80, 12); // Underline current
+        }
+    }
+
+    // Animated arrow (always shown in energy display mode since output must be enabled)
+    u8g2.drawXBMP(108, 0, 20, 20, arrow_bitmapallArray[counter_gif]);
+    counter_gif = (counter_gif + 1) % 28;
+
+    // Calculate total time: historical + current session
+    unsigned long totalSeconds = historicalOutputTime;
+    if (currentSessionStartTime > 0)
+    {
+        totalSeconds += (millis() - currentSessionStartTime) / 1000;
+    }
+
+    // Format time based on totalSeconds (only increments when outputting)
+    char timeBuffer[10];
+    if (totalSeconds < 60)
+    {
+        // Under 1 minute: "00:SS"
+        sprintf(timeBuffer, "00:%02lu", totalSeconds);
+    }
+    else if (totalSeconds < 3600)
+    {
+        // Under 1 hour: "MM:SS"
+        sprintf(timeBuffer, "%02lu:%02lu", totalSeconds / 60, totalSeconds % 60);
+    }
+    else if (totalSeconds < 86400)
+    {
+        // Under 1 day: "#h##m" (e.g., "2h45m")
+        unsigned long hours = totalSeconds / 3600;
+        unsigned long minutes = (totalSeconds % 3600) / 60;
+        sprintf(timeBuffer, "%luh%02lum", hours, minutes);
+    }
+    else
+    {
+        // 1+ days: "#d##h" (e.g., "3d12h")
+        unsigned long days = totalSeconds / 86400;
+        unsigned long hours = (totalSeconds % 86400) / 3600;
+        sprintf(timeBuffer, "%lud%02luh", days, hours);
+    }
+
+    // Use larger font for main data rows
+    u8g2.setFont(u8g2_font_profont17_tr);
+
+    // Left column: Watts (no decimal when >= 100)
+    float watts = voltage * current;
+    if (watts >= 100.0)
+    {
+        sprintf(buffer, "%.0f", watts);
+    }
+    else
+    {
+        sprintf(buffer, "%.1f", watts);
+    }
+    u8g2.drawStr(2, 35, buffer);
+    int watts_width = u8g2.getStrWidth(buffer);
+    u8g2.drawStr(2 + watts_width + 2, 35, "W"); // 2px spacing
+
+    // Time (more spacing from watts)
+    u8g2.drawStr(2, 55, timeBuffer);
+
+    const double totalWh = accumulatedWh;
+    const double totalAh = accumulatedAh;
+
+    // Right column: Wh with proper significant digits
+    if (totalWh < 10.0)
+    {
+        sprintf(buffer, "%.2f", totalWh);
+    }
+    else if (totalWh < 100.0)
+    {
+        sprintf(buffer, "%.1f", totalWh);
+    }
+    else
+    {
+        sprintf(buffer, "%.0f", totalWh);
+    }
+    u8g2.drawStr(70, 35, buffer);
+    int wh_width = u8g2.getStrWidth(buffer);
+    u8g2.drawStr(70 + wh_width + 2, 35, "Wh"); // 2px spacing
+
+    // Ah with proper significant digits (more spacing)
+    if (totalAh < 10.0)
+    {
+        sprintf(buffer, "%.2f", totalAh);
+    }
+    else if (totalAh < 100.0)
+    {
+        sprintf(buffer, "%.1f", totalAh);
+    }
+    else
+    {
+        sprintf(buffer, "%.0f", totalAh);
+    }
+    u8g2.drawStr(70, 55, buffer);
+    int ah_width = u8g2.getStrWidth(buffer);
+    u8g2.drawStr(70 + ah_width + 2, 55, "Ah"); // 2px spacing
+
+    // Reset font to default
+    u8g2.setFont(u8g2_font_profont12_tr);
+    u8g2.sendBuffer();
+}
+
 /** Need fixing */
 void StateMachine::update_supply_mode()
 {
-    //Serial.println("Dumping start ");
-    //Serial.println(targetVoltage);
-    //Serial.println(vbus_voltage_mv);
-    //Serial.println(ina_current_ma);
-    //Serial.println(targetCurrent);
-    if(state == State::NORMAL_PPS && digitalRead(pin_output_Enable)                         &&
-        (targetVoltage >= vbus_voltage_mv + 50 + ina_current_ma*(0.166 + 0.022 + 0.005))    && 
-        (ina_current_ma >= targetCurrent - 150 && ina_current_ma <= targetCurrent + 150))   //Current read when hitting limit, need to be around 85-115% limit set
+    // Serial.println("Dumping start ");
+    // Serial.println(targetVoltage);
+    // Serial.println(vbus_voltage_mv);
+    // Serial.println(ina_current_ma);
+    // Serial.println(targetCurrent);
+    if (state == State::NORMAL_PPS && digitalRead(pin_output_Enable) &&
+        (targetVoltage >= vbus_voltage_mv + 50 + ina_current_ma * (0.166 + 0.022 + 0.005)) &&
+        (ina_current_ma >= targetCurrent - 150 && ina_current_ma <= targetCurrent + 150)) // Current read when hitting limit, need to be around 85-115% limit set
         supply_mode = MODE_CC;
     else // Other state only display CV mode
         supply_mode = MODE_CV;
@@ -675,15 +946,40 @@ void StateMachine::process_encoder_input()
     static int val;
     if (val = (int8_t)encoder.getDirection())
     {
-        if (supply_adjust_mode == VOTLAGE_ADJUST) //If cursor is at voltage
+        if (supply_adjust_mode == VOTLAGE_ADJUST) // If cursor is at voltage
         {
             targetVoltage = targetVoltage + val * voltageIncrement[voltageIncrementIndex];
         }
-        else                                      //If cursor is at current
+        else // If cursor is at current
         {
             targetCurrent = targetCurrent + val * currentIncrement[currentIncrementIndex];
         }
         updateSaveStamp(); // Update the save stamp to current time to debounce too many writes to EEPROM
+    }
+}
+
+/**
+ * @brief Handle output button press - cycles through OFF -> NORMAL -> ENERGY -> OFF
+ */
+void StateMachine::process_output_button()
+{
+    if (button_output.isButtonPressed() == 1)
+    {
+        // Cycle through: OFF -> NORMAL -> ENERGY -> OFF
+        if (output_display_mode == OUTPUT_OFF)
+        {
+            output_display_mode = OUTPUT_NORMAL;
+            digitalWrite(pin_output_Enable, HIGH);
+        }
+        else if (output_display_mode == OUTPUT_NORMAL)
+        {
+            output_display_mode = OUTPUT_ENERGY;
+        }
+        else // OUTPUT_ENERGY
+        {
+            output_display_mode = OUTPUT_OFF;
+            digitalWrite(pin_output_Enable, LOW);
+        }
     }
 }
 
@@ -694,56 +990,60 @@ void StateMachine::process_encoder_input()
 void StateMachine::process_request_voltage_current()
 {
     static int val;
-        if (supply_adjust_mode == VOTLAGE_ADJUST)
+    if (supply_adjust_mode == VOTLAGE_ADJUST)
+    {
+        if (usbpd.existPPS)
         {
-            if (usbpd.existPPS)
-            {
-                if ((float)usbpd.getPPSMinVoltage(usbpd.getPPSIndex()) <= targetVoltage && (float)usbpd.getPPSMaxVoltage(usbpd.getPPSIndex()) >= targetVoltage)
-                    // usbpd.setVoltage(targetVoltage);
-                    usbpd.setSupplyVoltageCurrent(targetVoltage, targetCurrent);
-                else if (usbpd.getPPSMinVoltage(usbpd.getPPSIndex()) > targetVoltage)
-                    targetVoltage = usbpd.getPPSMinVoltage(usbpd.getPPSIndex()); // No change
-                else if (usbpd.getPPSMaxVoltage(usbpd.getPPSIndex()) < targetVoltage)
-                    targetVoltage = usbpd.getPPSMaxVoltage(usbpd.getPPSIndex()); // No change
-            }
-            else
-            { // PDOs only has profile between 5V and 20V
-                if (targetVoltage > 20000)
-                    targetVoltage = 20000;
-                else if (targetVoltage < 5000)
-                    targetVoltage = 5000;
-                usbpd.setVoltage(targetVoltage);
-            }
+            if ((float)usbpd.getPPSMinVoltage(usbpd.getPPSIndex()) <= targetVoltage && (float)usbpd.getPPSMaxVoltage(usbpd.getPPSIndex()) >= targetVoltage)
+                // usbpd.setVoltage(targetVoltage);
+                usbpd.setSupplyVoltageCurrent(targetVoltage, targetCurrent);
+            else if (usbpd.getPPSMinVoltage(usbpd.getPPSIndex()) > targetVoltage)
+                targetVoltage = usbpd.getPPSMinVoltage(usbpd.getPPSIndex()); // No change
+            else if (usbpd.getPPSMaxVoltage(usbpd.getPPSIndex()) < targetVoltage)
+                targetVoltage = usbpd.getPPSMaxVoltage(usbpd.getPPSIndex()); // No change
         }
         else
-        {
-            if (usbpd.existPPS)
-            {
-                if (targetCurrent <= 1000)
-                    targetCurrent = 1000; // Cap at 100mA minimum, no current update
-                else if (usbpd.getPPSMaxCurrent(usbpd.getPPSIndex()) >= targetCurrent)
-                    // usbpd.setMaxCurrent(targetCurrent);
-                    usbpd.setSupplyVoltageCurrent(targetVoltage, targetCurrent);
-                else if (usbpd.getPPSMaxCurrent(usbpd.getPPSIndex()) < targetCurrent)
-                    targetCurrent = usbpd.getPPSMaxCurrent(usbpd.getPPSIndex()); // No change
-            }
-            else
-                targetCurrent = usbpd.getMaxCurrent(); // Pull current base on current PDO
+        { // PDOs only has profile between 5V and 20V
+            if (targetVoltage > 20000)
+                targetVoltage = 20000;
+            else if (targetVoltage < 5000)
+                targetVoltage = 5000;
+            usbpd.setVoltage(targetVoltage);
         }
+    }
+    else
+    {
+        if (usbpd.existPPS)
+        {
+            if (targetCurrent <= 1000)
+                targetCurrent = 1000; // Cap at 100mA minimum, no current update
+            else if (usbpd.getPPSMaxCurrent(usbpd.getPPSIndex()) >= targetCurrent)
+                // usbpd.setMaxCurrent(targetCurrent);
+                usbpd.setSupplyVoltageCurrent(targetVoltage, targetCurrent);
+            else if (usbpd.getPPSMaxCurrent(usbpd.getPPSIndex()) < targetCurrent)
+                targetCurrent = usbpd.getPPSMaxCurrent(usbpd.getPPSIndex()); // No change
+        }
+        else
+            targetCurrent = usbpd.getMaxCurrent(); // Pull current base on current PDO
+    }
 }
 
 /**
  * @brief Handle the initial mode when the device starts up
  * This function checks if settings can be loaded from EEPROM and transitions to the appropriate state.
  */
-void StateMachine::handleInitialMode() {
-    if(loadSettingsFromEEPROM(false)) {
-        if(menu.menuPosition == usbpd.getPPSIndex())
+void StateMachine::handleInitialMode()
+{
+    if (loadSettingsFromEEPROM(false))
+    {
+        if (menu.menuPosition == usbpd.getPPSIndex())
             transitionTo(State::NORMAL_PPS);
         else
             transitionTo(State::NORMAL_PDO);
-    } else {
-        if(usbpd.existPPS)
+    }
+    else
+    {
+        if (usbpd.existPPS)
             transitionTo(State::NORMAL_PPS);
         else
             transitionTo(State::NORMAL_PDO);
@@ -754,29 +1054,38 @@ void StateMachine::handleInitialMode() {
  * @brief Save settings to EEPROM
  * @return true if settings were saved successfully, false otherwise
  */
-bool StateMachine::saveSettingsToEEPROM() {
+bool StateMachine::saveSettingsToEEPROM()
+{
     uint32_t currentTime = millis();
     bool ret = false;
     bool saveVC = state == State::NORMAL_PPS; // Check if we are in NORMAL_PPS state to save PPS settings
 
-    if(forceSave || (currentTime - saveStamp >= EEPROM_SAVE_INTERVAL)) {
+    if (forceSave || (currentTime - saveStamp >= EEPROM_SAVE_INTERVAL))
+    {
         saveStamp = currentTime;
-        if(usbpd.getNumPDO() == 0) {
+        if (usbpd.getNumPDO() == 0)
+        {
             Serial.println("No PDOs available, cannot save settings.");
             return false; // No PDOs available, cannot save settings
         }
-        Settings newSettings = { 0 };
+        Settings newSettings = {0};
         eepromHandler.loadSettings(newSettings); // Load current settings from EEPROM
-        if(saveVC) {
+        if (saveVC)
+        {
             newSettings.targetVoltage = targetVoltage;
             newSettings.targetCurrent = targetCurrent;
             int32_t menuIndex = menu.menuPosition;
-            if(menuIndex == 0) { menuIndex = usbpd.getPPSIndex(); } // If menu position is 0, use PPS index
-            newSettings.menuPosition  = menuIndex; // Save current menu position
-        } else {
-            newSettings.menuPosition = menu.menuPosition;    // Save current menu position
+            if (menuIndex == 0)
+            {
+                menuIndex = usbpd.getPPSIndex();
+            } // If menu position is 0, use PPS index
+            newSettings.menuPosition = menuIndex; // Save current menu position
         }
-        
+        else
+        {
+            newSettings.menuPosition = menu.menuPosition; // Save current menu position
+        }
+
         ret = eepromHandler.saveSettings(newSettings);
         Serial.printf("Settings saved to EEPROM: %d\n\r", ret);
         forceSave = !ret; // If save failed, set forceSave to true to retry next time
@@ -789,20 +1098,27 @@ bool StateMachine::saveSettingsToEEPROM() {
  * @param vc If true, load Voltage/Current settings, otherwise load menu position
  * @return true if settings were loaded successfully, false otherwise
  */
-bool StateMachine::loadSettingsFromEEPROM(bool vc) {
+bool StateMachine::loadSettingsFromEEPROM(bool vc)
+{
     Settings loadedSettings;
     bool ret = eepromHandler.loadSettings(loadedSettings);
-    if(ret) {
-        if(!vc) {
+    if (ret)
+    {
+        if (!vc)
+        {
             menu.menuPosition = loadedSettings.menuPosition; // Load menu position
             menu.checkMenuPosition(false);
-        } else {
-            targetVoltage      = loadedSettings.targetVoltage;
-            targetCurrent      = loadedSettings.targetCurrent;
         }
-        Serial.printf("Settings loaded from EEPROM: mV=%4d, mI=%4d, Menu position=%d\n\r", 
+        else
+        {
+            targetVoltage = loadedSettings.targetVoltage;
+            targetCurrent = loadedSettings.targetCurrent;
+        }
+        Serial.printf("Settings loaded from EEPROM: mV=%4d, mI=%4d, Menu position=%d\n\r",
                       targetVoltage, targetCurrent, menu.menuPosition);
-    } else {
+    }
+    else
+    {
         Serial.println("Failed to load settings from EEPROM.");
     }
     return ret;
@@ -810,8 +1126,9 @@ bool StateMachine::loadSettingsFromEEPROM(bool vc) {
 
 /**
  * @brief Debounce the save stamp
- * 
+ *
  */
-void StateMachine::updateSaveStamp() {
+void StateMachine::updateSaveStamp()
+{
     saveStamp = millis(); // Update the save stamp to current time
 }
