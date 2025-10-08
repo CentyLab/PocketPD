@@ -48,6 +48,11 @@ enum Supply_Adjust_Mode
     VOTLAGE_ADJUST,
     CURRENT_ADJUST
 };
+enum Output_Display_Mode
+{
+    OUTPUT_NORMAL,
+    OUTPUT_ENERGY
+};
 
 #ifndef STATEMACHINE_H
 #define STATEMACHINE_H
@@ -117,6 +122,7 @@ private:
     int encoder_newPos;
     Supply_Mode supply_mode;
     Supply_Adjust_Mode supply_adjust_mode;
+    Output_Display_Mode output_display_mode;
 
     static constexpr long BOOT_TO_OBTAIN_TIMEOUT = 500;         // Timeout for BOOT to OBTAIN state in seconds
     static constexpr long OBTAIN_TO_CAPDISPLAY_TIMEOUT = 1500;  // Timeout for OBTAIN to DISPLAYCAP state in seconds
@@ -142,6 +148,7 @@ private:
 
     void process_request_voltage_current();
     void process_encoder_input();
+    void process_output_button();
     static void encoderISR();
     static void timerISR0(); // 100ms
     static void timerISR1(); // 1s
@@ -149,10 +156,20 @@ private:
 
     int counter_gif = 0; //Count up to 27
 
+    // Energy tracking
+    double accumulatedWh = 0.0;                // Accumulated watt-hours
+    double accumulatedAh = 0.0;                // Accumulated amp-hours
+    unsigned long lastEnergyUpdate = 0;        // Last time energy was calculated
+    unsigned long energyStartTime = 0;         // Time when device was powered on
+    unsigned long historicalOutputTime = 0;    // Total seconds output has been enabled (across sessions)
+    unsigned long currentSessionStartTime = 0; // millis() when current output session started
+
     void handleInitialMode();
     bool saveSettingsToEEPROM();
     bool loadSettingsFromEEPROM(bool vc);
     void updateSaveStamp();
+    void updateEnergyAccumulation(float voltage, float current);
+    void updateOLED_Energy(float voltage, float current);
 };
 
 #endif // STATEMACHINE_H
