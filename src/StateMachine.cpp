@@ -309,7 +309,6 @@ void StateMachine::handleNormalPPSState()
     {
         ina_current_ma = abs(ina226.getCurrent_mA());
         vbus_voltage_mv = ina226.getBusVoltage_mV();
-        temp_C = usbpd.readTemp();
 
         //Place before updateOLED to prevent voltage/current go out of bound, then recover.
 
@@ -481,7 +480,7 @@ void StateMachine::handleNormalQCState()
         else if (output_display_mode == OUTPUT_NORMAL)
         {
             // Show normal display with output enabled
-            updateOLED(voltageReading, currentReading, temp_C,true);
+            updateOLED(voltageReading, currentReading,true);
         }        
         timerFlag0 = false;
     }
