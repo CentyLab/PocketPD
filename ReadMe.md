@@ -59,7 +59,7 @@ When the device is at boot screen:
 + Long press encoder to activate profile
 
 <p align="center" width="100%">
-<video src="media/Boot_to_Menu.mp4" width="80%" controls></video>
+<video src="https://github.com/user-attachments/assets/563d36e5-1c92-49e6-aa88-c873a20ddf1d" width="80%" controls></video>
 </p>
 
 ### Normal operation
@@ -72,15 +72,15 @@ When the device is at boot screen:
 + Long press On/Off button to enter ENERGY screen
 
 <p align="center" width="100%">
-<video src="media/Normal_only.mp4" width="80%" controls></video>
+<video src="https://github.com/user-attachments/assets/1aa5be08-7ff9-443c-b3c7-ea3d54f766d1" width="80%" controls></video>
 </p>
 
 <p align="center" width="100%">
-<video src="media/Normal_to_Energy.mp4" width="80%" controls></video>
+<video src="https://github.com/user-attachments/assets/d8f55b10-d94f-4dc2-9a7f-f5e726f47ec9" width="80%" controls></video>
 </p>
 
 <p align="center" width="100%">
-<video src="media/Normal_to_Menu.mp4" width="80%" controls></video>
+<video src="https://github.com/user-attachments/assets/7a1174bd-7ffe-4ea3-8e91-18dc4e83c6fd" width="80%" controls></video>
 </p>
 
 ### Menu page
