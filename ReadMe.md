@@ -38,12 +38,12 @@ System will display the flashed firmware version.
 The system will then display the available profile from the charger. Please note that **PPS profile is needed** for PocketPD to fully function as a bench power supply. If your charger doesn't support pps, you will get a profile like [this](#profile-example-for-non-pps-charger)
 
 <p align="center" width="100%">
-    <img width="80%" src="media/screen_menu.jpg">
+    <img width="80%" src="media/screen_menu_.jpg">
 </p>
 After 3 seconds, the system will enter operating mode. If PPS mode exist, the system will request 5V @ 1A
 
 <p align="center" width="100%">
-    <img width="80%" src="media/screen_pps.jpg">
+    <img width="80%" src="media/screen_pps_.jpg">
 </p>
 
 If the bootup profile is not what you want, hold the Volt/Amp button (left button) for 3 secconds to enter MENU screen and select your desire profile.
@@ -85,18 +85,18 @@ When the device is at boot screen:
 
 ### Menu page
 <p align="center" width="100%">
-    <img width="80%" src="media/screen_menu.jpg">
+    <img width="80%" src="media/screen_menu_.jpg">
 </p>
 
 ### Energy page
 <p align="center" width="100%">
-    <img width="80%" src="media/screen_energy.jpg">
+    <img width="80%" src="media/screen_energy_.jpg">
 </p>
 
 ### Example fixed 15V @ 3A profile
 
 <p align="center" width="100%">
-    <img width="80%" src="media/screen_fix.jpg">
+    <img width="80%" src="media/screen_fix_.jpg">
 </p>
 <br>
 
@@ -105,7 +105,7 @@ When the device is at boot screen:
 If your charger doesn't support PPS profile, PocketPD will directly boot into the first 5V PDO profile. Your menu will looks like this:
 
 <p align="center" width="100%">
-    <img width="80%" src="media/screen_menu_nonpps.jpg">
+    <img width="80%" src="media/screen_menu_nonpps_.jpg">
 </p>
 
 ## Compile the code
