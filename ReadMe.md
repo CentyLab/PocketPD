@@ -32,7 +32,7 @@ flowchart LR
 System will display the flashed firmware version.
 
 <p align="center" width="100%">
-    <img width="80%" src="media/screen_boot.jpg">
+    <img width="80%" src="media/screen_boot_.jpg">
 </p>
 
 The system will then display the available profile from the charger. Please note that **PPS profile is needed** for PocketPD to fully function as a bench power supply. If your charger doesn't support pps, you will get a profile like [this](#profile-example-for-non-pps-charger)
