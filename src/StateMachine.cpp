@@ -932,13 +932,18 @@ void StateMachine::process_output_button()
     {
         button_output.clearLongPressedFlag();
         // Toggle between NORMAL and ENERGY display modes (output state unchanged)
+        
         if (output_display_mode == OUTPUT_NORMAL)
-        {
+        {   // Ignore all encoder turning
             output_display_mode = OUTPUT_ENERGY;
+            detachInterrupt(digitalPinToInterrupt(pin_encoder_A));
+            detachInterrupt(digitalPinToInterrupt(pin_encoder_B));
         }
-        else // OUTPUT_ENERGY
-        {
+        else // In OUTPUT_ENERGY
+        {   // Now read all encoder turning
             output_display_mode = OUTPUT_NORMAL;
+            attachInterrupt(digitalPinToInterrupt(pin_encoder_A), encoderISR, CHANGE);
+            attachInterrupt(digitalPinToInterrupt(pin_encoder_B), encoderISR, CHANGE);      
         }
     }
     else if (buttonState == 1) // Short press
