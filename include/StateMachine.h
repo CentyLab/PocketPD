@@ -5,7 +5,7 @@
 #include <RotaryEncoder.h>
 #include <U8g2lib.h>
 #include <PocketPDPinOut.h>
-#include <image.h>
+#include <Image.h>
 #include <Menu.h>
 #include <EEPROMHandler.hpp>
 
