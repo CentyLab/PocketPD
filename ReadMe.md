@@ -1,7 +1,7 @@
 [![PlatformIO CI](https://github.com/braamBeresford/PocketPD/actions/workflows/main.yml/badge.svg)](https://github.com/braamBeresford/PocketPD/actions/workflows/main.yml)
 ## Description
 
-PocketPD is a portable USB-C bench power supply that can fit in your pocket. Combine with a USB-C PD 3.0/3.1 power source and you can ultilize the PPS profile to create a portable power supply with voltage and current adjustment.
+PocketPD is a portable USB-C bench power supply that can fit in your pocket. Combine with a USB-C PD 3.0/3.1 power source and you can utilize the PPS profile to create a portable power supply with voltage and current adjustment.
 
 As the DIY community has grown, there are multiple ways to implement control features like adjusting parameters via Wifi, Bluetooth, or touch screen. We want to keep the design language simple, just physical knobs and buttons to control. This will give the system higher reliability when you need it to work.
 
@@ -47,7 +47,7 @@ After 3 seconds, the system will enter operating mode. If PPS mode exist, the sy
     <img width="80%" src="media/screen_pps_.jpg">
 </p>
 
-If the bootup profile is not what you want, hold the Volt/Amp button (left button) for 3 secconds to enter MENU screen and select your desire profile.
+If the bootup profile is not what you want, hold the Volt/Amp button (left button) for 3 seconds to enter MENU screen and select your desired profile.
 
 
 ### Skip boot screen
@@ -103,7 +103,7 @@ When the device is at boot screen:
 
 ### Profile example for non PPS charger
 
-If your charger doesn't support PPS profile, PocketPD will directly boot into the first 5V PDO profile. Your menu will looks like this:
+If your charger doesn't support PPS profile, PocketPD will directly boot into the first 5V PDO profile. Your menu will look like this:
 
 <p align="center" width="100%">
     <img width="80%" src="media/screen_menu_nonpps_.jpg">
@@ -119,8 +119,8 @@ If your charger doesn't support PPS profile, PocketPD will directly boot into th
 VCSBaseException: VCS: Could not process command ['git', 'clone', '--recursive', 'https://github.com/earlephilhower/arduino-pico.git', 'C:\\Users\\keylo\\.platformio\\.cache\\tmp\\pkg-installing-iypaogfn']
 ```
 
-+ Go to PlatformIO extension -> Pico -> General -> Build
-+ Output of the build process will be in .pio/build/pico/
++ Go to PlatformIO extension -> select the env matching your hardware (`HW1_0` or `HW1_1`) -> General -> Build
++ Output of the build process will be in `.pio/build/HW1_0/` or `.pio/build/HW1_1/` depending on the selected env
 
 ## Firmware compability
 
@@ -134,7 +134,7 @@ VCSBaseException: VCS: Could not process command ['git', 'clone', '--recursive',
 | `Release 0.9.9`  | x                      | x            | x            | x                          |
 | `Release 1.0.0`  | x                      | x            | x            | x                          |
 
-The main different in HW1.0 and later version is the change in sense resistor, from 10mOhm to 5mOhm. Thus change the current reading scale. Changes from HW1.0+ are mainly connector and component rearrangement.
+The main difference between HW1.0 and later versions is the change in sense resistor, from 10mOhm to 5mOhm, which changes the current reading scale. Changes from HW1.0+ are mainly connector and component rearrangement.
 
 This is what our "Limited" version HW1.0 looks like. We had to move away from this design due to the difficulty for mass production.
 
@@ -154,29 +154,39 @@ Step 1: Select the correct hardware version from [PocketPD's Firmware Releases](
 
 Step 2: Mount PocketPD as a drive in your computer
 
-For MacBook user:
+For macOS users:
 
 + Method 1: (Easy)
   + Short the BOOT pads at the back of the device with a tweezer in `HW1.0` or hold the BOOT button in `HW1.1`.
-  + Use a USB-A -> USB-C adapter, then use a USB-A -> USB-C cable to connect PocketPD to computer. PocketPD should pop up as `RPI_RP2` drive.
+  + Use a USB-A -> USB-C adapter, then use a USB-A -> USB-C cable to connect PocketPD to computer. PocketPD should pop up as `RPI-RP2` drive.
 + Method 2: (Intermediate)
   + Use a USB-A -> USB-C adapter, then use a USB-A -> USB-C cable to connect PocketPD to computer. No drive will popup.
-  + Use any serial monitor, and start a Serial port with 1200 Baudrate. PocketPD should pop up as `RPI_RP2` drive.
+  + Use any serial monitor, and start a Serial port with 1200 Baudrate. PocketPD should pop up as `RPI-RP2` drive.
 
-For Windows user:
+For Windows users:
 
 + Method 1: (Easy)
   + Short the BOOT pads at the back of the device with a tweezer in `HW1.0` or hold the BOOT button in `HW1.1`.
-  + Use any USB cable to connect PocketPD to computer. PocketPD should pop up as `RPI_RP2` drive.
+  + Use any USB cable to connect PocketPD to computer. PocketPD should pop up as `RPI-RP2` drive.
 + Method 2: (Intermediate)
   + Use any USB cable to connect PocketPD to computer. No drive will pop-up.
-  + Open [Putty](https://www.putty.org/) and open a Serial port with 1200 Baudrate. PocketPD should pop up as `RPI_RP2` drive.
+  + Open [Putty](https://www.putty.org/) and open a Serial port with 1200 Baudrate. PocketPD should pop up as `RPI-RP2` drive.
+
+For Linux users:
+
++ Method 1: (Easy)
+  + Short the BOOT pads at the back of the device with a tweezer in `HW1.0` or hold the BOOT button in `HW1.1`.
+  + Use any USB cable to connect PocketPD to computer. PocketPD enumerates as a USB mass storage device (label `RPI-RP2`).
+  + Most desktop environments auto-mount it. Otherwise locate it (e.g. `lsblk`) and mount manually: `sudo mount /dev/sdX1 /mnt`.
++ Method 2: (Intermediate)
+  + Use any USB cable to connect PocketPD to computer. No drive will pop-up.
+  + Open a serial port at 1200 Baudrate (e.g. `picocom -b 1200 /dev/ttyACM0` then exit, or `stty -F /dev/ttyACM0 1200`). PocketPD should re-enumerate as the `RPI-RP2` mass storage device. Note: the port closes immediately after the baud change, so some tools may report an error — this is expected.
 
 Step 3: Drag and drop the `.uf2` file into the drive
 
-If you build the firmware directly from VSCode, the `.uf2` file will be in `.pio/build/pico/`
+If you build the firmware directly from VSCode, the `.uf2` file will be in `.pio/build/HW1_0/` or `.pio/build/HW1_1/` depending on the selected PlatformIO env
 
 Detail guide [How to upload new firmware to PocketPD](https://github.com/CentyLab/PocketPD/wiki/How-to-upload-new-firmware-to-PocketPD)
 
 ## Acknowledgement
-We would like to thank many of our user for submitting feature request and test feedback over the year. Special thanks to our firmware contributors for making this project better every single commit!
+We would like to thank many of our users for submitting feature requests and test feedback over the years. Special thanks to our firmware contributors for making this project better every single commit!
