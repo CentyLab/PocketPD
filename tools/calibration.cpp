@@ -4,6 +4,7 @@
 //     url: https://github.com/pk17r/INA226
 
 #include "INA226.h"
+#include "Arduino.h"
 
 INA226 INA(0x40);
 
