@@ -1,0 +1,29 @@
+BasedOnStyle: LLVM
+ColumnLimit: 100
+IndentWidth: 4
+
+AlwaysBreakTemplateDeclarations: Yes
+AccessModifierOffset: -4
+AlignAfterOpenBracket: BlockIndent
+AlignConsecutiveMacros: Consecutive
+AlignOperands: AlignAfterOperator
+AllowShortFunctionsOnASingleLine: Empty
+InsertBraces: true
+NamespaceIndentation: All
+PointerAlignment: Left
+DerivePointerAlignment: false
+ReflowComments: true
+# Header include ordering — Google C++ Style Guide
+# https://google.github.io/styleguide/cppguide.html#Names_and_Order_of_Includes
+#   1. C system headers      (<stdint.h>, <string.h>)
+#   2. C++ standard library  (<cstdint>, <vector>, <algorithm>)
+#   3. Other libraries / project headers (Arduino, third-party, local)
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<[[:lower:]_/]+\.h>$'
+    Priority: 1
+  - Regex: '^<[[:alpha:]_]+>$'
+    Priority: 2
+  - Regex: '.*'
+    Priority: 3
