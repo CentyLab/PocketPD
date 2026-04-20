@@ -1,0 +1,8 @@
+Documentation:
+  CommentFormat: Doxygen
+---
+If:
+  PathMatch: .*\.h$
+CompileFlags:
+  Add:
+    - -xc++

@@ -1,3 +1,6 @@
 .pio
 .vscode
 .history
+.cache
+.worktrees
+compile_commands.json
