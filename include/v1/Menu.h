@@ -1,7 +1,7 @@
 #include <U8g2lib.h>
-#include <Button.h>
+#include <v1/Button.h>
 #include <RotaryEncoder.h>
-#include <AP33772_PocketPD.h>
+#include <v1/AP33772_PocketPD.h>
 
 #ifndef MENU_H
 #define MENU_H

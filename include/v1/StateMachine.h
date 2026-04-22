@@ -1,12 +1,12 @@
 #include <Arduino.h>
 #include <INA226.h>
-#include <AP33772_PocketPD.h>
-#include <Button.h>
+#include <v1/AP33772_PocketPD.h>
+#include <v1/Button.h>
 #include <RotaryEncoder.h>
 #include <U8g2lib.h>
 #include <PocketPDPinOut.h>
-#include <Image.h>
-#include <Menu.h>
+#include <v1/Image.h>
+#include <v1/Menu.h>
 #include <EEPROMHandler.hpp>
 
 #define ALARM_NUM0 0 // Timer 0
