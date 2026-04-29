@@ -1,8 +1,10 @@
 Documentation:
   CommentFormat: Doxygen
----
-If:
-  PathMatch: .*\.h$
+
 CompileFlags:
-  Add:
-    - -xc++
+  CompilationDatabase: .
+  BuiltinHeaders: QueryDriver
+  Remove:
+    - -march=*
+    - -mcpu=*
+    - -mthumb
