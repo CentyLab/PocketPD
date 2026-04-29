@@ -12,6 +12,11 @@ InsertBraces: true
 NamespaceIndentation: All
 PointerAlignment: Left
 DerivePointerAlignment: false
+SpaceAfterCStyleCast: true
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+BinPackParameters: OnePerLine
+PackConstructorInitializers: NextLine
 ReflowComments: true
 # Header include ordering — Google C++ Style Guide
 # https://google.github.io/styleguide/cppguide.html#Names_and_Order_of_Includes
