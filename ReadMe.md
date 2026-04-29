@@ -119,8 +119,8 @@ If your charger doesn't support PPS profile, PocketPD will directly boot into th
 VCSBaseException: VCS: Could not process command ['git', 'clone', '--recursive', 'https://github.com/earlephilhower/arduino-pico.git', 'C:\\Users\\keylo\\.platformio\\.cache\\tmp\\pkg-installing-iypaogfn']
 ```
 
-+ Go to PlatformIO extension -> select the env matching your hardware (`HW1_0` or `HW1_1`) -> General -> Build
-+ Output of the build process will be in `.pio/build/HW1_0/` or `.pio/build/HW1_1/` depending on the selected env
++ Go to PlatformIO extension -> select the env matching your hardware (`HW1_0` or `HW1_3`) -> General -> Build
++ Output of the build process will be in `.pio/build/HW1_0/` or `.pio/build/HW1_3/` depending on the selected env
 
 ## Firmware compability
 
@@ -184,7 +184,7 @@ For Linux users:
 
 Step 3: Drag and drop the `.uf2` file into the drive
 
-If you build the firmware directly from VSCode, the `.uf2` file will be in `.pio/build/HW1_0/` or `.pio/build/HW1_1/` depending on the selected PlatformIO env
+If you build the firmware directly from VSCode, the `.uf2` file will be in `.pio/build/HW1_0/` or `.pio/build/HW1_3/` depending on the selected PlatformIO env
 
 Detail guide [How to upload new firmware to PocketPD](https://github.com/CentyLab/PocketPD/wiki/How-to-upload-new-firmware-to-PocketPD)
 

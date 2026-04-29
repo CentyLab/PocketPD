@@ -6,11 +6,11 @@
 
 ## Hardware tested
 - [ ] HW1_0
-- [ ] HW1_1
+- [ ] HW1_3
 - [ ] None (no hardware change)
 
 How tested:
-<!-- e.g. "flashed HW1_1, ran 5 charge cycles, INA226 readings within 2%" -->
+<!-- e.g. "flashed HW1_3, ran 5 charge cycles, INA226 readings within 2%" -->
 
 ## Breaking change / migration
 <!-- Check any that apply, describe below. Leave unchecked if none. -->

@@ -160,7 +160,7 @@ void StateMachine::componentInit()
     ina226.configure(0.01023, 0.25, 6.4, 9972); //Factory calibration
     #endif
     
-    #ifdef HW1_1
+    #ifdef HW1_3
     ina226.configure(0.00528, 0.25, 10.4, 9972); //Factory calibration
     #endif
 
