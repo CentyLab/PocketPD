@@ -1,25 +1,23 @@
-// src/tempo/sched/BackgroundTask.h
 #pragma once
 
-#include <tempo/stage/stage_mask.h>
-
-#include "periodic_task.h"
+#include "tempo/sched/periodic_task.h"
 
 namespace tempo {
+
     /**
      * @brief Background Task. Runs in every Stage.
      *
-     * @tparam TStageId An enum type representing all possible stages.
+     * @tparam Conductor The concrete Conductor instantiation.
      * @tparam TEvent An event type. Usually std::variant<...>.
      */
-    template <typename TStageId, typename TEvent>
-    class BackgroundTask : public PeriodicTask<TStageId, TEvent> {
+    template <typename Conductor, typename Event>
+    class BackgroundTask : public PeriodicTask<Conductor, Event> {
     public:
-        using PeriodicTask<TStageId,TEvent>::PeriodicTask;
-        using stage_mask_t = StageMask<TStageId>;
+        using PeriodicTask<Conductor, Event>::PeriodicTask;
+        using StageMaskType = typename Conductor::StageMaskType;
 
-        stage_mask_t allowed_stages() const final {
-            return stage_mask_t::all();
+        StageMaskType allowed_stages() const final {
+            return StageMaskType::all();
         }
     };
 

@@ -1,6 +1,6 @@
 #pragma once
+#include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <type_traits>
 
 #include "tempo/bus/event_queue.h"
@@ -8,7 +8,11 @@
 #include "tempo/core/panic.h"
 #include "tempo/diag/logger.h"
 #include "tempo/hardware/stream.h"
+#include "tempo/sched/background_task.h"
 #include "tempo/sched/cooperative_scheduler.h"
+#include "tempo/sched/periodic_task.h"
+#include "tempo/sched/stage_scoped_task.h"
+#include "tempo/sched/task.h"
 #include "tempo/stage/conductor.h"
 
 namespace tempo {
@@ -19,33 +23,40 @@ namespace tempo {
     /**
      * @brief Single-core application orchestrator.
      *
-     * Application is a thin wrapper around the scheduler, conductor, and event queues. It does not
-     * own any hardware, drivers, app data, or other product-specific runtime data.
+     * Application is a thin wrapper around the scheduler, conductor, and event queues. It
+     * does not own any hardware, drivers, app data, or other product-specific runtime data.
      *
      * The two things it borrows by reference: Clock and StreamWriter.
      *
-     * Anything else (Display, inputs, Storage, sensors) is wired directly from
-     * main.cpp into whichever Task or Stage needs it.
+     * Anything else (Display, inputs, Storage, sensors) is wired directly from main.cpp into
+     * whichever Task or Stage needs it.
      *
-     * @tparam StageId An enum type representing all possible stages.
-     * @tparam Event An event type of std::variant<...>.
-     * @tparam MaxTasks The maximum number of tasks that can be added to the scheduler.
-     * @tparam EventQueueCapacity The capacity of the event queue.
+     * Stage identity is the Stage's type. The Stages... pack defines the slot order for the
+     * Conductor and StageMask.
+     *
+     * @tparam TEvent An event type of std::variant<...>.
+     * @tparam Stages The compile-time list of Stage types.
      */
-    template <
-        typename StageId,
-        typename Event,
-        size_t MaxTasks = DEFAULT_MAX_TASKS,
-        size_t EventQueueCapacity = DEFAULT_EVENT_QUEUE_CAP>
-    class Application : public UseLog<Application<StageId, Event, MaxTasks, EventQueueCapacity>> {
+    template <typename Event, typename... Stages>
+    class Application : public UseLog<Application<Event, Stages...>> {
     public:
         // clang-format off
-        using Scheduler  = tempo::CooperativeScheduler<StageId, Event, MaxTasks>;
-        using Queue      = tempo::EventQueue<Event, EventQueueCapacity>;
-        using Publisher  = tempo::QueuePublisher<Event, EventQueueCapacity>;
-        using Conductor  = tempo::Conductor<StageId>;
-        using Task       = tempo::Task<StageId, Event>;
-        using Stage      = tempo::Stage<StageId>;
+        static constexpr size_t MaxTasks           = DEFAULT_MAX_TASKS;
+        static constexpr size_t EventQueueCapacity = DEFAULT_EVENT_QUEUE_CAP;
+
+        using Conductor       = tempo::Conductor<Stages...>;
+        using Stage           = typename Conductor::StageType;
+        using StageMask       = typename Conductor::StageMaskType;
+
+        using Task            = tempo::Task<Conductor, Event>;
+        using PeriodicTask    = tempo::PeriodicTask<Conductor, Event>;
+        using BackgroundTask  = tempo::BackgroundTask<Conductor, Event>;
+        using StageScopedTask = tempo::StageScopedTask<Conductor, Event>;
+
+        using Scheduler       = tempo::CooperativeScheduler<Conductor, Event, MaxTasks>;
+        using Queue           = tempo::EventQueue<Event, EventQueueCapacity>;
+        using Publisher       = tempo::QueuePublisher<Event, EventQueueCapacity>;
+
         using UseLog<Application>::log;
         // clang-format on
 
@@ -63,6 +74,7 @@ namespace tempo {
 
         Queue m_task_queue;
         Queue m_isr_queue;
+        
         Publisher m_task_publisher;
         Publisher m_isr_publisher;
 
@@ -75,16 +87,14 @@ namespace tempo {
             return instance ? instance->m_conductor.current_name() : "?";
         }
 
-        const char* name_of_stage(StageId id) const {
-            const Stage* s = m_conductor.stage_for(id);
-            return s ? s->name() : "?";
+        const char* name_of_stage_at(size_t idx) const {
+            return m_conductor.name_at(idx);
         }
 
     public:
         Application(const Clock& clock, StreamWriter& stream_writer)
             : m_clock(clock),
               m_stream_writer(stream_writer),
-              m_conductor(clock),
               m_task_publisher(m_task_queue),
               m_isr_publisher(m_isr_queue) {
 
@@ -107,37 +117,37 @@ namespace tempo {
             return m_scheduler.add(task);
         }
 
-        template <typename T>
-        void register_stage(StageId id, T& stage) {
-            if constexpr (std::is_base_of_v<UseLog<T>, T>) {
-                auto& use_log = static_cast<UseLog<T>&>(stage);
+        template <typename S>
+        void register_stage(S& stage) {
+            if constexpr (std::is_base_of_v<UseLog<S>, S>) {
+                auto& use_log = static_cast<UseLog<S>&>(stage);
                 use_log.attach_log(m_clock, m_stream_writer);
             }
 
-            m_conductor.register_stage(id, stage);
+            m_conductor.template register_stage<S>(stage);
         }
 
         /**
          * @brief Setup services and start the application.
          *
-         * Unregistered stage slots fall back to a no-op NullStage, so calling start with no stages
-         * registered is allowed but staging functionality is effective disabled
+         * Unregistered stage slots fall back to a no-op NullStage, so calling start with no
+         * stages registered is allowed but staging functionality is effectively disabled.
          *
-         * @param initial_stage The stage to enter on startup.
+         * @tparam InitialStage The stage type to enter on startup.
          */
-        void start(StageId initial_stage) {
+        template <typename InitialStage>
+        void start() {
             TEMPO_CHECK(!m_started, "Application::start called twice");
 
             m_scheduler.start();
-            m_conductor.start(initial_stage);
+            m_conductor.template start<InitialStage>();
 
             m_started = true;
             log.info("tempo: started, Stage=%s", m_conductor.current_name());
         }
 
         /**
-         * @brief Main tick loop
-         *
+         * @brief Main tick loop.
          */
         void tick() {
             if (!m_started) {
@@ -147,27 +157,25 @@ namespace tempo {
             const uint32_t now = m_clock.now_ms();
 
             // 1. Apply any pending Stage transition from the previous tick.
-            const StageId before = m_conductor.current_id();
+            const size_t before = m_conductor.current_index();
             if (m_conductor.apply_pending_transition()) {
-                const StageId after = m_conductor.current_id();
+                const size_t after = m_conductor.current_index();
                 m_scheduler.notify_stage_changed(before, after);
-                log.info("Stage %s -> %s", name_of_stage(before), name_of_stage(after));
+                log.info("Stage %s -> %s", name_of_stage_at(before), name_of_stage_at(after));
             }
 
-            const StageId current = m_conductor.current_id();
+            const size_t current = m_conductor.current_index();
 
-            // 2. Drainer: pop ISR queue first as it's more sensitive, then the task queue.
-            //    Each event is dispatched to every task whose stage filter matches.
+            // 2. Drain ISR queue first (more sensitive), then task queue.
             Event e;
             while (m_isr_queue.pop(e)) {
                 m_scheduler.dispatch_event(e, current, now);
             }
-
             while (m_task_queue.pop(e)) {
                 m_scheduler.dispatch_event(e, current, now);
             }
 
-            // 3. Run periodic on_tick on every task whose stage matches.
+            // 3. Run periodic on_tick on every task whose stage filter matches.
             m_scheduler.tick(now, current);
 
             // 4. Give the current stage a chance to run its own on_tick.
@@ -175,32 +183,28 @@ namespace tempo {
         }
 
         // —— Accessors
+
         Queue& task_queue() {
             return m_task_queue;
         }
-
         Queue& isr_queue() {
             return m_isr_queue;
         }
-
         Publisher& task_publisher() {
             return m_task_publisher;
         }
-
         Publisher& isr_publisher() {
             return m_isr_publisher;
         }
-
         Scheduler& scheduler() {
             return m_scheduler;
         }
-
         Conductor& conductor() {
             return m_conductor;
         }
 
-        StageId current_stage() const {
-            return m_conductor.current_id();
+        size_t current_stage_index() const {
+            return m_conductor.current_index();
         }
     };
 

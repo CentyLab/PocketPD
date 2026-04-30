@@ -1,37 +1,29 @@
 #pragma once
 
 #include "tempo/sched/periodic_task.h"
-#include "tempo/stage/stage_mask.h"
 
 namespace tempo {
 
     /**
-     * @brief Stage-scoped Task. Runs only in stages listed in the mask supplied at construction.
+     * @brief Stage-scoped Task. Runs only in stages listed in the mask supplied at
+     * construction.
      *
-     * @tparam TStageId
-     * @tparam TEvent
+     * @tparam Conductor The concrete Conductor instantiation.
+     * @tparam TEvent An event type. Usually std::variant<...>.
      */
-    template <typename TStageId, typename TEvent>
-    class StageScopedTask : public PeriodicTask<TStageId, TEvent> {
-        using stage_mask_t = StageMask<TStageId>;
-        stage_mask_t m_scope;
+    template <typename Conductor, typename TEvent>
+    class StageScopedTask : public PeriodicTask<Conductor, TEvent> {
+    public:
+        using StageMaskType = typename Conductor::StageMaskType;
+
+    private:
+        StageMaskType m_scope;
 
     public:
-        /**
-         * @brief Construct a new Stage-scoped Task object.
-         *
-         * @param period_ms The period of the Task in milliseconds.
-         * @param scope The stages in which the Task is allowed to run.
-         */
-        StageScopedTask(uint32_t period_ms, stage_mask_t scope)
-            : PeriodicTask<TStageId, TEvent>(period_ms), m_scope(scope) {}
+        StageScopedTask(uint32_t period_ms, StageMaskType scope)
+            : PeriodicTask<Conductor, TEvent>(period_ms), m_scope(scope) {}
 
-        /**
-         * @brief The stages in which the Task is allowed to run.
-         *
-         * @return StageMask<TStageId>
-         */
-        stage_mask_t allowed_stages() const final {
+        StageMaskType allowed_stages() const final {
             return m_scope;
         }
     };

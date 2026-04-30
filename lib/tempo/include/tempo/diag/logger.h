@@ -265,7 +265,7 @@ namespace tempo {
         friend Derived;
 
         // Must match tempo::Application's full template signature
-        template <typename StageId, typename Event, size_t MaxTasks, size_t EventQueueCap>
+        template <typename Event, typename... Stages>
         friend class Application;
     };
 
