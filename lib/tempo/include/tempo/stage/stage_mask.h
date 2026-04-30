@@ -1,27 +1,41 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
-#include <initializer_list>
-#include <type_traits>
+
+#include "tempo/core/type_list.h"
 
 namespace tempo {
 
-    template <typename TStageId>
+    /**
+     * @brief Bitset over a compile-time stage type list.
+     *
+     * StageMask<Idle, Run, Error>::of<Idle, Run>() yields a mask with the bits matching
+     * those types' positions in the type list. Indices map 1:1 to Conductor slot indices.
+     *
+     * Up to 32 stages.
+     *
+     * @tparam Stages The compile-time stage type list (same order as Conductor's).
+     */
+    template <typename... Stages>
     class StageMask {
-        static_assert(std::is_enum_v<TStageId>, "TStageId must be a scoped enum");
-        using underlying_t = std::underlying_type_t<TStageId>;
-
-        static constexpr uint32_t mask_bit(TStageId id) {
-            return uint32_t{1} << static_cast<underlying_t>(id);
-        }
+    private:
+        uint32_t m_bits = 0;
 
     public:
+        static constexpr size_t STAGE_COUNT = sizeof...(Stages);
+        static_assert(STAGE_COUNT <= 32, "StageMask supports up to 32 stages");
+
         constexpr StageMask() = default;
 
-        constexpr StageMask(std::initializer_list<TStageId> ids) {
-            for (const auto& id : ids) {
-                m_bits |= mask_bit(id);
-            }
+        /**
+         * @brief Build a mask containing the given stage types.
+         */
+        template <typename... Selected>
+        static constexpr StageMask of() {
+            StageMask mask;
+            ((mask.m_bits |= (uint32_t{1} << type_index_v<Selected, Stages...>) ), ...);
+            return mask;
         }
 
         static constexpr StageMask none() {
@@ -29,19 +43,20 @@ namespace tempo {
         }
 
         static constexpr StageMask all() {
-            const auto count = static_cast<underlying_t>(TStageId::COUNT_);
-            static_assert(
-                static_cast<std::size_t>(TStageId::COUNT_) <= 32,
-                "Too many TStageIds; StageMask supports up to 32."
-            );
-            StageMask m;
-            m.m_bits = (count >= 32) ? 0xFFFFFFFFu : ((uint32_t{1} << count) - 1u);
-            return m;
+            StageMask mask;
+            mask.m_bits = 0xFFFFFFFFu;
+            return mask;
         }
 
-        constexpr bool contains(TStageId id) const {
-            return (m_bits & mask_bit(id)) != 0;
+        template <typename S>
+        constexpr bool contains() const {
+            return (m_bits & (uint32_t{1} << type_index_v<S, Stages...>) ) != 0;
         }
+
+        constexpr bool contains_index(size_t idx) const {
+            return idx < 32 && (m_bits & (uint32_t{1} << idx)) != 0;
+        }
+
         constexpr bool empty() const {
             return m_bits == 0;
         }
@@ -86,18 +101,6 @@ namespace tempo {
         friend constexpr bool operator!=(StageMask a, StageMask b) {
             return a.m_bits != b.m_bits;
         }
-
-        constexpr TStageId first() const {
-            for (underlying_t i = 0; i < static_cast<underlying_t>(TStageId::COUNT_); ++i) {
-                if (m_bits & (uint32_t{1} << i)) {
-                    return static_cast<TStageId>(i);
-                }
-            }
-            return TStageId::COUNT_;
-        }
-
-    private:
-        uint32_t m_bits = 0;
     };
 
 } // namespace tempo

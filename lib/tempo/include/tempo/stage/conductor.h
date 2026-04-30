@@ -4,63 +4,97 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "tempo/core/time.h"
+#include "tempo/core/type_list.h"
 #include "tempo/stage/null_stage.h"
 #include "tempo/stage/stage.h"
+#include "tempo/stage/stage_mask.h"
 
 namespace tempo {
 
-    inline constexpr size_t MAX_STAGES = 32;
-
-    template <typename StageId>
+    /**
+     * @brief Owns a set of Stages identified by type, dispatches lifecycle callbacks, and
+     * applies pending transitions on demand.
+     *
+     * Stage identity = type. Each Stage S has a slot index equal to its position in the
+     * Stages... type list. Use register_stage<S>(stage) to bind a slot to a Stage instance,
+     * and request<S>() to schedule a transition.
+     *
+     * Up to 32 stages (mirrors StageMask).
+     *
+     * @tparam Stages The compile-time stage type list.
+     */
+    template <typename... Stages>
     class Conductor {
-    private:
-        using stage_t = tempo::Stage<StageId>;
-        const Clock& m_clock;
+    public:
+        using StageType = Stage<Stages...>;
+        using StageMaskType = StageMask<Stages...>;
 
-        static inline NullStage<StageId> s_null_stage{};
+        static constexpr size_t STAGE_COUNT = sizeof...(Stages);
+        static_assert(STAGE_COUNT > 0, "Conductor needs at least one stage type");
+        static_assert(STAGE_COUNT <= 32, "Conductor supports up to 32 stage types");
 
-        stage_t* lookup_stage(StageId id) const {
-            const auto idx = static_cast<size_t>(id);
-            return idx < MAX_STAGES ? m_stages[idx] : &s_null_stage;
+        template <typename S>
+        static constexpr size_t index_of() {
+            return type_index_v<S, Stages...>;
         }
 
-        std::array<stage_t*, MAX_STAGES> m_stages{};
-        stage_t* m_current = &s_null_stage;
-        StageId m_current_id{};
-        StageId m_pending_id{};
-        bool m_has_pending = false;
+    private:
+        static inline NullStage<Stages...> s_null_stage{};
 
-    public:
-        Conductor(const Clock& clock) : m_clock(clock) {
-            for (auto& s : m_stages) {
-                s = &s_null_stage;
+        std::array<StageType*, STAGE_COUNT> m_slots{};
+        StageType* m_current = &s_null_stage;
+        size_t m_current_idx = STAGE_COUNT;
+
+        bool m_has_pending = false;
+        size_t m_pending_idx = 0;
+
+        StageType* lookup(size_t idx) const {
+            if (idx >= STAGE_COUNT) {
+                return &s_null_stage;
             }
 
-            static_assert(
-                static_cast<std::size_t>(StageId::COUNT_) <= MAX_STAGES,
-                "Too many TStageIds; raise MAX_STAGES or shrink the enum."
-            );
+            StageType* s = m_slots[idx];
+            return s ? s : &s_null_stage;
         }
 
-        void register_stage(StageId id, stage_t& stage) {
-            const auto idx = static_cast<size_t>(id);
-            m_stages[idx] = &stage;
-            stage.set_clock(m_clock);
+    public:
+        Conductor() {
+            for (auto& s : m_slots) {
+                s = nullptr;
+            }
         }
 
-        void start(StageId initial) {
-            m_current_id = initial;
-            m_current = lookup_stage(initial);
+        ~Conductor() = default;
+
+        Conductor(const Conductor&) = delete;
+        Conductor& operator=(const Conductor&) = delete;
+        Conductor(Conductor&&) = delete;
+        Conductor& operator=(Conductor&&) = delete;
+
+        template <typename S>
+        void register_stage(S& stage) {
+            constexpr size_t idx = index_of<S>();
+            m_slots[idx] = &stage;
+        }
+
+        template <typename S>
+        void start() {
+            constexpr size_t idx = index_of<S>();
+            m_current_idx = idx;
+            m_current = lookup(idx);
             m_current->on_enter(*this);
         }
 
-        void request(StageId next) {
-            m_pending_id = next;
+        /**
+         * @brief Request a transition to stage S. on_enter(Conductor&) is called when the
+         * transition is applied.
+         */
+        template <typename S>
+        void request() {
+            m_pending_idx = index_of<S>();
             m_has_pending = true;
         }
 
-        [[nodiscard]]
         bool has_pending() const {
             return m_has_pending;
         }
@@ -70,17 +104,17 @@ namespace tempo {
                 return false;
             }
 
-            const StageId next_id = m_pending_id;
+            const size_t next_idx = m_pending_idx;
             m_has_pending = false;
 
-            if (next_id == m_current_id) {
+            if (next_idx == m_current_idx) {
                 return false;
             }
 
-            stage_t* next = lookup_stage(next_id);
+            StageType* next = lookup(next_idx);
 
             m_current->on_exit(*this);
-            m_current_id = next_id;
+            m_current_idx = next_idx;
             m_current = next;
             m_current->on_enter(*this);
             return true;
@@ -90,22 +124,24 @@ namespace tempo {
             m_current->on_tick(*this, now_ms);
         }
 
-        StageId current_id() const {
-            return m_current_id;
+        size_t current_index() const {
+            return m_current_idx;
         }
 
-        const stage_t* current_stage() const {
+        const StageType* current_stage() const {
             return m_current;
         }
 
-        [[nodiscard]]
         const char* current_name() const {
             return m_current->name();
         }
 
-        const stage_t* stage_for(StageId id) const {
-            const auto idx = static_cast<size_t>(id);
-            return idx < MAX_STAGES ? m_stages[idx] : &s_null_stage;
+        const StageType* stage_at(size_t idx) const {
+            return lookup(idx);
+        }
+
+        const char* name_at(size_t idx) const {
+            return lookup(idx)->name();
         }
     };
 

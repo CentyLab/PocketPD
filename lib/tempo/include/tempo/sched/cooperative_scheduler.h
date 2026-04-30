@@ -1,4 +1,3 @@
-// src/tempo/sched/CooperativeScheduler.h
 #pragma once
 
 #include <array>
@@ -10,28 +9,26 @@
 namespace tempo {
 
     /**
-     * @brief Cooperative scheduler for the variant-event model. Drains the event queue
-     * first (dispatching each event to every Task whose Stage filter matches),
-     * then ticks every Task whose period has elapsed.
+     * @brief Cooperative scheduler for the variant-event model. Drains the event queue first
+     * (dispatching each event to every Task whose Stage filter matches), then ticks every
+     * Task whose period has elapsed.
      *
-     * @tparam StageId An enum type representing all possible stages.
+     * @tparam Conductor The concrete Conductor instantiation.
      * @tparam TEvent An event type. Usually std::variant<...>.
-     * @tparam MaxTasks The maximum number of tasks that can be added to the scheduler.
-     * @tparam QueueCapacity The capacity of the event queue.
+     * @tparam MaxTasks The maximum number of tasks that can be added.
      */
-    template <typename TStageId, typename TEvent, size_t MaxTasks>
+    template <typename Conductor, typename Event, size_t MaxTasks>
     class CooperativeScheduler {
-        using task_t = Task<TStageId, TEvent>;
+        using TaskType = Task<Conductor, Event>;
 
-        std::array<task_t*, MaxTasks> m_tasks{};
+        std::array<TaskType*, MaxTasks> m_tasks{};
         size_t m_count = 0;
 
     public:
-        bool add(task_t& t) {
+        bool add(TaskType& t) {
             if (m_count == MaxTasks) {
                 return false;
             }
-
             m_tasks[m_count++] = &t;
             return true;
         }
@@ -44,31 +41,24 @@ namespace tempo {
 
         /**
          * @brief Route a single event to every task whose stage filter matches.
-         *
-         * @param event The event to route.
-         * @param stage The stage to route the event to.
-         * @param now_ms The current time in milliseconds.
          */
-        void dispatch_event(const TEvent& event, TStageId current_stage, uint32_t now_ms) {
-            for (size_t i = 0; i < m_count; i++) {
+        void dispatch_event(const Event& event, size_t current_idx, uint32_t now_ms) {
+            for (size_t i = 0; i < m_count; ++i) {
                 auto* t = m_tasks[i];
-                if (t->allowed_stages().contains(current_stage)) {
+                if (t->allowed_stages().contains_index(current_idx)) {
                     t->on_event(event, now_ms);
                 }
             }
         }
 
         /**
-         * @brief Run periodic on_tick on every task whose stage filter matches and
-         * whose period has elapsed.
-         *
-         * @param now_ms The current time in milliseconds.
-         * @param current The current stage.
+         * @brief Run periodic on_tick on every task whose stage filter matches and whose
+         * period has elapsed.
          */
-        void tick(uint32_t now_ms, TStageId current_stage) {
+        void tick(uint32_t now_ms, size_t current_idx) {
             for (size_t i = 0; i < m_count; ++i) {
                 auto* t = m_tasks[i];
-                if (t->allowed_stages().contains(current_stage)) {
+                if (t->allowed_stages().contains_index(current_idx)) {
                     t->tick(now_ms);
                 }
             }
@@ -76,24 +66,24 @@ namespace tempo {
 
         /**
          * @brief Notify all tasks that the stage has changed.
-         *
-         * @param from The previous stage.
-         * @param to The new stage.
          */
-        void notify_stage_changed(TStageId from, TStageId to) {
-            for (size_t i = 0; i < m_count; i++) {
+        void notify_stage_changed(size_t from_idx, size_t to_idx) {
+            for (size_t i = 0; i < m_count; ++i) {
                 auto* t = m_tasks[i];
-                if (t->allowed_stages().contains(from) || t->allowed_stages().contains(to)) {
-                    t->on_stage_changed(from, to);
+                const auto mask = t->allowed_stages();
+                if (mask.contains_index(from_idx) || mask.contains_index(to_idx)) {
+                    t->on_stage_changed(from_idx, to_idx);
                 }
             }
         }
+
         size_t task_count() const {
             return m_count;
         }
 
-        task_t* task_at(size_t index) const {
+        TaskType* task_at(size_t index) const {
             return index < m_count ? m_tasks[index] : nullptr;
         }
     };
+
 } // namespace tempo
