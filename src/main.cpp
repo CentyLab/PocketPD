@@ -5,21 +5,32 @@
 #include <Wire.h>
 #include <tempo/tempo.h>
 
+#include <AP33772.h>
+#include <ArduinoTwoWireDevice.h>
+
 #include "v2/app.h"
 #include "v2/hal/arduino_clock.h"
 #include "v2/hal/arduino_stream_writer.h"
+#include "v2/hal/ap33772_pd_sink.h"
 #include "v2/hal/u8g2_display.h"
 #include "v2/stages/boot_stage.h"
+#include "v2/stages/obtain_stage.h"
 
 namespace {
 
+    // Setup framework components
     pocketpd::ArduinoClock arduino_clock;
     pocketpd::ArduinoStreamWriter arduino_stream_writer;
-
-    pocketpd::U8g2Display u8g2_display;
-
     pocketpd::App app(arduino_clock, arduino_stream_writer);
+
+    // Setup hardware adapters
+    ArduinoTwoWireDevice ap33772_i2c{Wire, ap33772::ADDRESS};
+    pocketpd::Ap33772PdSink pd_sink{ap33772_i2c, ::delay};
+    
+    // Setup stages
+    pocketpd::U8g2Display u8g2_display;
     pocketpd::BootStage boot_stage(u8g2_display);
+    pocketpd::ObtainStage obtain_stage(pd_sink, app.task_publisher());
 
 } // namespace
 
@@ -33,6 +44,7 @@ void setup() {
     u8g2_display.begin();
 
     app.register_stage(boot_stage);
+    app.register_stage(obtain_stage);
     app.start<pocketpd::BootStage>();
 }
 
