@@ -10,6 +10,7 @@ Checks: "
   -cppcoreguidelines-pro-type-cstyle-cast,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-avoid-const-or-ref-data-members,
+  -cppcoreguidelines-pro-type-union-access,
   -cppcoreguidelines-pro-type-vararg,
   -modernize-use-trailing-return-type,
   -modernize-use-nodiscard

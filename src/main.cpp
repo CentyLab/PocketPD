@@ -4,7 +4,7 @@
 
 #include "tempo/diag/logger.h"
 
-#ifdef HW1_1_V2
+#ifdef HW1_3_V2
 #include <tempo/tempo.h>
 
 /**
