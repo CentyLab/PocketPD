@@ -6,3 +6,9 @@ CompileFlags:
   BuiltinHeaders: QueryDriver
   Remove:
     - -march=*
+
+---
+If:
+  PathMatch: .*\.(h|hpp)$
+CompileFlags:
+  Add: [-xc++]
