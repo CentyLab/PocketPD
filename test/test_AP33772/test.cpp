@@ -140,8 +140,8 @@ TEST_F(AP33772Test, BeginLoadsPDOsOnSuccess) {
     AP33772 ap(m_i2c_device, noop_delay);
 
     ASSERT_TRUE(ap.begin());
-    EXPECT_EQ(2, ap.get_count_pdo());
-    EXPECT_EQ(1, ap.get_count_pps());
+    EXPECT_EQ(2, ap.pdo_count());
+    EXPECT_EQ(1, ap.pps_count());
     EXPECT_TRUE(ap.has_pps_profile());
 }
 
@@ -151,9 +151,9 @@ TEST_F(AP33772Test, FixedPDODecode) {
     AP33772 ap(m_i2c_device, noop_delay);
     EXPECT_TRUE(ap.begin());
 
-    EXPECT_EQ(5000, ap.get_pdo_max_voltage(0));
-    EXPECT_EQ(5000, ap.get_pdo_min_voltage(0));
-    EXPECT_EQ(3000, ap.get_pdo_max_current(0));
+    EXPECT_EQ(5000, ap.pdo_max_voltage_mv(0));
+    EXPECT_EQ(5000, ap.pdo_min_voltage_mv(0));
+    EXPECT_EQ(3000, ap.pdo_max_current_ma(0));
     EXPECT_FALSE(ap.is_index_pps(0));
 }
 
@@ -163,9 +163,9 @@ TEST_F(AP33772Test, PPSPDODecode) {
     EXPECT_TRUE(ap.begin());
 
     EXPECT_TRUE(ap.is_index_pps(0));
-    EXPECT_EQ(3300, ap.get_pdo_min_voltage(0));
-    EXPECT_EQ(11000, ap.get_pdo_max_voltage(0));
-    EXPECT_EQ(3000, ap.get_pdo_max_current(0));
+    EXPECT_EQ(3300, ap.pdo_min_voltage_mv(0));
+    EXPECT_EQ(11000, ap.pdo_max_voltage_mv(0));
+    EXPECT_EQ(3000, ap.pdo_max_current_ma(0));
 }
 
 // —— Bounds
@@ -174,8 +174,8 @@ TEST_F(AP33772Test, OutOfRangeIndexReturnsMinusOne) {
     AP33772 ap(m_i2c_device, noop_delay);
     EXPECT_TRUE(ap.begin());
 
-    EXPECT_EQ(-1, ap.get_pdo_max_voltage(99));
-    EXPECT_EQ(-1, ap.get_pdo_max_voltage(-1));
+    EXPECT_EQ(-1, ap.pdo_max_voltage_mv(99));
+    EXPECT_EQ(-1, ap.pdo_max_voltage_mv(-1));
     EXPECT_FALSE(ap.is_index_pps(-1));
     EXPECT_FALSE(ap.is_index_pps(99));
 }
@@ -236,10 +236,10 @@ TEST_F(AP33772Test, FailedPPSRequestDoesNotMutateActiveState) {
     AP33772 ap(m_i2c_device, noop_delay);
     EXPECT_TRUE(ap.begin());
     EXPECT_TRUE(ap.set_pdo(0));
-    EXPECT_EQ(0, ap.get_active_pdo());
+    EXPECT_EQ(0, ap.active_pdo());
 
     EXPECT_FALSE(ap.set_pps_pdo(1, 5000, 1000));
-    EXPECT_EQ(0, ap.get_active_pdo()); // unchanged on failure
+    EXPECT_EQ(0, ap.active_pdo()); // unchanged on failure
 
     EXPECT_TRUE(ap.set_current(1500));
 }

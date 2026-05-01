@@ -16,9 +16,10 @@ namespace pocketpd {
     // —— Stage forward declarations
 
     class BootStage;
+    class ObtainStage;
 
     // —— Application alias
 
-    using App = tempo::Application<Event, BootStage>;
+    using App = tempo::Application<Event, BootStage, ObtainStage>;
 
 } // namespace pocketpd

@@ -2,8 +2,6 @@
 #include <cstddef>
 #include <cstdio>
 
-#include "AP33772.h"
-
 namespace ap33772 {
 
     /**
@@ -12,10 +10,22 @@ namespace ap33772 {
      * Hardware-agnostic: caller forwards bytes to Serial, Logger, file,
      * ring buffer, or any other sink.
      *
+     * Templated on a duck-typed `Sink` so the same body serves the raw
+     * `ap33772::AP33772` driver and any consumer-side abstraction (e.g.
+     * `pocketpd::PdSinkController`). The Sink must expose:
+     *
+     *   int  pdo_count()                   const;
+     *   int  pps_count()                   const;
+     *   bool is_index_pps(int)             const;
+     *   int  pdo_min_voltage_mv(int)       const;
+     *   int  pdo_max_voltage_mv(int)       const;
+     *   int  pdo_max_current_ma(int)       const;
+     *
      * @return Bytes written (excluding null terminator). Output is truncated to cap-1 if the buffer
      * is too small.
      */
-    inline size_t format_pdo(const AP33772& ap, char* out, size_t cap) {
+    template <typename Sink>
+    inline size_t format_pdo(const Sink& s, char* out, size_t cap) {
         if (cap == 0) {
             return 0;
         }
@@ -35,20 +45,20 @@ namespace ap33772 {
             }
         };
 
-        append("Source PDO Number = %d\n", ap.get_count_pdo());
-        append("PPS Profiles = %d\n", ap.get_count_pps());
+        append("Source PDO Number = %d\n", s.pdo_count());
+        append("PPS Profiles = %d\n", s.pps_count());
 
-        for (int i = 0; i < ap.get_count_pdo(); i++) {
-            if (ap.is_index_pps(i)) {
+        for (int i = 0; i < s.pdo_count(); i++) {
+            if (s.is_index_pps(i)) {
                 append(
                     "PDO[%d] - PPS : %.1fV~%.1fV @ %.1fA\n", i + 1,
-                    ap.get_pdo_min_voltage(i) / 1000.0, ap.get_pdo_max_voltage(i) / 1000.0,
-                    ap.get_pdo_max_current(i) / 1000.0
+                    s.pdo_min_voltage_mv(i) / 1000.0, s.pdo_max_voltage_mv(i) / 1000.0,
+                    s.pdo_max_current_ma(i) / 1000.0
                 );
             } else {
                 append(
-                    "PDO[%d] - Fixed : %.1fV @ %.1fA\n", i + 1, ap.get_pdo_max_voltage(i) / 1000.0,
-                    ap.get_pdo_max_current(i) / 1000.0
+                    "PDO[%d] - Fixed : %.1fV @ %.1fA\n", i + 1, s.pdo_max_voltage_mv(i) / 1000.0,
+                    s.pdo_max_current_ma(i) / 1000.0
                 );
             }
         }

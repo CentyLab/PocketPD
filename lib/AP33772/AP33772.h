@@ -199,15 +199,15 @@ namespace ap33772 {
          */
         AP33772(const I2CDevice& i2c, const delay_fn_t delay) : m_i2c(i2c), m_delay(delay) {}
 
-        int get_count_pdo() const {
+        int pdo_count() const {
             return m_pdo_count;
         }
 
-        int get_count_pps() const {
+        int pps_count() const {
             return m_pps_count;
         }
 
-        int get_active_pdo() const {
+        int active_pdo() const {
             return m_pdo_active;
         }
 
@@ -306,7 +306,7 @@ namespace ap33772 {
             }
 
             int voltage = clamp_voltage(m_pdo_active, voltage_mv);
-            int max_current = get_pdo_max_current(m_pdo_active);
+            int max_current = pdo_max_current_ma(m_pdo_active);
             return request_pps(m_pdo_active, voltage, max_current);
         }
 
@@ -318,7 +318,7 @@ namespace ap33772 {
         [[nodiscard]]
         bool set_current(int current_ma) {
 
-            int max_current = get_pdo_max_current(m_pdo_active);
+            int max_current = pdo_max_current_ma(m_pdo_active);
             int clamped_ma = clamp(current_ma, 0, max_current);
 
             if (is_index_pps(m_pdo_active)) {
@@ -426,7 +426,7 @@ namespace ap33772 {
          * @param index zero-based PDO index
          * @return voltage in millivolts, -1 if invalid index
          */
-        int get_pdo_max_voltage(int index) const {
+        int pdo_max_voltage_mv(int index) const {
             return is_index_valid(index) ? m_pdo_list.at(index).max_voltage_mv() : -1;
         }
 
@@ -435,7 +435,7 @@ namespace ap33772 {
          * @param index zero-based PDO index
          * @return voltage in millivolts, -1 if invalid index
          */
-        int get_pdo_min_voltage(int index) const {
+        int pdo_min_voltage_mv(int index) const {
             return is_index_valid(index) ? m_pdo_list.at(index).min_voltage_mv() : -1;
         }
 
@@ -444,7 +444,7 @@ namespace ap33772 {
          * @param index zero-based PDO index
          * @return current in milliamps, -1 if invalid index
          */
-        int get_pdo_max_current(int index) const {
+        int pdo_max_current_ma(int index) const {
             return is_index_valid(index) ? m_pdo_list.at(index).max_current_ma() : -1;
         }
 
