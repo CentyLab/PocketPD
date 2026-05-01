@@ -124,7 +124,7 @@ namespace tempo {
                 use_log.attach_log(m_clock, m_stream_writer);
             }
 
-            m_conductor.template register_stage<S>(stage);
+            m_conductor.register_stage(stage);
         }
 
         /**
