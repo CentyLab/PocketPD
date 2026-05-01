@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <functional>
 #include <optional>
 
@@ -84,9 +85,14 @@ namespace tempo {
 
         template <size_t N, typename... Args>
         int write(const char* format, Args... args) const {
-            std::array<char, N> message{0};
-            const int written = snprintf(message.data(), message.size(), format, args...);
-            m_stream_writer->get().write(message.data());
+            std::array<char, N> buffer{0};
+            const int written = snprintf(buffer.data(), buffer.size(), format, args...);
+            if (written < 0) {
+                return written;
+            }
+            const size_t len =
+                (static_cast<size_t>(written) >= N) ? (N - 1) : static_cast<size_t>(written);
+            m_stream_writer->get().write(buffer.data(), len);
             return written;
         }
 
@@ -103,7 +109,7 @@ namespace tempo {
 
             write_header(L);
             if constexpr (sizeof...(Args) == 0) {
-                write<192>("%s", fmt);
+                m_stream_writer->get().write(fmt, strlen(fmt));
             } else {
                 write<192>(fmt, args...);
             }
@@ -129,7 +135,7 @@ namespace tempo {
         }
 
         void write_footer() const {
-            write<8>("%s\n", COLOR_RESET);
+            m_stream_writer->get().write("\x1b[0m\n");
         }
 
         void hexdump_impl(const char* label, const uint8_t* data, size_t len) const {
@@ -179,11 +185,11 @@ namespace tempo {
         }
 
         bool enabled() const {
-            return m_clock.has_value() && m_clock.has_value();
+            return m_clock.has_value() && m_stream_writer.has_value();
         }
 
         bool disabled() const {
-            return !enabled();
+            return !m_clock.has_value() || !m_stream_writer.has_value();
         }
 
         template <typename... Args>
