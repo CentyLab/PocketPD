@@ -1,7 +1,15 @@
-# Use test/compile_commands.json (host clang++) for this tree only.
-# Root compile_commands.json stays arm-none-eabi so include/ and src/ are not
-# associated with the macOS SDK.
 Documentation:
   CommentFormat: Doxygen
+
 CompileFlags:
   CompilationDatabase: .
+  BuiltinHeaders: Clangd
+  Remove:
+    - -march=*
+  Add:
+    - -stdlib=libc++
+---
+If:
+  PathMatch: .*\.(h|hpp)$
+CompileFlags:
+  Add: [-xc++]

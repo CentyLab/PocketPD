@@ -10,6 +10,7 @@
 #include "tempo/core/time.h"
 
 // hardware (interfaces)
+#include "tempo/hardware/display.h"
 #include "tempo/hardware/stream.h"
 
 // bus
