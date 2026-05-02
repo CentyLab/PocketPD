@@ -5,7 +5,6 @@
 <!-- Fixes #123, Refs #456 — leave blank if none -->
 
 ## Hardware tested
-- [ ] HW1_0
 - [ ] HW1_3
 - [ ] None (no hardware change)
 
