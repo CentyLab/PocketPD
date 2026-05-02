@@ -5,10 +5,10 @@
  */
 #pragma once
 
-#include <cstdint>
-
 #include <tempo/core/time.h>
 #include <tempo/hardware/display.h>
+
+#include <cstdint>
 
 #include "v2/app.h"
 #include "v2/images.h"
@@ -19,8 +19,7 @@ namespace pocketpd {
     class BootStage : public App::Stage, public tempo::UseLog<BootStage> {
     private:
         tempo::Display& m_display;
-        uint32_t m_deadline_ms = 0;
-        bool m_armed = false;
+        tempo::TimeoutTimer m_timeout;
 
     public:
         static constexpr const char* LOG_TAG = "Boot";
@@ -32,6 +31,7 @@ namespace pocketpd {
         }
 
         void on_enter(Conductor&) override {
+            m_timeout.disarm();
             m_display.clear();
             m_display.draw_bitmap(0, 0, 128 / 8, 64, bitmap::LOGO.data());
             m_display.draw_text(67, 64, "FW: ");
@@ -40,12 +40,11 @@ namespace pocketpd {
         }
 
         void on_tick(Conductor& conductor, uint32_t now_ms) override {
-            if (!m_armed) {
-                m_deadline_ms = now_ms + BOOT_TO_OBTAIN_MS;
-                m_armed = true;
+            if (!m_timeout.armed()) {
+                m_timeout.set(now_ms, BOOT_TO_OBTAIN_MS);
                 return;
             }
-            if (tempo::time_reached(now_ms, m_deadline_ms)) {
+            if (m_timeout.reached(now_ms)) {
                 conductor.request<ObtainStage>();
             }
         }
