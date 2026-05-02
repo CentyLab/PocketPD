@@ -89,4 +89,67 @@ namespace tempo {
         }
     };
 
+    /**
+     * @brief One-shot timeout. Set once, ask if reached, set again to re-arm.
+     *
+     * Wraparound-safe: uses `time_reached` for all comparisons. Disarmed by default; `reached`
+     * returns false until armed via `set`.
+     *
+     * Pairs with `IntervalTimer` — that one re-arms automatically and is for periodic events,
+     * this one fires once and stays "reached" until disarmed or re-set, and is for stage
+     * timeouts and similar single-shot deadlines.
+     *
+     * Example:
+     * @code
+     *   class MyStage : public App::Stage {
+     *       tempo::TimeoutTimer m_timeout;
+     *
+     *       void on_enter(Conductor&) override {
+     *           m_timeout.disarm();
+     *       }
+     *
+     *       void on_tick(Conductor& c, uint32_t now_ms) override {
+     *           if (!m_timeout.armed()) {
+     *               m_timeout.set(now_ms, MY_TIMEOUT_MS);
+     *               return;
+     *           }
+     *           if (m_timeout.reached(now_ms)) {
+     *               c.request<NextStage>();
+     *           }
+     *       }
+     *   };
+     * @endcode
+     */
+    class TimeoutTimer {
+    private:
+        uint32_t m_due_ms = 0;
+        bool m_armed = false;
+
+    public:
+        /**
+         * @brief Arm the timeout relative to `now_ms`. Becomes "reached" once
+         * `now_ms + duration_ms` is observed. Calling `set` again replaces any prior arm.
+         */
+        void set(uint32_t now_ms, uint32_t duration_ms) {
+            m_due_ms = now_ms + duration_ms;
+            m_armed = true;
+        }
+
+        /**
+         * @brief True once the armed timeout is past, and stays true until `disarm` or a
+         * re-`set`. Returns false while disarmed.
+         */
+        bool reached(uint32_t now_ms) const {
+            return m_armed && time_reached(now_ms, m_due_ms);
+        }
+
+        void disarm() {
+            m_armed = false;
+        }
+
+        bool armed() const {
+            return m_armed;
+        }
+    };
+
 } // namespace tempo
