@@ -17,6 +17,7 @@
 #include "tempo/bus/event_queue.h"
 #include "tempo/bus/event.h"
 #include "tempo/bus/publisher.h"
+#include "tempo/bus/visit.h"
 
 // stage
 #include "tempo/stage/stage.h"
