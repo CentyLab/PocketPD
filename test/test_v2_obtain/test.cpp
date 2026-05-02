@@ -1,33 +1,35 @@
 /**
  * GoogleTest suite for ObtainStage.
  *
- * Drives Conductor<BootStage, ObtainStage> with scripted MockPdSink and a real
- * EventQueue / QueuePublisher so PdReadyEvent payload can be inspected after
- * on_enter runs. Boot→Obtain timeout transition is verified end-to-end here too.
+ * Drives Conductor<...> with scripted MockPdSink and a real EventQueue /
+ * QueuePublisher so PdReadyEvent payload can be inspected. Also covers the
+ * input-driven exits (short button → resume, encoder → PdoPicker SELECT,
+ * timeout → PdoPicker REVIEW).
  */
 #define VERSION "\"test\""
 
+#include <MockDisplay.h>
+#include <MockPdSink.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-
-#include <variant>
-
 #include <tempo/bus/event_queue.h>
 #include <tempo/bus/publisher.h>
 #include <tempo/stage/conductor.h>
 
-#include <MockDisplay.h>
-#include <MockPdSink.h>
+#include <variant>
 
+#include "v2/app.h"
 #include "v2/events.h"
 #include "v2/stages/boot_stage.h"
+#include "v2/stages/normal_stage.h"
 #include "v2/stages/obtain_stage.h"
+#include "v2/stages/pdo_picker_stage.h"
 
 using namespace pocketpd;
 using ::testing::NiceMock;
 using ::testing::Return;
 
-using TestConductor = tempo::Conductor<BootStage, ObtainStage>;
+using TestConductor = App::Conductor;
 using TestQueue = tempo::EventQueue<Event, 8>;
 using TestPublisher = tempo::QueuePublisher<Event, 8>;
 
@@ -113,6 +115,116 @@ TEST(ObtainStage, OnEnterIssuesNoRdoRequest) {
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ObtainStage>();
+}
+
+TEST(ObtainStage, ShortButtonResumesNormalInPpsProfileAfterPdReady) {
+    NiceMock<MockPdSink> sink;
+    TestQueue queue;
+    TestPublisher publisher(queue);
+    EXPECT_CALL(sink, begin()).WillOnce(Return(true));
+    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
+    EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(1));
+
+    ObtainStage stage(sink, publisher);
+    NormalStage normal;
+    TestConductor conductor;
+    conductor.register_stage(stage);
+    conductor.register_stage(normal);
+    conductor.start<ObtainStage>();
+
+    stage.on_event(ButtonEvent{ButtonId::OUTPUT_TOGGLE, Gesture::SHORT}, 0);
+
+    EXPECT_TRUE(conductor.has_pending());
+    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
+    EXPECT_EQ(normal.profile(), Profile::PPS);
+}
+
+TEST(ObtainStage, ShortButtonResumesNormalInPdoProfileWhenNoPps) {
+    NiceMock<MockPdSink> sink;
+    TestQueue queue;
+    TestPublisher publisher(queue);
+    EXPECT_CALL(sink, begin()).WillOnce(Return(true));
+    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
+    EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
+
+    ObtainStage stage(sink, publisher);
+    NormalStage normal;
+    TestConductor conductor;
+    conductor.register_stage(stage);
+    conductor.register_stage(normal);
+    conductor.start<ObtainStage>();
+
+    stage.on_event(ButtonEvent{ButtonId::OUTPUT_TOGGLE, Gesture::SHORT}, 0);
+
+    EXPECT_TRUE(conductor.has_pending());
+    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
+    EXPECT_EQ(normal.profile(), Profile::PDO);
+}
+
+TEST(ObtainStage, ShortButtonIgnoredWhenPdNotReady) {
+    NiceMock<MockPdSink> sink;
+    TestQueue queue;
+    TestPublisher publisher(queue);
+    EXPECT_CALL(sink, begin()).WillOnce(Return(false));
+
+    ObtainStage stage(sink, publisher);
+    TestConductor conductor;
+    conductor.register_stage(stage);
+    conductor.start<ObtainStage>();
+
+    stage.on_event(ButtonEvent{ButtonId::OUTPUT_TOGGLE, Gesture::SHORT}, 0);
+    EXPECT_FALSE(conductor.has_pending());
+}
+
+TEST(ObtainStage, EncoderRotationJumpsToPdoPickerInSelectMode) {
+    NiceMock<MockPdSink> sink;
+    TestQueue queue;
+    TestPublisher publisher(queue);
+    EXPECT_CALL(sink, begin()).WillOnce(Return(true));
+    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
+    EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
+
+    ObtainStage stage(sink, publisher);
+    PdoPickerStage picker;
+    TestConductor conductor;
+    conductor.register_stage(stage);
+    conductor.register_stage(picker);
+    conductor.start<ObtainStage>();
+
+    stage.on_event(EncoderEvent{-1}, 0);
+
+    EXPECT_TRUE(conductor.has_pending());
+    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<PdoPickerStage>());
+    EXPECT_EQ(picker.mode(), PdoPickerStage::Mode::SELECT);
+}
+
+TEST(ObtainStage, TimeoutTransitionsToPdoPickerInReviewMode) {
+    NiceMock<MockPdSink> sink;
+    TestQueue queue;
+    TestPublisher publisher(queue);
+    EXPECT_CALL(sink, begin()).WillOnce(Return(true));
+    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(0));
+    EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
+
+    ObtainStage stage(sink, publisher);
+    PdoPickerStage picker;
+    TestConductor conductor;
+    conductor.register_stage(stage);
+    conductor.register_stage(picker);
+    conductor.start<ObtainStage>();
+
+    conductor.tick(0);
+    conductor.tick(OBTAIN_TO_PDOPICKER_MS - 1);
+    EXPECT_FALSE(conductor.has_pending());
+
+    conductor.tick(OBTAIN_TO_PDOPICKER_MS);
+    EXPECT_TRUE(conductor.has_pending());
+    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<PdoPickerStage>());
+    EXPECT_EQ(picker.mode(), PdoPickerStage::Mode::REVIEW);
 }
 
 TEST(BootStage, RequestsObtainAfterTimeout) {

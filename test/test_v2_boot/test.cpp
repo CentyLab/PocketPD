@@ -11,11 +11,9 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-
 #include <tempo/stage/conductor.h>
 
-#include <MockDisplay.h>
-
+#include "MockDisplay.h"
 #include "v2/app.h"
 #include "v2/stages/boot_stage.h"
 
@@ -25,7 +23,7 @@ using ::testing::InSequence;
 using ::testing::NiceMock;
 using ::testing::StrEq;
 
-using BootConductor = tempo::Conductor<BootStage, ObtainStage>;
+using BootConductor = App::Conductor;
 
 TEST(BootStage, OnEnterDrawsSplash) {
     MockDisplay display;

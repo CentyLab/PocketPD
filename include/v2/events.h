@@ -4,9 +4,11 @@
  */
 #pragma once
 
+#include <tempo/bus/event.h>
+
 #include <cstdint>
 
-#include <tempo/bus/event.h>
+#include "v2/state.h"
 
 namespace pocketpd {
 
@@ -22,6 +24,26 @@ namespace pocketpd {
         uint8_t pps_count = 0;
     };
 
-    using Event = tempo::Events<PdReadyEvent>;
+    /**
+     * @brief Published by ButtonTask on each detected gesture.
+     *
+     * SHORT fires once on release if the press was shorter than the long-press
+     * threshold; LONG fires once when the press duration crosses the threshold
+     * while still pressed (no release event in that case).
+     */
+    struct ButtonEvent {
+        ButtonId id = ButtonId::ENCODER;
+        Gesture gesture = Gesture::SHORT;
+    };
+
+    /**
+     * @brief Published by EncoderTask when the encoder position has changed.
+     * `delta` is the signed tick count since the previous sample.
+     */
+    struct EncoderEvent {
+        int16_t delta = 0;
+    };
+
+    using Event = tempo::Events<PdReadyEvent, ButtonEvent, EncoderEvent>;
 
 } // namespace pocketpd

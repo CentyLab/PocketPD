@@ -3,7 +3,7 @@
  * @brief PocketPD v2 application alias.
  *
  * Provides the `App = tempo::Application<Event, Stages...>` alias used as the
- * single source of truth for stage and task base types throughout v2. 
+ * single source of truth for stage and task base types throughout v2.
  */
 #pragma once
 
@@ -17,9 +17,11 @@ namespace pocketpd {
 
     class BootStage;
     class ObtainStage;
+    class PdoPickerStage;
+    class NormalStage;
 
     // —— Application alias
 
-    using App = tempo::Application<Event, BootStage, ObtainStage>;
+    using App = tempo::Application<Event, BootStage, ObtainStage, PdoPickerStage, NormalStage>;
 
 } // namespace pocketpd
