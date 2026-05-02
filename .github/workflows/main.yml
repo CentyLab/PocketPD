@@ -24,4 +24,4 @@ jobs:
         run: pio run
 
       - name: Run Unit Tests
-        run: pio test -e native
+        run: make test
