@@ -101,7 +101,7 @@ namespace tempo {
             TEMPO_CHECK(instance == nullptr, "Only one Application may exist per build");
             instance = this;
 
-            this->attach_log(m_clock, m_stream_writer);
+            this->_uselog_wiring.attach_log(m_clock, m_stream_writer);
         }
 
         ~Application() = default;
@@ -111,7 +111,7 @@ namespace tempo {
         bool add_task(T& task) {
             if constexpr (std::is_base_of_v<UseLog<T>, T>) {
                 auto& use_log = static_cast<UseLog<T>&>(task);
-                use_log.attach_log(m_clock, m_stream_writer);
+                use_log._uselog_wiring.attach_log(m_clock, m_stream_writer);
             }
 
             return m_scheduler.add(task);
@@ -121,7 +121,7 @@ namespace tempo {
         void register_stage(S& stage) {
             if constexpr (std::is_base_of_v<UseLog<S>, S>) {
                 auto& use_log = static_cast<UseLog<S>&>(stage);
-                use_log.attach_log(m_clock, m_stream_writer);
+                use_log._uselog_wiring.attach_log(m_clock, m_stream_writer);
             }
 
             m_conductor.register_stage(stage);
