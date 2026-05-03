@@ -4,8 +4,8 @@
 
 namespace tempo {
 
-    template <typename... Stages>
-    class NullStage : public Stage<Stages...> {
+    template <typename Event, typename... Stages>
+    class NullStage : public Stage<Event, Stages...> {
     public:
         const char* name() const override {
             return "<null>";

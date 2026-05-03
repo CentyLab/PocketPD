@@ -3,19 +3,20 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "tempo/stage/stage_mask.h"
+
 namespace tempo {
 
     /**
      * @brief Task interface.
      *
-     * @tparam Conductor The concrete Conductor instantiation that drives this Task. Used to
-     *                   derive the StageMask type.
-     * @tparam TEvent An event type. Usually std::variant<...>.
+     * @tparam Event The application's event type, passed to `on_event`.
+     * @tparam Stages The compile-time stage type list, used to derive the `StageMask`.
      */
-    template <typename Conductor, typename TEvent>
+    template <typename Event, typename... Stages>
     class Task {
     public:
-        using StageMaskType = typename Conductor::StageMaskType;
+        using StageMaskType = StageMask<Stages...>;
 
         virtual ~Task() = default;
 
@@ -42,11 +43,10 @@ namespace tempo {
          * @brief Called once per event in the queue, in order, for every Task whose Stage
          * filter matches.
          */
-        virtual void on_event(const TEvent& event, uint32_t now_ms) {}
+        virtual void on_event(const Event& event, uint32_t now_ms) {}
 
         /**
-         * @brief Called when the Stage changes. Indices map to slots in the Conductor's
-         * stage type list.
+         * @brief Called when the Stage changes.
          */
         virtual void on_stage_changed(size_t from_idx, size_t to_idx) {}
 

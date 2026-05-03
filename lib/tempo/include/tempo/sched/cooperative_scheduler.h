@@ -13,13 +13,13 @@ namespace tempo {
      * (dispatching each event to every Task whose Stage filter matches), then ticks every
      * Task whose period has elapsed.
      *
-     * @tparam Conductor The concrete Conductor instantiation.
-     * @tparam TEvent An event type. Usually std::variant<...>.
+     * @tparam Event The application's event type. Usually `std::variant<...>`.
      * @tparam MaxTasks The maximum number of tasks that can be added.
+     * @tparam Stages The compile-time stage type list.
      */
-    template <typename Conductor, typename Event, size_t MaxTasks>
+    template <typename Event, size_t MaxTasks, typename... Stages>
     class CooperativeScheduler {
-        using TaskType = Task<Conductor, Event>;
+        using TaskType = Task<Event, Stages...>;
 
         std::array<TaskType*, MaxTasks> m_tasks{};
         size_t m_count = 0;

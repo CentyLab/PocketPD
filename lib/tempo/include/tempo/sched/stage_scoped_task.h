@@ -8,20 +8,20 @@ namespace tempo {
      * @brief Stage-scoped Task. Runs only in stages listed in the mask supplied at
      * construction.
      *
-     * @tparam Conductor The concrete Conductor instantiation.
-     * @tparam TEvent An event type. Usually std::variant<...>.
+     * @tparam Event The application's event type.
+     * @tparam Stages The compile-time stage type list.
      */
-    template <typename Conductor, typename TEvent>
-    class StageScopedTask : public PeriodicTask<Conductor, TEvent> {
+    template <typename Event, typename... Stages>
+    class StageScopedTask : public PeriodicTask<Event, Stages...> {
     public:
-        using StageMaskType = typename Conductor::StageMaskType;
+        using typename Task<Event, Stages...>::StageMaskType;
 
     private:
         StageMaskType m_scope;
 
     public:
         StageScopedTask(uint32_t period_ms, StageMaskType scope)
-            : PeriodicTask<Conductor, TEvent>(period_ms), m_scope(scope) {}
+            : PeriodicTask<Event, Stages...>(period_ms), m_scope(scope) {}
 
         StageMaskType allowed_stages() const final {
             return m_scope;
