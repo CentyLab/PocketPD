@@ -117,7 +117,7 @@ namespace tempo {
         }
 
         void write_header(LogLevel level) const {
-            //clang-format off
+            // clang-format off
             const uint32_t ms_total  = m_clock->get().now_ms();
             const uint32_t s_total   = ms_total / 1000;
             const uint32_t ms        = ms_total - s_total * 1000;
@@ -125,11 +125,15 @@ namespace tempo {
             const uint32_t sec       = s_total - min_total * 60;
             const uint32_t hr        = min_total / 60;
             const uint32_t min       = min_total - hr * 60;
-            //clang-format on
+            // clang-format on
             write<64>(
-                "%s[%02lu:%02lu:%02lu.%03lu][%c][%s] ", level_color(level),
-                static_cast<unsigned long>(hr), static_cast<unsigned long>(min),
-                static_cast<unsigned long>(sec), static_cast<unsigned long>(ms), level_tag(level),
+                "%s[%02lu:%02lu:%02lu.%03lu][%c][%s] ",
+                level_color(level),
+                static_cast<unsigned long>(hr),
+                static_cast<unsigned long>(min),
+                static_cast<unsigned long>(sec),
+                static_cast<unsigned long>(ms),
+                level_tag(level),
                 m_tag
             );
         }
@@ -163,9 +167,6 @@ namespace tempo {
                 m_stream_writer->get().write("\n");
             }
         }
-
-        template <typename Derived>
-        friend class UseLog;
 
     public:
         Logger() = default;
@@ -239,40 +240,52 @@ namespace tempo {
     template <typename T>
     struct has_log_tag<T, std::void_t<decltype(T::LOG_TAG)>> : std::true_type {};
 
+    /**
+     * @brief Allows only the derived class to use this mixin while Application-framework layers
+     * have full access to underlying wiring functions
+     *
+     * @tparam Derived
+     */
     template <typename Derived>
     class UseLog {
-        tempo::Logger log;
-
-        void set_log_clock(const Clock& clock) {
-            log.set_clock(clock);
-        }
-
-        void set_log_stream_writer(StreamWriter& writer) {
-            log.set_stream_writer(writer);
-        }
-
         static constexpr const char* resolve_tag() {
             if constexpr (has_log_tag<Derived>::value) {
                 return Derived::LOG_TAG;
             } else {
-                return "Unnamed";
+                return "<Unnamed>";
             }
         }
 
-    public:
+        class uselog_wiring {
+            Logger m_log;
+            void set_log_clock(const Clock& clock) {
+                m_log.set_clock(clock);
+            }
+
+            void set_log_stream_writer(StreamWriter& writer) {
+                m_log.set_stream_writer(writer);
+            }
+
+            void attach_log(const Clock& clock, StreamWriter& stream_writer) {
+                m_log.set_clock(clock);
+                m_log.set_stream_writer(stream_writer);
+                m_log.set_tag(UseLog::resolve_tag());
+            }
+
+            template <typename Event, typename... Stages>
+            friend class Application;
+            friend class UseLog<Derived>;
+        };
+
+        uselog_wiring _uselog_wiring;
+        const Logger& log = _uselog_wiring.m_log;
+
         UseLog() = default;
 
-        void attach_log(const Clock& clock, StreamWriter& stream_writer) {
-            log.set_clock(clock);
-            log.set_stream_writer(stream_writer);
-            log.set_tag(resolve_tag());
-        }
-
-        friend Derived;
-
-        // Must match tempo::Application's full template signature
         template <typename Event, typename... Stages>
         friend class Application;
+        friend class uselog_wiring;
+        friend Derived;
     };
 
 } // namespace tempo
