@@ -132,7 +132,7 @@ TEST(ObtainStage, ShortButtonResumesNormalInPpsProfileAfterPdReady) {
     conductor.register_stage(normal);
     conductor.start<ObtainStage>();
 
-    stage.on_event(ButtonEvent{ButtonId::OUTPUT_TOGGLE, Gesture::SHORT}, 0);
+    stage.on_event(conductor, ButtonEvent{ButtonId::OUTPUT_TOGGLE, Gesture::SHORT}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition());
@@ -155,7 +155,7 @@ TEST(ObtainStage, ShortButtonResumesNormalInPdoProfileWhenNoPps) {
     conductor.register_stage(normal);
     conductor.start<ObtainStage>();
 
-    stage.on_event(ButtonEvent{ButtonId::OUTPUT_TOGGLE, Gesture::SHORT}, 0);
+    stage.on_event(conductor, ButtonEvent{ButtonId::OUTPUT_TOGGLE, Gesture::SHORT}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition());
@@ -174,7 +174,7 @@ TEST(ObtainStage, ShortButtonIgnoredWhenPdNotReady) {
     conductor.register_stage(stage);
     conductor.start<ObtainStage>();
 
-    stage.on_event(ButtonEvent{ButtonId::OUTPUT_TOGGLE, Gesture::SHORT}, 0);
+    stage.on_event(conductor, ButtonEvent{ButtonId::OUTPUT_TOGGLE, Gesture::SHORT}, 0);
     EXPECT_FALSE(conductor.has_pending());
 }
 
@@ -194,7 +194,7 @@ TEST(ObtainStage, EncoderRotationJumpsToPdoPickerInSelectMode) {
     conductor.register_stage(picker);
     conductor.start<ObtainStage>();
 
-    stage.on_event(EncoderEvent{-1}, 0);
+    stage.on_event(conductor, EncoderEvent{-1}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition());
