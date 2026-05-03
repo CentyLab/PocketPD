@@ -7,14 +7,14 @@ namespace tempo {
     /**
      * @brief Background Task. Runs in every Stage.
      *
-     * @tparam Conductor The concrete Conductor instantiation.
-     * @tparam TEvent An event type. Usually std::variant<...>.
+     * @tparam Event The application's event type.
+     * @tparam Stages The compile-time stage type list.
      */
-    template <typename Conductor, typename Event>
-    class BackgroundTask : public PeriodicTask<Conductor, Event> {
+    template <typename Event, typename... Stages>
+    class BackgroundTask : public PeriodicTask<Event, Stages...> {
     public:
-        using PeriodicTask<Conductor, Event>::PeriodicTask;
-        using StageMaskType = typename Conductor::StageMaskType;
+        using PeriodicTask<Event, Stages...>::PeriodicTask;
+        using StageMaskType = StageMask<Stages...>;
 
         StageMaskType allowed_stages() const final {
             return StageMaskType::all();

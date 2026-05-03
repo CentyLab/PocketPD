@@ -6,6 +6,7 @@
  * accept the zero-arg `request<S>()` form unchanged.
  */
 #include <gtest/gtest.h>
+#include <tempo/bus/event.h>
 #include <tempo/stage/conductor.h>
 #include <tempo/stage/stage.h>
 
@@ -16,8 +17,9 @@ namespace {
     class StageWithPayload;
     class PlainStage;
 
-    using TestConductor = tempo::Conductor<StageWithPayload, PlainStage>;
-    using TestStage = tempo::Stage<StageWithPayload, PlainStage>;
+    using TestEvent = tempo::Events<>;
+    using TestConductor = tempo::Conductor<TestEvent, StageWithPayload, PlainStage>;
+    using TestStage = tempo::Stage<TestEvent, StageWithPayload, PlainStage>;
 
     class StageWithPayload : public TestStage {
     public:
@@ -35,7 +37,7 @@ namespace {
             ++prepare_call_count;
         }
 
-        void on_enter(TestConductor::StageType::Conductor&) override {
+        void on_enter(TestConductor&) override {
             mode_seen_in_on_enter = last_prepared;
             ++on_enter_count;
         }
@@ -49,7 +51,7 @@ namespace {
             return "Plain";
         }
 
-        void on_enter(TestConductor::StageType::Conductor&) override {
+        void on_enter(TestConductor&) override {
             ++on_enter_count;
         }
     };

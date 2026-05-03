@@ -22,12 +22,14 @@ namespace tempo {
      *
      * Up to 32 stages (mirrors StageMask).
      *
+     * @tparam Event The application's event type. Forwarded into Stage so the active stage can
+     * receive `on_event` callbacks via `dispatch_event`.
      * @tparam Stages The compile-time stage type list.
      */
-    template <typename... Stages>
+    template <typename Event, typename... Stages>
     class Conductor {
     public:
-        using StageType = Stage<Stages...>;
+        using StageType = Stage<Event, Stages...>;
         using StageMaskType = StageMask<Stages...>;
 
         static constexpr size_t STAGE_COUNT = sizeof...(Stages);
@@ -40,7 +42,7 @@ namespace tempo {
         }
 
     private:
-        static inline NullStage<Stages...> s_null_stage{};
+        static inline NullStage<Event, Stages...> s_null_stage{};
 
         std::array<StageType*, STAGE_COUNT> m_slots{};
         StageType* m_current = &s_null_stage;
@@ -91,12 +93,7 @@ namespace tempo {
          * transition is applied.
          *
          * Optional payload-passing form: `request<S>(args...)` calls `S::prepare(args...)`
-         * on the target slot immediately, then schedules the transition. The target stage
-         * uses `prepare` to stash entry context that its subsequent `on_enter` consumes.
-         * Stages without a `prepare` overload accept only the zero-arg `request<S>()` form.
-         *
-         * No allocation: arguments are forwarded directly to `prepare`. The configured
-         * state persists on the stage instance until `on_enter` runs on the next tick.
+         * on the target slot immediately, then schedules the transition.
          */
         template <typename S, typename... Args>
         void request(Args&&... args) {
@@ -115,12 +112,6 @@ namespace tempo {
             return m_has_pending;
         }
 
-        /**
-         * @brief Apply a pending transition. Same-stage requests are honored: the active
-         * stage's `on_exit` runs, then `on_enter` runs again on the same instance. Pair with
-         * `request<S>(payload)` to re-enter a stage with new entry context (e.g. switching
-         * an internal mode) without inventing a separate code path for in-stage updates.
-         */
         bool apply_pending_transition() {
             if (!m_has_pending) {
                 return false;
@@ -140,6 +131,16 @@ namespace tempo {
 
         void tick(uint32_t now_ms) {
             m_current->on_tick(*this, now_ms);
+        }
+
+        /**
+         * @brief Deliver `event` to the currently-active stage's `on_event`.
+         *
+         * Called by `Application::tick` for every event drained from the ISR and task queues,
+         * after the scheduler has dispatched the event to all tasks whose stage filter matches.
+         */
+        void dispatch_event(const Event& event, uint32_t now_ms) {
+            m_current->on_event(*this, event, now_ms);
         }
 
         size_t current_index() const {

@@ -7,9 +7,9 @@
 
 namespace tempo {
 
-    template <typename Conductor, typename Event>
-    class PeriodicTask : public Task<Conductor, Event> {
-        using stage_mask_t = typename Conductor::StageMaskType;
+    template <typename Event, typename... Stages>
+    class PeriodicTask : public Task<Event, Stages...> {
+        using StageMaskType = StageMask<Stages...>;
 
         uint32_t m_period = std::numeric_limits<uint32_t>::max();
         uint32_t m_next_deadline = 0;
@@ -47,8 +47,8 @@ namespace tempo {
             on_tick(now_ms);
         }
 
-        stage_mask_t allowed_stages() const {
-            return stage_mask_t::all();
+        StageMaskType allowed_stages() const override {
+            return StageMaskType::all();
         }
     };
 

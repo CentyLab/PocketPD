@@ -34,7 +34,7 @@ namespace tempo {
      * Stage identity is the Stage's type. The Stages... pack defines the slot order for the
      * Conductor and StageMask.
      *
-     * @tparam TEvent An event type of std::variant<...>.
+     * @tparam Event An event type of std::variant<...>.
      * @tparam Stages The compile-time list of Stage types.
      */
     template <typename Event, typename... Stages>
@@ -44,16 +44,16 @@ namespace tempo {
         static constexpr size_t MaxTasks           = DEFAULT_MAX_TASKS;
         static constexpr size_t EventQueueCapacity = DEFAULT_EVENT_QUEUE_CAP;
 
-        using Conductor       = tempo::Conductor<Stages...>;
-        using Stage           = typename Conductor::StageType;
-        using StageMask       = typename Conductor::StageMaskType;
+        using Conductor       = tempo::Conductor<Event, Stages...>;
+        using Stage           = tempo::Stage<Event, Stages...>;
+        using StageMask       = tempo::StageMask<Stages...>;
 
-        using Task            = tempo::Task<Conductor, Event>;
-        using PeriodicTask    = tempo::PeriodicTask<Conductor, Event>;
-        using BackgroundTask  = tempo::BackgroundTask<Conductor, Event>;
-        using StageScopedTask = tempo::StageScopedTask<Conductor, Event>;
+        using Task            = tempo::Task<Event, Stages...>;
+        using PeriodicTask    = tempo::PeriodicTask<Event, Stages...>;
+        using BackgroundTask  = tempo::BackgroundTask<Event, Stages...>;
+        using StageScopedTask = tempo::StageScopedTask<Event, Stages...>;
 
-        using Scheduler       = tempo::CooperativeScheduler<Conductor, Event, MaxTasks>;
+        using Scheduler       = tempo::CooperativeScheduler<Event, MaxTasks, Stages...>;
         using Queue           = tempo::EventQueue<Event, EventQueueCapacity>;
         using Publisher       = tempo::QueuePublisher<Event, EventQueueCapacity>;
 
@@ -166,13 +166,17 @@ namespace tempo {
 
             const size_t current = m_conductor.current_index();
 
-            // 2. Drain ISR queue first (more sensitive), then task queue.
+            // 2. Drain ISR queue first (more sensitive), then task queue. Per event, the
+            // scheduler dispatches to every matching task before the conductor delivers the
+            // same event to the active stage's on_event override.
             Event e;
             while (m_isr_queue.pop(e)) {
                 m_scheduler.dispatch_event(e, current, now);
+                m_conductor.dispatch_event(e, now);
             }
             while (m_task_queue.pop(e)) {
                 m_scheduler.dispatch_event(e, current, now);
+                m_conductor.dispatch_event(e, now);
             }
 
             // 3. Run periodic on_tick on every task whose stage filter matches.
