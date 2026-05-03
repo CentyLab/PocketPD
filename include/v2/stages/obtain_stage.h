@@ -88,26 +88,26 @@ namespace pocketpd {
         }
 
         void on_event(Conductor& conductor, const Event& event, uint32_t) override {
-            std::visit(
-                tempo::overloaded{
-                    [&](const ButtonEvent& evt) {
-                        if (evt.gesture == Gesture::SHORT && m_pd_ready) {
-                            const Profile profile =
-                                m_pd_sink.pps_count() > 0 ? Profile::PPS : Profile::PDO;
-                            conductor.request<NormalStage>(profile);
-                        }
-                    },
-                    [&](const EncoderEvent& evt) {
-                        if (evt.delta != 0) {
-                            conductor.request<PdoPickerStage>(PdoPickerStage::Mode::SELECT);
-                        }
-                    },
-                    [](const auto&) {
-                        // handle std::monostate and any unrelated event variants
-                    },
+            
+            auto handler = tempo::overloaded{
+                [&](const ButtonEvent& evt) {
+                    if (evt.gesture == Gesture::SHORT && m_pd_ready) {
+                        const Profile profile =
+                            m_pd_sink.pps_count() > 0 ? Profile::PPS : Profile::PDO;
+                        conductor.request<NormalStage>(profile);
+                    }
                 },
-                event
-            );
+                [&](const EncoderEvent& evt) {
+                    if (evt.delta != 0) {
+                        conductor.request<PdoPickerStage>(PdoPickerStage::Mode::SELECT);
+                    }
+                },
+                [](const auto&) {
+                    // handle std::monostate and any unrelated event variants
+                },
+            };
+
+            std::visit(handler, event);
         }
     };
 
