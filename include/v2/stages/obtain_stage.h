@@ -15,6 +15,7 @@
 #pragma once
 
 #include <tempo/bus/publisher.h>
+#include <tempo/bus/visit.h>
 #include <tempo/core/time.h>
 
 #include <array>
@@ -26,7 +27,6 @@
 #include "v2/events.h"
 #include "v2/hal/pd_sink_controller.h"
 #include "v2/pocketpd.h"
-#include "v2/stage_event_forwarder.h"
 #include "v2/stages/normal_stage.h"
 #include "v2/stages/pdo_picker_stage.h"
 
@@ -41,9 +41,6 @@ namespace pocketpd {
         tempo::IntervalTimer m_dump_timer{3000};
         tempo::TimeoutTimer m_timeout;
 
-        StageEventForwarder<ObtainStage> m_forwarder{*this};
-        Conductor* m_conductor = nullptr;
-
     public:
         static constexpr const char* LOG_TAG = "Obtain";
 
@@ -54,13 +51,7 @@ namespace pocketpd {
             return "OBTAIN";
         }
 
-        // Probably should put this into tempo or provide first class support for it. TBD.
-        StageEventForwarder<ObtainStage>& forwarder() {
-            return m_forwarder;
-        }
-
-        void on_enter(Conductor& conductor) override {
-            m_conductor = &conductor;
+        void on_enter(Conductor&) override {
             m_timeout.disarm();
             m_pd_ready = false;
 
@@ -96,25 +87,19 @@ namespace pocketpd {
             }
         }
 
-        void on_event(const Event& event, uint32_t) {
-            if (m_conductor == nullptr) {
-                return;
-            }
-
+        void on_event(Conductor& conductor, const Event& event, uint32_t) override {
             std::visit(
                 tempo::overloaded{
                     [&](const ButtonEvent& evt) {
                         if (evt.gesture == Gesture::SHORT && m_pd_ready) {
                             const Profile profile =
                                 m_pd_sink.pps_count() > 0 ? Profile::PPS : Profile::PDO;
-                            m_conductor->template request<NormalStage>(profile);
+                            conductor.request<NormalStage>(profile);
                         }
                     },
                     [&](const EncoderEvent& evt) {
                         if (evt.delta != 0) {
-                            m_conductor->template request<PdoPickerStage>(
-                                PdoPickerStage::Mode::SELECT
-                            );
+                            conductor.request<PdoPickerStage>(PdoPickerStage::Mode::SELECT);
                         }
                     },
                     [](const auto&) {
