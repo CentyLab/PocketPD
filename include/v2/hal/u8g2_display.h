@@ -21,7 +21,7 @@ namespace pocketpd {
     public:
         void begin() {
             m_u8g2.begin();
-            m_u8g2.setFont(u8g2_font_profont12_tr);
+            m_u8g2.setFont(u8g2_font_profont11_tr);
         }
 
         void clear() override {
