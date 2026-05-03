@@ -187,7 +187,8 @@ TEST(ObtainStage, EncoderRotationJumpsToPdoPickerInSelectMode) {
     EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
 
     ObtainStage stage(sink, publisher);
-    PdoPickerStage picker;
+    NiceMock<MockDisplay> picker_display;
+    PdoPickerStage picker(picker_display, sink);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(picker);
@@ -210,7 +211,8 @@ TEST(ObtainStage, TimeoutTransitionsToPdoPickerInReviewMode) {
     EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
 
     ObtainStage stage(sink, publisher);
-    PdoPickerStage picker;
+    NiceMock<MockDisplay> picker_display;
+    PdoPickerStage picker(picker_display, sink);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(picker);

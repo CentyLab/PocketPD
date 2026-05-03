@@ -34,7 +34,7 @@ namespace {
 
     pocketpd::BootStage boot_stage(u8g2_display);
     pocketpd::ObtainStage obtain_stage(pd_sink, app.task_publisher());
-    pocketpd::PdoPickerStage pdo_picker_stage;
+    pocketpd::PdoPickerStage pdo_picker_stage(u8g2_display, pd_sink);
     pocketpd::NormalStage normal_stage;
 
 } // namespace

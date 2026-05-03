@@ -15,6 +15,7 @@ DerivePointerAlignment: false
 SpaceAfterCStyleCast: true
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeColon
+BinPackArguments: false
 BinPackParameters: OnePerLine
 PackConstructorInitializers: NextLine
 ReflowComments: true
