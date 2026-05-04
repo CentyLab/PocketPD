@@ -41,7 +41,7 @@ namespace pocketpd {
      * `delta` is the signed tick count since the previous sample.
      */
     struct EncoderEvent {
-        int16_t delta = 0;
+        int delta = 0;
     };
 
     using Event = tempo::Events<PdReadyEvent, ButtonEvent, EncoderEvent>;

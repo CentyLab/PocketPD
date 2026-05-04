@@ -1,14 +1,13 @@
 #pragma once
 
 #include <gmock/gmock.h>
+#include <tempo/hardware/encoder_input.h>
 
 #include <cstdint>
 
-#include "v2/hal/encoder_input.h"
-
 namespace pocketpd {
 
-    class MockEncoderInput : public EncoderInput {
+    class MockEncoderInput : public tempo::EncoderInput {
     public:
         MOCK_METHOD(int32_t, position, (), (const, override));
     };
@@ -17,7 +16,7 @@ namespace pocketpd {
      * @brief Scripted EncoderInput for tests that just need to set the next
      * position value.
      */
-    class FakeEncoderInput : public EncoderInput {
+    class FakeEncoderInput : public tempo::EncoderInput {
     private:
         int32_t m_position = 0;
 

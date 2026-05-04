@@ -10,7 +10,7 @@
 #include "v2/hal/ap33772_pd_sink.h"
 #include "v2/hal/arduino_clock.h"
 #include "v2/hal/arduino_stream_writer.h"
-#include "v2/hal/encoder_input.h"
+#include "v2/hal/rotary_encoder_input.h"
 #include "v2/hal/u8g2_display.h"
 #include "v2/stages/boot_stage.h"
 #include "v2/stages/normal_stage.h"
