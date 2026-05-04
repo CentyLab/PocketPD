@@ -19,7 +19,7 @@
 namespace pocketpd {
 
     class ButtonTask : public App::BackgroundTask,
-                       public tempo::UseLog<ButtonTask>,
+                       public App::UseLog<ButtonTask>,
                        public App::UsePublisher<ButtonTask> {
     private:
         struct DetectorRef {

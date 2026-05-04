@@ -28,7 +28,7 @@ namespace pocketpd {
 
     void render_pdo_list(tempo::Display& display, const PdSinkController& pd_sink, int cursor = -1);
 
-    class PdoPickerStage : public App::Stage, public tempo::UseLog<PdoPickerStage> {
+    class PdoPickerStage : public App::Stage, public App::UseLog<PdoPickerStage> {
     public:
         enum class Mode : uint8_t { REVIEW, SELECT };
 

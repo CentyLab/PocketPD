@@ -15,7 +15,7 @@
 namespace pocketpd {
 
     class EncoderTask : public App::BackgroundTask,
-                        public tempo::UseLog<EncoderTask>,
+                        public App::UseLog<EncoderTask>,
                         public App::UsePublisher<EncoderTask> {
     private:
         tempo::EncoderInput& m_input;

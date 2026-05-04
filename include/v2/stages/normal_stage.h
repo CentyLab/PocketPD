@@ -18,7 +18,7 @@
 
 namespace pocketpd {
 
-    class NormalStage : public App::Stage, public tempo::UseLog<NormalStage> {
+    class NormalStage : public App::Stage, public App::UseLog<NormalStage> {
     private:
         // Still don't know if we should use pending variable or not. TBD.
         Profile m_pending_profile = Profile::PDO;

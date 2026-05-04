@@ -59,9 +59,11 @@ namespace tempo {
         using StageScopedTask = tempo::StageScopedTask<Event, Stages...>;
 
         template <typename Derived>
+        using UseLog          = tempo::UseLog<Derived>;
+        template <typename Derived>
         using UsePublisher    = tempo::UsePublisher<Derived, Event>;
 
-        using UseLog<Application>::log;
+        using tempo::UseLog<Application>::log;
         // clang-format on
 
     private:
@@ -113,8 +115,8 @@ namespace tempo {
         // ---- Registration (before start) ----
         template <typename T>
         bool add_task(T& task) {
-            if constexpr (std::is_base_of_v<UseLog<T>, T>) {
-                auto& uselog = static_cast<UseLog<T>&>(task);
+            if constexpr (std::is_base_of_v<tempo::UseLog<T>, T>) {
+                auto& uselog = static_cast<tempo::UseLog<T>&>(task);
                 uselog.m_log_slot.attach(m_clock, m_stream_writer);
             }
 
@@ -128,8 +130,8 @@ namespace tempo {
 
         template <typename S>
         void register_stage(S& stage) {
-            if constexpr (std::is_base_of_v<UseLog<S>, S>) {
-                auto& uselog = static_cast<UseLog<S>&>(stage);
+            if constexpr (std::is_base_of_v<tempo::UseLog<S>, S>) {
+                auto& uselog = static_cast<tempo::UseLog<S>&>(stage);
                 uselog.m_log_slot.attach(m_clock, m_stream_writer);
             }
 
