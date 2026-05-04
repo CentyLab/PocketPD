@@ -10,12 +10,14 @@
 #include "v2/hal/ap33772_pd_sink.h"
 #include "v2/hal/arduino_clock.h"
 #include "v2/hal/arduino_stream_writer.h"
+#include "v2/hal/ez_button_input.h"
 #include "v2/hal/rotary_encoder_input.h"
 #include "v2/hal/u8g2_display.h"
 #include "v2/stages/boot_stage.h"
 #include "v2/stages/normal_stage.h"
 #include "v2/stages/obtain_stage.h"
 #include "v2/stages/pdo_picker_stage.h"
+#include "v2/tasks/button_task.h"
 #include "v2/tasks/encoder_task.h"
 #include <AP33772.h>
 
@@ -32,6 +34,9 @@ namespace {
 
     pocketpd::U8g2Display u8g2_display;
 
+    pocketpd::EzButtonInput encoder_button{pin_encoder_SW};
+    pocketpd::EzButtonInput output_button{pin_button_outputSW};
+    pocketpd::EzButtonInput select_vi_button{pin_button_selectVI};
     pocketpd::RotaryEncoderInput encoder{pin_encoder_A, pin_encoder_B};
 
     // —— Stages
@@ -43,6 +48,8 @@ namespace {
 
     // —— Tasks
 
+    pocketpd::ButtonTask
+        button_task(app.task_publisher(), encoder_button, select_vi_button, output_button);
     pocketpd::EncoderTask encoder_task(encoder, app.task_publisher());
 
 } // namespace
@@ -62,6 +69,7 @@ void setup() {
     app.register_stage(pdo_picker_stage);
     app.register_stage(normal_stage);
 
+    app.add_task(button_task);
     app.add_task(encoder_task);
 
     app.start<pocketpd::BootStage>();
