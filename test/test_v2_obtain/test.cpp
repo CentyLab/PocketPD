@@ -54,7 +54,8 @@ TEST(ObtainStage, OnEnterCallsBeginAndPublishesCount) {
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(3));
     EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(1));
 
-    ObtainStage stage(sink, publisher);
+    ObtainStage stage(sink);
+    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ObtainStage>();
@@ -73,7 +74,8 @@ TEST(ObtainStage, MultiPpsChargerReportsBothPps) {
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(5));
     EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(2));
 
-    ObtainStage stage(sink, publisher);
+    ObtainStage stage(sink);
+    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ObtainStage>();
@@ -90,7 +92,8 @@ TEST(ObtainStage, BeginFailureSuppressesPdReady) {
 
     EXPECT_CALL(sink, begin()).WillOnce(Return(false));
 
-    ObtainStage stage(sink, publisher);
+    ObtainStage stage(sink);
+    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ObtainStage>();
@@ -111,7 +114,8 @@ TEST(ObtainStage, OnEnterIssuesNoRdoRequest) {
     EXPECT_CALL(sink, set_pdo).Times(0);
     EXPECT_CALL(sink, set_pps_pdo).Times(0);
 
-    ObtainStage stage(sink, publisher);
+    ObtainStage stage(sink);
+    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ObtainStage>();
@@ -125,7 +129,8 @@ TEST(ObtainStage, ShortButtonResumesNormalInPpsProfileAfterPdReady) {
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
     EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(1));
 
-    ObtainStage stage(sink, publisher);
+    ObtainStage stage(sink);
+    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     NormalStage normal;
     TestConductor conductor;
     conductor.register_stage(stage);
@@ -148,7 +153,8 @@ TEST(ObtainStage, ShortButtonResumesNormalInPdoProfileWhenNoPps) {
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
     EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
 
-    ObtainStage stage(sink, publisher);
+    ObtainStage stage(sink);
+    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     NormalStage normal;
     TestConductor conductor;
     conductor.register_stage(stage);
@@ -169,7 +175,8 @@ TEST(ObtainStage, ShortButtonIgnoredWhenPdNotReady) {
     TestPublisher publisher(queue);
     EXPECT_CALL(sink, begin()).WillOnce(Return(false));
 
-    ObtainStage stage(sink, publisher);
+    ObtainStage stage(sink);
+    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ObtainStage>();
@@ -186,7 +193,8 @@ TEST(ObtainStage, EncoderRotationJumpsToPdoPickerInSelectMode) {
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
     EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
 
-    ObtainStage stage(sink, publisher);
+    ObtainStage stage(sink);
+    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     NiceMock<MockDisplay> picker_display;
     PdoPickerStage picker(picker_display, sink);
     TestConductor conductor;
@@ -210,7 +218,8 @@ TEST(ObtainStage, TimeoutTransitionsToPdoPickerInReviewMode) {
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(0));
     EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
 
-    ObtainStage stage(sink, publisher);
+    ObtainStage stage(sink);
+    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     NiceMock<MockDisplay> picker_display;
     PdoPickerStage picker(picker_display, sink);
     TestConductor conductor;
@@ -240,7 +249,8 @@ TEST(BootStage, RequestsObtainAfterTimeout) {
     EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
 
     BootStage boot(display);
-    ObtainStage obtain(sink, publisher);
+    ObtainStage obtain(sink);
+    obtain.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     TestConductor conductor;
     conductor.register_stage(boot);
     conductor.register_stage(obtain);

@@ -18,7 +18,9 @@
 
 namespace pocketpd {
 
-    class ButtonTask : public App::BackgroundTask, public tempo::UseLog<ButtonTask> {
+    class ButtonTask : public App::BackgroundTask,
+                       public tempo::UseLog<ButtonTask>,
+                       public App::UsePublisher<ButtonTask> {
     private:
         struct DetectorRef {
             ButtonId id;
@@ -28,7 +30,6 @@ namespace pocketpd {
             DetectorRef() = delete;
         };
 
-        tempo::Publisher<Event>& m_publisher;
         std::array<DetectorRef, 3> m_detectors;
 
         static constexpr uint32_t POLL_PERIOD_MS = 5;
@@ -37,14 +38,12 @@ namespace pocketpd {
         static constexpr const char* LOG_TAG = "ButtonTask";
 
         ButtonTask(
-            tempo::Publisher<Event>& publisher,
             tempo::ButtonInput& btn_encoder,
             tempo::ButtonInput& btn_vi_selector,
             tempo::ButtonInput& btn_output,
             ButtonGestureConfig gesture_config = {}
         )
             : App::BackgroundTask(POLL_PERIOD_MS),
-              m_publisher(publisher),
               m_detectors{
                   DetectorRef{
                       ButtonId::ENCODER,
@@ -92,7 +91,7 @@ namespace pocketpd {
                         button_name(ref.id),
                         gesture.value() == Gesture::SHORT ? "SHORT" : "LONG"
                     );
-                    m_publisher.publish(ButtonEvent{ref.id, gesture.value()});
+                    publish(ButtonEvent{ref.id, gesture.value()});
                 }
             }
         }
