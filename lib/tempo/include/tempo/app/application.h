@@ -37,12 +37,17 @@ namespace tempo {
      * @tparam Event An event type of std::variant<...>.
      * @tparam Stages The compile-time list of Stage types.
      */
-    template <typename Event, typename... Stages>
-    class Application : public UseLog<Application<Event, Stages...>> {
+    template <typename TEvent, typename... Stages>
+    class Application : public UseLog<Application<TEvent, Stages...>> {
     public:
         // clang-format off
         static constexpr size_t MaxTasks           = DEFAULT_MAX_TASKS;
         static constexpr size_t EventQueueCapacity = DEFAULT_EVENT_QUEUE_CAP;
+
+        using Event           = TEvent;
+        using Scheduler       = tempo::CooperativeScheduler<Event, MaxTasks, Stages...>;
+        using Queue           = tempo::EventQueue<Event, EventQueueCapacity>;
+        using Publisher       = tempo::QueuePublisher<Event, EventQueueCapacity>;
 
         using Conductor       = tempo::Conductor<Event, Stages...>;
         using Stage           = tempo::Stage<Event, Stages...>;
@@ -53,9 +58,8 @@ namespace tempo {
         using BackgroundTask  = tempo::BackgroundTask<Event, Stages...>;
         using StageScopedTask = tempo::StageScopedTask<Event, Stages...>;
 
-        using Scheduler       = tempo::CooperativeScheduler<Event, MaxTasks, Stages...>;
-        using Queue           = tempo::EventQueue<Event, EventQueueCapacity>;
-        using Publisher       = tempo::QueuePublisher<Event, EventQueueCapacity>;
+        template <typename Derived>
+        using UsePublisher    = tempo::UsePublisher<Derived, Event>;
 
         using UseLog<Application>::log;
         // clang-format on
@@ -74,7 +78,7 @@ namespace tempo {
 
         Queue m_task_queue;
         Queue m_isr_queue;
-        
+
         Publisher m_task_publisher;
         Publisher m_isr_publisher;
 
@@ -114,6 +118,11 @@ namespace tempo {
                 use_log._uselog_wiring.attach_log(m_clock, m_stream_writer);
             }
 
+            if constexpr (std::is_base_of_v<tempo::UsePublisher<T, Event>, T>) {
+                auto& usepublisher = static_cast<tempo::UsePublisher<T, Event>&>(task);
+                usepublisher.m_publisher_slot.attach(m_task_publisher);
+            }
+
             return m_scheduler.add(task);
         }
 
@@ -122,6 +131,11 @@ namespace tempo {
             if constexpr (std::is_base_of_v<UseLog<S>, S>) {
                 auto& use_log = static_cast<UseLog<S>&>(stage);
                 use_log._uselog_wiring.attach_log(m_clock, m_stream_writer);
+            }
+
+            if constexpr (std::is_base_of_v<tempo::UsePublisher<S, Event>, S>) {
+                auto& usepublisher = static_cast<tempo::UsePublisher<S, Event>&>(stage);
+                usepublisher.m_publisher_slot.attach(m_task_publisher);
             }
 
             m_conductor.register_stage(stage);
