@@ -1,31 +1,22 @@
 /**
- * @file encoder_input.h
- * @brief Pure-virtual rotary encoder HAL. Arduino impl wraps `RotaryEncoder`; pin ISR uses a
- * static instance pointer because `attachInterrupt` only takes free functions.
+ * @file rotary_encoder_input.h
+ * @brief `RotaryEncoder`-backed implementation of `EncoderInput`.
+ *
+ * Owns a `RotaryEncoder` instance. The pin ISR uses a static instance pointer
+ * because `attachInterrupt` only takes free functions; only one `RotaryEncoderInput` may be active
+ * at a time.
  */
 #pragma once
+
+#include <Arduino.h>
+#include <RotaryEncoder.h>
+#include <tempo/hardware/encoder_input.h>
 
 #include <cstdint>
 
 namespace pocketpd {
 
-    class EncoderInput {
-    public:
-        virtual ~EncoderInput() = default;
-
-        /// Accumulated tick position, signed.
-        virtual int32_t position() const = 0;
-    };
-
-} // namespace pocketpd
-
-#ifdef ARDUINO
-#include <Arduino.h>
-#include <RotaryEncoder.h>
-
-namespace pocketpd {
-
-    class RotaryEncoderInput : public EncoderInput {
+    class RotaryEncoderInput : public tempo::EncoderInput {
     private:
         static inline RotaryEncoderInput* s_instance = nullptr;
         mutable RotaryEncoder m_encoder;
@@ -47,7 +38,7 @@ namespace pocketpd {
             s_instance = this;
         }
 
-        /// Wire the pin ISRs. Call once from `setup()`. Only one instance may be active.
+        /// Wire the pin ISRs
         void begin() {
             attachInterrupt(digitalPinToInterrupt(m_pin_a), isr_handler, CHANGE);
             attachInterrupt(digitalPinToInterrupt(m_pin_b), isr_handler, CHANGE);
@@ -59,4 +50,3 @@ namespace pocketpd {
     };
 
 } // namespace pocketpd
-#endif
