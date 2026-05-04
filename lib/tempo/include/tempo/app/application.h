@@ -105,7 +105,7 @@ namespace tempo {
             TEMPO_CHECK(instance == nullptr, "Only one Application may exist per build");
             instance = this;
 
-            this->_uselog_wiring.attach_log(m_clock, m_stream_writer);
+            this->m_log_slot.attach(m_clock, m_stream_writer);
         }
 
         ~Application() = default;
@@ -114,8 +114,8 @@ namespace tempo {
         template <typename T>
         bool add_task(T& task) {
             if constexpr (std::is_base_of_v<UseLog<T>, T>) {
-                auto& use_log = static_cast<UseLog<T>&>(task);
-                use_log._uselog_wiring.attach_log(m_clock, m_stream_writer);
+                auto& uselog = static_cast<UseLog<T>&>(task);
+                uselog.m_log_slot.attach(m_clock, m_stream_writer);
             }
 
             if constexpr (std::is_base_of_v<tempo::UsePublisher<T, Event>, T>) {
@@ -129,8 +129,8 @@ namespace tempo {
         template <typename S>
         void register_stage(S& stage) {
             if constexpr (std::is_base_of_v<UseLog<S>, S>) {
-                auto& use_log = static_cast<UseLog<S>&>(stage);
-                use_log._uselog_wiring.attach_log(m_clock, m_stream_writer);
+                auto& uselog = static_cast<UseLog<S>&>(stage);
+                uselog.m_log_slot.attach(m_clock, m_stream_writer);
             }
 
             if constexpr (std::is_base_of_v<tempo::UsePublisher<S, Event>, S>) {
