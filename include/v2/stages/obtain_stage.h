@@ -33,7 +33,7 @@
 namespace pocketpd {
 
     class ObtainStage : public App::Stage,
-                        public tempo::UseLog<ObtainStage>,
+                        public App::UseLog<ObtainStage>,
                         public App::UsePublisher<ObtainStage> {
     private:
         PdSinkController& m_pd_sink;

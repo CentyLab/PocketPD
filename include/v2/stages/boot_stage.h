@@ -16,7 +16,7 @@
 
 namespace pocketpd {
 
-    class BootStage : public App::Stage, public tempo::UseLog<BootStage> {
+    class BootStage : public App::Stage, public App::UseLog<BootStage> {
     private:
         tempo::Display& m_display;
         tempo::TimeoutTimer m_timeout;
