@@ -42,15 +42,14 @@ namespace {
     // —— Stages
 
     pocketpd::BootStage boot_stage(u8g2_display);
-    pocketpd::ObtainStage obtain_stage(pd_sink, app.task_publisher());
+    pocketpd::ObtainStage obtain_stage(pd_sink);
     pocketpd::PdoPickerStage pdo_picker_stage(u8g2_display, pd_sink);
     pocketpd::NormalStage normal_stage;
 
     // —— Tasks
 
-    pocketpd::ButtonTask
-        button_task(app.task_publisher(), encoder_button, select_vi_button, output_button);
-    pocketpd::EncoderTask encoder_task(encoder, app.task_publisher());
+    pocketpd::ButtonTask button_task(encoder_button, select_vi_button, output_button);
+    pocketpd::EncoderTask encoder_task(encoder);
 
 } // namespace
 

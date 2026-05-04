@@ -32,20 +32,20 @@
 
 namespace pocketpd {
 
-    class ObtainStage : public App::Stage, public tempo::UseLog<ObtainStage> {
+    class ObtainStage : public App::Stage,
+                        public tempo::UseLog<ObtainStage>,
+                        public App::UsePublisher<ObtainStage> {
     private:
         PdSinkController& m_pd_sink;
         bool m_pd_ready = false;
 
-        tempo::Publisher<Event>& m_publisher;
         tempo::IntervalTimer m_dump_timer{3000};
         tempo::TimeoutTimer m_timeout;
 
     public:
         static constexpr const char* LOG_TAG = "Obtain";
 
-        ObtainStage(PdSinkController& pd_sink, tempo::Publisher<Event>& publisher)
-            : m_pd_sink(pd_sink), m_publisher(publisher) {}
+        explicit ObtainStage(PdSinkController& pd_sink) : m_pd_sink(pd_sink) {}
 
         const char* name() const override {
             return "OBTAIN";
@@ -63,7 +63,7 @@ namespace pocketpd {
             m_pd_ready = true;
             const auto pdo_n = static_cast<uint8_t>(m_pd_sink.pdo_count());
             const auto pps_n = static_cast<uint8_t>(m_pd_sink.pps_count());
-            m_publisher.publish(PdReadyEvent{pdo_n, pps_n});
+            publish(PdReadyEvent{pdo_n, pps_n});
 
             log.info("PD ready: %u PDO (%u PPS)", pdo_n, pps_n);
         }

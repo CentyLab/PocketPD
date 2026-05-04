@@ -14,10 +14,11 @@
 
 namespace pocketpd {
 
-    class EncoderTask : public App::BackgroundTask, public tempo::UseLog<EncoderTask> {
+    class EncoderTask : public App::BackgroundTask,
+                        public tempo::UseLog<EncoderTask>,
+                        public App::UsePublisher<EncoderTask> {
     private:
         tempo::EncoderInput& m_input;
-        tempo::Publisher<Event>& m_publisher;
         int m_last_position = 0;
 
         static constexpr int POLL_PERIOD_MS = 5;
@@ -25,8 +26,8 @@ namespace pocketpd {
     public:
         static constexpr const char* LOG_TAG = "EncoderTask";
 
-        EncoderTask(tempo::EncoderInput& input, tempo::Publisher<Event>& publisher)
-            : App::BackgroundTask(POLL_PERIOD_MS), m_input(input), m_publisher(publisher) {}
+        explicit EncoderTask(tempo::EncoderInput& input)
+            : App::BackgroundTask(POLL_PERIOD_MS), m_input(input) {}
 
         const char* name() const override {
             return "EncoderTask";
@@ -40,7 +41,7 @@ namespace pocketpd {
             const int pos = m_input.position();
             const int delta = pos - m_last_position;
             if (delta != 0) {
-                m_publisher.publish(EncoderEvent{delta});
+                publish(EncoderEvent{delta});
                 m_last_position = pos;
             }
         }

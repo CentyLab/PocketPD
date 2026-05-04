@@ -86,7 +86,8 @@ TEST(ButtonTask, ShortGestureOnQuickRelease) {
     FakeButtonInput encoder, vi_selector, output;
     TestQueue q;
     TestPublisher pub(q);
-    ButtonTask task(pub, encoder, vi_selector, output);
+    ButtonTask task(encoder, vi_selector, output);
+    task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
 
     encoder.set_held(true);
     task.poll(0);
@@ -103,7 +104,8 @@ TEST(ButtonTask, LongGestureFiresWhileHeldAndSilencesRelease) {
     FakeButtonInput encoder, vi_selector, output;
     TestQueue q;
     TestPublisher pub(q);
-    ButtonTask task(pub, encoder, vi_selector, output);
+    ButtonTask task(encoder, vi_selector, output);
+    task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
 
     encoder.set_held(true);
     task.poll(0);
@@ -125,7 +127,8 @@ TEST(ButtonTask, OutputButtonShortGestureRoutesToOutputToggle) {
     FakeButtonInput encoder, vi_selector, output;
     TestQueue q;
     TestPublisher pub(q);
-    ButtonTask task(pub, encoder, vi_selector, output);
+    ButtonTask task(encoder, vi_selector, output);
+    task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
 
     output.set_held(true);
     task.poll(0);
@@ -142,7 +145,8 @@ TEST(ButtonTask, SelectViLongPress) {
     FakeButtonInput encoder, vi_selector, output;
     TestQueue q;
     TestPublisher pub(q);
-    ButtonTask task(pub, encoder, vi_selector, output);
+    ButtonTask task(encoder, vi_selector, output);
+    task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
 
     vi_selector.set_held(true);
     task.poll(0);
@@ -160,7 +164,8 @@ TEST(EncoderTask, OnStartLatchesBaselineWithoutEvent) {
     FakeEncoderInput enc;
     TestQueue q;
     TestPublisher pub(q);
-    EncoderTask task(enc, pub);
+    EncoderTask task(enc);
+    task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
 
     enc.set_position(42);
     task.on_start();
@@ -174,7 +179,8 @@ TEST(EncoderTask, NonZeroDeltaPublishes) {
     FakeEncoderInput enc;
     TestQueue q;
     TestPublisher pub(q);
-    EncoderTask task(enc, pub);
+    EncoderTask task(enc);
+    task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
     task.on_start();
 
     enc.set_position(3);
@@ -189,7 +195,8 @@ TEST(EncoderTask, NoChangeMeansNoEvent) {
     FakeEncoderInput enc;
     TestQueue q;
     TestPublisher pub(q);
-    EncoderTask task(enc, pub);
+    EncoderTask task(enc);
+    task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
     task.on_start();
     task.poll();
 
@@ -201,7 +208,8 @@ TEST(EncoderTask, NegativeDelta) {
     FakeEncoderInput enc;
     TestQueue q;
     TestPublisher pub(q);
-    EncoderTask task(enc, pub);
+    EncoderTask task(enc);
+    task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
     enc.set_position(5);
     task.on_start();
     enc.set_position(2);
