@@ -240,51 +240,72 @@ namespace tempo {
     template <typename T>
     struct has_log_tag<T, std::void_t<decltype(T::LOG_TAG)>> : std::true_type {};
 
-    /**
-     * @brief Allows only the derived class to use this mixin while Application-framework layers
-     * have full access to underlying wiring functions
-     *
-     * @tparam Derived
-     */
+    template <typename Event, typename... Stages>
+    class Application;
+
     template <typename Derived>
-    class UseLog {
-        static constexpr const char* resolve_tag() {
-            if constexpr (has_log_tag<Derived>::value) {
-                return Derived::LOG_TAG;
-            } else {
-                return "<Unnamed>";
-            }
-        }
+    class UseLog;
 
-        class uselog_wiring {
-            Logger m_log;
-            void set_log_clock(const Clock& clock) {
-                m_log.set_clock(clock);
+    namespace detail {
+
+        /**
+         * @brief Storage layer for UseLog. Owns the LogSlot and exposes `log` to the outer
+         * mixin. Split out of UseLog so that Derived — friend of UseLog for CRTP enforcement —
+         * does not also gain access to `m_log_slot`.
+         *
+         * @tparam Derived
+         */
+        template <typename Derived>
+        class UseLogStorage {
+            static constexpr const char* resolve_tag() {
+                if constexpr (has_log_tag<Derived>::value) {
+                    return Derived::LOG_TAG;
+                } else {
+                    return "<Unnamed>";
+                }
             }
 
-            void set_log_stream_writer(StreamWriter& writer) {
-                m_log.set_stream_writer(writer);
-            }
+            class LogSlot {
+                Logger m_log;
 
-            void attach_log(const Clock& clock, StreamWriter& stream_writer) {
-                m_log.set_clock(clock);
-                m_log.set_stream_writer(stream_writer);
-                m_log.set_tag(UseLog::resolve_tag());
-            }
+                void attach(const Clock& clock, StreamWriter& stream_writer) {
+                    m_log.set_clock(clock);
+                    m_log.set_stream_writer(stream_writer);
+                    m_log.set_tag(UseLogStorage<Derived>::resolve_tag());
+                }
+
+                template <typename Event, typename... Stages>
+                friend class tempo::Application;
+                friend class UseLogStorage<Derived>;
+            };
+
+            LogSlot m_log_slot;
 
             template <typename Event, typename... Stages>
-            friend class Application;
-            friend class UseLog<Derived>;
+            friend class tempo::Application;
+            friend class tempo::UseLog<Derived>;
+
+        protected:
+            UseLogStorage() = default;
+            const Logger& log = m_log_slot.m_log;
         };
 
-        uselog_wiring _uselog_wiring;
-        const Logger& log = _uselog_wiring.m_log;
+    } // namespace detail
 
+    /**
+     * @brief CRTP mixin that injects a Logger into Tasks and Stages registered with an
+     * Application.
+     *
+     * Derived class get access to logging functions via `log` member reference.
+     *
+     * @tparam Derived The host class (CRTP).
+     */
+    template <typename Derived>
+    class UseLog : public detail::UseLogStorage<Derived> {
         UseLog() = default;
 
         template <typename Event, typename... Stages>
         friend class Application;
-        friend class uselog_wiring;
         friend Derived;
     };
 
