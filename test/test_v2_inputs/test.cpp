@@ -83,10 +83,10 @@ TEST(ButtonGestureDetector, ConsecutivePressesEachEmitShort) {
 // —— ButtonTask
 
 TEST(ButtonTask, ShortGestureOnQuickRelease) {
-    FakeButtonInput encoder, vi_selector, output;
+    FakeButtonInput encoder, l, r;
     TestQueue q;
     TestPublisher pub(q);
-    ButtonTask task(encoder, vi_selector, output);
+    ButtonTask task(encoder, l, r);
     task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
 
     encoder.set_held(true);
@@ -101,10 +101,10 @@ TEST(ButtonTask, ShortGestureOnQuickRelease) {
 }
 
 TEST(ButtonTask, LongGestureFiresWhileHeldAndSilencesRelease) {
-    FakeButtonInput encoder, vi_selector, output;
+    FakeButtonInput encoder, l, r;
     TestQueue q;
     TestPublisher pub(q);
-    ButtonTask task(encoder, vi_selector, output);
+    ButtonTask task(encoder, l, r);
     task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
 
     encoder.set_held(true);
@@ -123,38 +123,38 @@ TEST(ButtonTask, LongGestureFiresWhileHeldAndSilencesRelease) {
     EXPECT_FALSE(q.pop(tmp));
 }
 
-TEST(ButtonTask, OutputButtonShortGestureRoutesToOutputToggle) {
-    FakeButtonInput encoder, vi_selector, output;
+TEST(ButtonTask, RButtonShortGestureRoutesToR) {
+    FakeButtonInput encoder, l, r;
     TestQueue q;
     TestPublisher pub(q);
-    ButtonTask task(encoder, vi_selector, output);
+    ButtonTask task(encoder, l, r);
     task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
 
-    output.set_held(true);
+    r.set_held(true);
     task.poll(0);
-    output.set_held(false);
+    r.set_held(false);
     task.poll(50);
 
     const auto* btn = pop_as<ButtonEvent>(q);
     ASSERT_NE(btn, nullptr);
-    EXPECT_EQ(btn->id, ButtonId::OUTPUT_TOGGLE);
+    EXPECT_EQ(btn->id, ButtonId::R);
     EXPECT_EQ(btn->gesture, Gesture::SHORT);
 }
 
-TEST(ButtonTask, SelectViLongPress) {
-    FakeButtonInput encoder, vi_selector, output;
+TEST(ButtonTask, LButtonLongPress) {
+    FakeButtonInput encoder, l, r;
     TestQueue q;
     TestPublisher pub(q);
-    ButtonTask task(encoder, vi_selector, output);
+    ButtonTask task(encoder, l, r);
     task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
 
-    vi_selector.set_held(true);
+    l.set_held(true);
     task.poll(0);
     task.poll(kDefaultCfg.long_press_ms);
 
     const auto* btn = pop_as<ButtonEvent>(q);
     ASSERT_NE(btn, nullptr);
-    EXPECT_EQ(btn->id, ButtonId::SELECT_VI);
+    EXPECT_EQ(btn->id, ButtonId::L);
     EXPECT_EQ(btn->gesture, Gesture::LONG);
 }
 

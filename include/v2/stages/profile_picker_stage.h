@@ -1,12 +1,9 @@
 /**
- * @file pdo_picker_stage.h
- * @brief PDO picker / capability list stage. Two modes via payload-passing transition:
+ * @file profile_picker_stage.h
+ * @brief Profile-selection / capability-list stage. Two modes via payload-passing transition:
  * - REVIEW renders the source PDO list and waits for input;
  * - SELECT renders the same list with an encoder-driven cursor and lets the user commit a profile
- * via long-press of select-VI.
- *
- * Issue #32: SELECT entry disables the load switch so the user cannot change profile
- * mid-delivery.
+ * via long-press of the encoder button.
  */
 #pragma once
 
@@ -22,16 +19,16 @@
 
 #include "v2/app.h"
 #include "v2/events.h"
-#include "v2/hal/output_gate.h"
 #include "v2/hal/pd_sink_controller.h"
 #include "v2/pocketpd.h"
 #include "v2/stages/normal_stage.h"
+#include "v2/state.h"
 
 namespace pocketpd {
 
     void render_pdo_list(tempo::Display& display, const PdSinkController& pd_sink, int cursor = -1);
 
-    class PdoPickerStage : public App::Stage, public App::UseLog<PdoPickerStage> {
+    class ProfilePickerStage : public App::Stage, public App::UseLog<ProfilePickerStage> {
     public:
         enum class Mode : uint8_t { REVIEW, SELECT };
 
@@ -40,10 +37,10 @@ namespace pocketpd {
 
         Display& m_display;
         PdSinkController& m_pd_sink;
-        OutputGate& m_output_gate;
 
         Mode m_mode = Mode::REVIEW;
-        int m_cursor_index = 0;
+        int m_cursor = 0;
+        int m_pending_cursor = 0;
 
         tempo::TimeoutTimer m_review_timeout;
 
@@ -51,22 +48,34 @@ namespace pocketpd {
             return m_pd_sink.pps_count() > 0 ? Profile::PPS : Profile::PDO;
         }
 
-        Profile profile_at_cursor() const {
-            return m_pd_sink.is_index_pps(m_cursor_index) ? Profile::PPS : Profile::PDO;
+        Profile profile_at(int cursor) const {
+            return m_pd_sink.is_index_pps(cursor) ? Profile::PPS : Profile::PDO;
+        }
+
+        void commit(Conductor& conductor) {
+            if (m_pd_sink.pdo_count() <= 0) {
+                return; // empty-PDO fallback: long-press is a no-op
+            }
+            m_cursor = m_pending_cursor;
+            conductor.request<NormalStage>(profile_at(m_cursor));
         }
 
     public:
-        static constexpr const char* LOG_TAG = "PdoPick";
+        static constexpr const char* LOG_TAG = "ProfilePicker";
 
-        PdoPickerStage(tempo::Display& display, PdSinkController& pd_sink, OutputGate& output_gate)
-            : m_display(display), m_pd_sink(pd_sink), m_output_gate(output_gate) {}
+        ProfilePickerStage(tempo::Display& display, PdSinkController& pd_sink)
+            : m_display(display), m_pd_sink(pd_sink) {}
 
         const char* name() const override {
-            return "PDO_PICKER";
+            return "PROFILE_PICKER";
         }
 
         Mode mode() const {
             return m_mode;
+        }
+
+        int cursor_index() const {
+            return m_cursor;
         }
 
         void prepare(Mode mode) {
@@ -74,15 +83,15 @@ namespace pocketpd {
         }
 
         void on_enter(Conductor&) override {
+            m_review_timeout.disarm();
+
             switch (m_mode) {
             case Mode::REVIEW:
-                m_review_timeout.disarm();
                 render_pdo_list(m_display, m_pd_sink);
                 break;
             case Mode::SELECT:
-                m_cursor_index = 0;
-                m_output_gate.disable();
-                render_pdo_list(m_display, m_pd_sink, m_cursor_index);
+                m_pending_cursor = m_cursor;
+                render_pdo_list(m_display, m_pd_sink, m_pending_cursor);
                 break;
             }
         }
@@ -93,7 +102,7 @@ namespace pocketpd {
             }
 
             if (!m_review_timeout.armed()) {
-                m_review_timeout.set(now_ms, PDOPICKER_REVIEW_TO_NORMAL_MS);
+                m_review_timeout.set(now_ms, PROFILE_PICKER_REVIEW_TO_NORMAL_MS);
                 return;
             }
 
@@ -122,9 +131,14 @@ namespace pocketpd {
                         conductor.request<NormalStage>(profile_for_charger());
                     }
                 },
+                /**
+                 * @brief In review mode, turning the encoder auto-enters the SELECT mode
+                 *
+                 * @param evt incoming EncoderEvent
+                 */
                 [&](const EncoderEvent& evt) {
                     if (evt.delta != 0) {
-                        conductor.request<PdoPickerStage>(Mode::SELECT);
+                        conductor.request<ProfilePickerStage>(Mode::SELECT);
                     }
                 },
                 [](const auto&) {},
@@ -141,23 +155,24 @@ namespace pocketpd {
                         return;
                     }
 
-                    int next = std::clamp(m_cursor_index + evt.delta, 0, count - 1);
-                    if (next == m_cursor_index) {
+                    int next = std::clamp(m_pending_cursor + evt.delta, 0, count - 1);
+                    if (next == m_pending_cursor) {
                         return;
                     }
 
-                    m_cursor_index = next;
-                    render_pdo_list(m_display, m_pd_sink, m_cursor_index);
+                    m_pending_cursor = next;
+                    render_pdo_list(m_display, m_pd_sink, m_pending_cursor);
                 },
                 [&](const ButtonEvent& evt) {
-                    if (evt.id != ButtonId::SELECT_VI || evt.gesture != Gesture::LONG) {
+                    // Exit — do nothing
+                    if (evt.id == ButtonId::L && evt.gesture == Gesture::LONG) {
+                        conductor.request<NormalStage>();
                         return;
                     }
-                    if (m_pd_sink.pdo_count() <= 0) {
-                        return; // empty-PDO fallback: long-press is a no-op
-                    }
 
-                    conductor.request<NormalStage>(profile_at_cursor());
+                    if (evt.id == ButtonId::ENCODER && evt.gesture == Gesture::LONG) {
+                        commit(conductor);
+                    }
                 },
                 [](const auto&) {},
             };
@@ -214,5 +229,18 @@ namespace pocketpd {
         }
 
         display.flush();
+    }
+
+    inline void NormalStage::on_event(Conductor& conductor, const Event& event, uint32_t) {
+        auto handler = tempo::overloaded{
+            [&](const ButtonEvent& evt) {
+                if (evt.id == ButtonId::L && evt.gesture == Gesture::LONG) {
+                    conductor.request<ProfilePickerStage>(ProfilePickerStage::Mode::SELECT);
+                }
+            },
+            [](const auto&) {},
+        };
+
+        std::visit(handler, event);
     }
 } // namespace pocketpd
