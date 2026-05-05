@@ -87,7 +87,7 @@ namespace pocketpd {
                 const std::optional<Gesture> gesture = ref.detector.update(is_held, now_ms);
                 if (gesture.has_value()) {
                     log.debug(
-                        "button=%s detected gesture=%s",
+                        "button={} detected gesture={}",
                         button_name(ref.id),
                         gesture.value() == Gesture::SHORT ? "SHORT" : "LONG"
                     );

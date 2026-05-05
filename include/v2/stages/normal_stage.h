@@ -41,7 +41,7 @@ namespace pocketpd {
 
         void on_enter(Conductor&) override {
             m_profile = m_pending_profile;
-            log.info("entered profile=%s", m_profile == Profile::PPS ? "PPS" : "PDO");
+            log.info("entered profile={}", m_profile == Profile::PPS ? "PPS" : "PDO");
         }
     };
 

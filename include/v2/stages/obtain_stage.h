@@ -65,7 +65,7 @@ namespace pocketpd {
             const auto pps_n = static_cast<uint8_t>(m_pd_sink.pps_count());
             publish(PdReadyEvent{pdo_n, pps_n});
 
-            log.info("PD ready: %u PDO (%u PPS)", pdo_n, pps_n);
+            log.info("PD ready: {} PDO ({} PPS)", pdo_n, pps_n);
         }
 
         void on_tick(Conductor& conductor, uint32_t now_ms) override {
@@ -73,7 +73,7 @@ namespace pocketpd {
             if (m_dump_timer.tick(now_ms)) {
                 std::array<char, 2048> buffer{};
                 ap33772::format_pdo(m_pd_sink, buffer.data(), buffer.size());
-                log.info(buffer.data());
+                log.info("{}", buffer.data());
             }
 
             if (!m_timeout.armed()) {
