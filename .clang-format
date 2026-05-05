@@ -2,23 +2,23 @@ BasedOnStyle: LLVM
 ColumnLimit: 100
 IndentWidth: 4
 
-AlwaysBreakTemplateDeclarations: Yes
 AccessModifierOffset: -4
 AlignAfterOpenBracket: BlockIndent
 AlignConsecutiveMacros: Consecutive
 AlignOperands: AlignAfterOperator
 AllowShortFunctionsOnASingleLine: Empty
-InsertBraces: true
-NamespaceIndentation: All
-PointerAlignment: Left
-DerivePointerAlignment: false
-SpaceAfterCStyleCast: true
-BreakBeforeTernaryOperators: true
-BreakConstructorInitializers: BeforeColon
+AlwaysBreakTemplateDeclarations: Yes
 BinPackArguments: false
 BinPackParameters: OnePerLine
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+DerivePointerAlignment: false
+InsertBraces: true
+NamespaceIndentation: All
 PackConstructorInitializers: NextLine
+PointerAlignment: Left
 ReflowComments: true
+SpaceAfterCStyleCast: true
 # Header include ordering — Google C++ Style Guide
 # https://google.github.io/styleguide/cppguide.html#Names_and_Order_of_Includes
 #   1. C system headers      (<stdint.h>, <string.h>)
