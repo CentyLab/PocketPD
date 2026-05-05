@@ -5,8 +5,8 @@
  *
  * After the announce, ObtainStage acts as a short window to handle user input:
  *  1. a short button press resumes Normal operation immediately,
- *  2. encoder rotation jumps to PdoPicker in SELECT mode, and
- *  3. otherwise the stage times out into PdoPicker REVIEW so the PDO list can be reviewed.
+ *  2. encoder rotation jumps to ProfilePicker in SELECT mode, and
+ *  3. otherwise the stage times out into ProfilePicker REVIEW so the PDO list can be reviewed.
  *
  * Issue #33: ObtainStage must NOT issue an RDO request. The first request runs later
  * (NormalPpsStage / NormalPdoStage) once EEPROM has been consulted. Until then the AP33772 holds
@@ -28,7 +28,7 @@
 #include "v2/hal/pd_sink_controller.h"
 #include "v2/pocketpd.h"
 #include "v2/stages/normal_stage.h"
-#include "v2/stages/pdo_picker_stage.h"
+#include "v2/stages/profile_picker_stage.h"
 
 namespace pocketpd {
 
@@ -77,12 +77,12 @@ namespace pocketpd {
             }
 
             if (!m_timeout.armed()) {
-                m_timeout.set(now_ms, OBTAIN_TO_PDOPICKER_MS);
+                m_timeout.set(now_ms, OBTAIN_TO_PROFILE_PICKER_MS);
                 return;
             }
 
             if (m_timeout.reached(now_ms)) {
-                conductor.request<PdoPickerStage>(PdoPickerStage::Mode::REVIEW);
+                conductor.request<ProfilePickerStage>(ProfilePickerStage::Mode::REVIEW);
                 return; // Should return after stage change request to avoid executing more code
             }
         }
@@ -99,7 +99,7 @@ namespace pocketpd {
                 },
                 [&](const EncoderEvent& evt) {
                     if (evt.delta != 0) {
-                        conductor.request<PdoPickerStage>(PdoPickerStage::Mode::SELECT);
+                        conductor.request<ProfilePickerStage>(ProfilePickerStage::Mode::SELECT);
                     }
                 },
                 [](const auto&) {

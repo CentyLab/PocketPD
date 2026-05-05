@@ -16,15 +16,13 @@
 namespace pocketpd {
 
     /**
-     * @brief Identifier for the three physical buttons.
-     *
-     * `OUTPUT_TOGGLE` (not `OUTPUT`) avoids a collision with the Arduino
-     * `OUTPUT` macro that some translation units pull in.
+     * @brief Identifier for the three physical buttons. `L` and `R` denote
+     * the left and right side buttons; `ENCODER` is the rotary push.
      */
     enum class ButtonId : uint8_t {
         ENCODER,
-        OUTPUT_TOGGLE,
-        SELECT_VI,
+        R,
+        L,
     };
 
     enum class Gesture : uint8_t {

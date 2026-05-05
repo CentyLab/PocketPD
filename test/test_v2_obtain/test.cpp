@@ -3,13 +3,12 @@
  *
  * Drives Conductor<...> with scripted MockPdSink and a real EventQueue /
  * QueuePublisher so PdReadyEvent payload can be inspected. Also covers the
- * input-driven exits (short button → resume, encoder → PdoPicker SELECT,
- * timeout → PdoPicker REVIEW).
+ * input-driven exits (short button → resume, encoder → ProfilePicker SELECT,
+ * timeout → ProfilePicker REVIEW).
  */
 #define VERSION "\"test\""
 
 #include <MockDisplay.h>
-#include <MockOutputGate.h>
 #include <MockPdSink.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -24,7 +23,7 @@
 #include "v2/stages/boot_stage.h"
 #include "v2/stages/normal_stage.h"
 #include "v2/stages/obtain_stage.h"
-#include "v2/stages/pdo_picker_stage.h"
+#include "v2/stages/profile_picker_stage.h"
 
 using namespace pocketpd;
 using ::testing::NiceMock;
@@ -138,7 +137,7 @@ TEST(ObtainStage, ShortButtonResumesNormalInPpsProfileAfterPdReady) {
     conductor.register_stage(normal);
     conductor.start<ObtainStage>();
 
-    stage.on_event(conductor, ButtonEvent{ButtonId::OUTPUT_TOGGLE, Gesture::SHORT}, 0);
+    stage.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::SHORT}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition());
@@ -162,7 +161,7 @@ TEST(ObtainStage, ShortButtonResumesNormalInPdoProfileWhenNoPps) {
     conductor.register_stage(normal);
     conductor.start<ObtainStage>();
 
-    stage.on_event(conductor, ButtonEvent{ButtonId::OUTPUT_TOGGLE, Gesture::SHORT}, 0);
+    stage.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::SHORT}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition());
@@ -182,11 +181,11 @@ TEST(ObtainStage, ShortButtonIgnoredWhenPdNotReady) {
     conductor.register_stage(stage);
     conductor.start<ObtainStage>();
 
-    stage.on_event(conductor, ButtonEvent{ButtonId::OUTPUT_TOGGLE, Gesture::SHORT}, 0);
+    stage.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::SHORT}, 0);
     EXPECT_FALSE(conductor.has_pending());
 }
 
-TEST(ObtainStage, EncoderRotationJumpsToPdoPickerInSelectMode) {
+TEST(ObtainStage, EncoderRotationJumpsToProfilePickerInSelectMode) {
     NiceMock<MockPdSink> sink;
     TestQueue queue;
     TestPublisher publisher(queue);
@@ -197,8 +196,7 @@ TEST(ObtainStage, EncoderRotationJumpsToPdoPickerInSelectMode) {
     ObtainStage stage(sink);
     stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     NiceMock<MockDisplay> picker_display;
-    FakeOutputGate picker_output_gate;
-    PdoPickerStage picker(picker_display, sink, picker_output_gate);
+    ProfilePickerStage picker(picker_display, sink);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(picker);
@@ -208,11 +206,11 @@ TEST(ObtainStage, EncoderRotationJumpsToPdoPickerInSelectMode) {
 
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition());
-    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<PdoPickerStage>());
-    EXPECT_EQ(picker.mode(), PdoPickerStage::Mode::SELECT);
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
+    EXPECT_EQ(picker.mode(), ProfilePickerStage::Mode::SELECT);
 }
 
-TEST(ObtainStage, TimeoutTransitionsToPdoPickerInReviewMode) {
+TEST(ObtainStage, TimeoutTransitionsToProfilePickerInReviewMode) {
     NiceMock<MockPdSink> sink;
     TestQueue queue;
     TestPublisher publisher(queue);
@@ -223,22 +221,21 @@ TEST(ObtainStage, TimeoutTransitionsToPdoPickerInReviewMode) {
     ObtainStage stage(sink);
     stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     NiceMock<MockDisplay> picker_display;
-    FakeOutputGate picker_output_gate;
-    PdoPickerStage picker(picker_display, sink, picker_output_gate);
+    ProfilePickerStage picker(picker_display, sink);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(picker);
     conductor.start<ObtainStage>();
 
     conductor.tick(0);
-    conductor.tick(OBTAIN_TO_PDOPICKER_MS - 1);
+    conductor.tick(OBTAIN_TO_PROFILE_PICKER_MS - 1);
     EXPECT_FALSE(conductor.has_pending());
 
-    conductor.tick(OBTAIN_TO_PDOPICKER_MS);
+    conductor.tick(OBTAIN_TO_PROFILE_PICKER_MS);
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition());
-    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<PdoPickerStage>());
-    EXPECT_EQ(picker.mode(), PdoPickerStage::Mode::REVIEW);
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
+    EXPECT_EQ(picker.mode(), ProfilePickerStage::Mode::REVIEW);
 }
 
 TEST(BootStage, RequestsObtainAfterTimeout) {

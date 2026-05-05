@@ -39,8 +39,8 @@ namespace pocketpd {
 
         ButtonTask(
             tempo::ButtonInput& btn_encoder,
-            tempo::ButtonInput& btn_vi_selector,
-            tempo::ButtonInput& btn_output,
+            tempo::ButtonInput& btn_l,
+            tempo::ButtonInput& btn_r,
             ButtonGestureConfig gesture_config = {}
         )
             : App::BackgroundTask(POLL_PERIOD_MS),
@@ -51,13 +51,13 @@ namespace pocketpd {
                       ButtonGestureDetector{gesture_config},
                   },
                   DetectorRef{
-                      ButtonId::SELECT_VI,
-                      &btn_vi_selector,
+                      ButtonId::L,
+                      &btn_l,
                       ButtonGestureDetector{gesture_config},
                   },
                   DetectorRef{
-                      ButtonId::OUTPUT_TOGGLE,
-                      &btn_output,
+                      ButtonId::R,
+                      &btn_r,
                       ButtonGestureDetector{gesture_config},
                   },
               } {}
@@ -69,11 +69,11 @@ namespace pocketpd {
         const char* button_name(ButtonId id) {
             switch (id) {
             case ButtonId::ENCODER:
-                return "ENCODER";
-            case ButtonId::SELECT_VI:
-                return "SELECT_VI";
-            case ButtonId::OUTPUT_TOGGLE:
-                return "OUTPUT_TOGGLE";
+                return "ENCODER_BTN";
+            case ButtonId::L:
+                return "L_BTN";
+            case ButtonId::R:
+                return "R_BTN";
             default:
                 return "UNKNOWN";
             }

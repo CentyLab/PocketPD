@@ -17,7 +17,7 @@
 #include "v2/stages/boot_stage.h"
 #include "v2/stages/normal_stage.h"
 #include "v2/stages/obtain_stage.h"
-#include "v2/stages/pdo_picker_stage.h"
+#include "v2/stages/profile_picker_stage.h"
 #include "v2/tasks/button_task.h"
 #include "v2/tasks/encoder_task.h"
 #include <AP33772.h>
@@ -38,20 +38,20 @@ namespace {
     pocketpd::ArduinoOutputGate output_gate{pin_output_Enable};
 
     pocketpd::EzButtonInput encoder_button{pin_encoder_SW};
-    pocketpd::EzButtonInput output_button{pin_button_outputSW};
-    pocketpd::EzButtonInput select_vi_button{pin_button_selectVI};
+    pocketpd::EzButtonInput r_button{pin_button_outputSW};
+    pocketpd::EzButtonInput l_button{pin_button_selectVI};
     pocketpd::RotaryEncoderInput encoder{pin_encoder_A, pin_encoder_B};
 
     // —— Stages
 
     pocketpd::BootStage boot_stage(u8g2_display);
     pocketpd::ObtainStage obtain_stage(pd_sink);
-    pocketpd::PdoPickerStage pdo_picker_stage(u8g2_display, pd_sink, output_gate);
+    pocketpd::ProfilePickerStage profile_picker_stage(u8g2_display, pd_sink);
     pocketpd::NormalStage normal_stage;
 
     // —— Tasks
 
-    pocketpd::ButtonTask button_task(encoder_button, select_vi_button, output_button);
+    pocketpd::ButtonTask button_task(encoder_button, l_button, r_button);
     pocketpd::EncoderTask encoder_task(encoder);
 
 } // namespace
@@ -69,7 +69,7 @@ void setup() {
 
     app.register_stage(boot_stage);
     app.register_stage(obtain_stage);
-    app.register_stage(pdo_picker_stage);
+    app.register_stage(profile_picker_stage);
     app.register_stage(normal_stage);
 
     app.add_task(button_task);

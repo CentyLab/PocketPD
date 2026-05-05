@@ -5,7 +5,8 @@
  * Profile (`PPS` vs `PDO`) is set at entry by the caller via
  * `Conductor::request<NormalStage>(Profile)` which forwards to
  * `prepare(Profile)`. The profile is locked for the duration of the stage —
- * to switch profile, exit to PdoPicker SELECT and re-enter.
+ * a long-press of the L button exits back to ProfilePicker SELECT so the
+ * user can pick a different profile.
  *
  * Stub today: enters and logs the chosen profile. The full encoder edit
  * (PPS-only), PDO/PPS RDO issuance, output toggle, autosave, sensor read,
@@ -13,15 +14,20 @@
  */
 #pragma once
 
+#include <tempo/bus/visit.h>
+
+#include <variant>
+
 #include "v2/app.h"
+#include "v2/events.h"
 #include "v2/pocketpd.h"
 
 namespace pocketpd {
 
+    class ProfilePickerStage;
+
     class NormalStage : public App::Stage, public App::UseLog<NormalStage> {
     private:
-        // Still don't know if we should use pending variable or not. TBD.
-        Profile m_pending_profile = Profile::PDO;
         Profile m_profile = Profile::PDO;
 
     public:
@@ -36,13 +42,14 @@ namespace pocketpd {
         }
 
         void prepare(Profile profile) {
-            m_pending_profile = profile;
+            m_profile = profile;
         }
 
         void on_enter(Conductor&) override {
-            m_profile = m_pending_profile;
             log.info("entered profile={}", m_profile == Profile::PPS ? "PPS" : "PDO");
         }
+
+        void on_event(Conductor& conductor, const Event& event, uint32_t) override;
     };
 
 } // namespace pocketpd

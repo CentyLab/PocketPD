@@ -17,11 +17,11 @@ namespace pocketpd {
 
     class BootStage;
     class ObtainStage;
-    class PdoPickerStage;
+    class ProfilePickerStage;
     class NormalStage;
 
     // —— Application alias
 
-    using App = tempo::Application<Event, BootStage, ObtainStage, PdoPickerStage, NormalStage>;
+    using App = tempo::Application<Event, BootStage, ObtainStage, ProfilePickerStage, NormalStage>;
 
 } // namespace pocketpd
