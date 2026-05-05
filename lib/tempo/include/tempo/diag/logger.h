@@ -3,12 +3,21 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
-#include <cstring>
 #include <functional>
 #include <optional>
+#include <utility>
+
+// Arduino's `F()` macro collides with fmt's template parameter named `F`. Save and
+// restore around the fmt include so downstream Arduino code keeps the macro.
+#pragma push_macro("F")
+#ifdef F
+#undef F
+#endif
+#include <fmt/format.h>
+#pragma pop_macro("F")
 
 #include "tempo/core/time.h"
+#include "tempo/diag/stream_iterator.h"
 #include "tempo/hardware/stream.h"
 
 // 0=NONE 1=ERROR 2=WARN 3=INFO 4=DEBUG 5=VERBOSE
@@ -75,6 +84,7 @@ namespace tempo {
     }
 
     constexpr const char* COLOR_RESET = "\x1b[0m";
+    constexpr const char* COLOR_RESET_NEWLINE = "\x1b[0m\n";
 
     class Logger {
     private:
@@ -83,21 +93,8 @@ namespace tempo {
         std::optional<std::reference_wrapper<const Clock>> m_clock;
         std::optional<std::reference_wrapper<StreamWriter>> m_stream_writer;
 
-        template <size_t N, typename... Args>
-        int write(const char* format, Args... args) const {
-            std::array<char, N> buffer{0};
-            const int written = snprintf(buffer.data(), buffer.size(), format, args...);
-            if (written < 0) {
-                return written;
-            }
-            const size_t len =
-                (static_cast<size_t>(written) >= N) ? (N - 1) : static_cast<size_t>(written);
-            m_stream_writer->get().write(buffer.data(), len);
-            return written;
-        }
-
         template <LogLevel L, typename... Args>
-        void log(const char* fmt, Args... args) const {
+        void log(fmt::format_string<Args...> fs, Args&&... args) const {
             if constexpr (!compiledIn(L)) {
                 return;
             }
@@ -107,16 +104,13 @@ namespace tempo {
                 return;
             }
 
-            write_header(L);
-            if constexpr (sizeof...(Args) == 0) {
-                m_stream_writer->get().write(fmt, strlen(fmt));
-            } else {
-                write<192>(fmt, args...);
-            }
-            write_footer();
+            BufferedStreamSink sink(m_stream_writer->get());
+            write_header(sink, L);
+            fmt::format_to(sink.out(), fs, std::forward<Args>(args)...);
+            fmt::format_to(sink.out(), "{}", COLOR_RESET_NEWLINE);
         }
 
-        void write_header(LogLevel level) const {
+        void write_header(BufferedStreamSink& sink, LogLevel level) const {
             // clang-format off
             const uint32_t ms_total  = m_clock->get().now_ms();
             const uint32_t s_total   = ms_total / 1000;
@@ -126,45 +120,49 @@ namespace tempo {
             const uint32_t hr        = min_total / 60;
             const uint32_t min       = min_total - hr * 60;
             // clang-format on
-            write<64>(
-                "%s[%02lu:%02lu:%02lu.%03lu][%c][%s] ",
+            fmt::format_to(
+                sink.out(),
+                "{}[{:02}:{:02}:{:02}.{:03}][{}][{}] ",
                 level_color(level),
-                static_cast<unsigned long>(hr),
-                static_cast<unsigned long>(min),
-                static_cast<unsigned long>(sec),
-                static_cast<unsigned long>(ms),
+                hr,
+                min,
+                sec,
+                ms,
                 level_tag(level),
                 m_tag
             );
         }
 
-        void write_footer() const {
-            m_stream_writer->get().write("\x1b[0m\n");
-        }
-
         void hexdump_impl(const char* label, const uint8_t* data, size_t len) const {
-            write_header(LogLevel::DEBUG);
-            if (label) {
-                write<96>("%s (%u bytes):", label, static_cast<unsigned>(len));
+            StreamWriter& sw = m_stream_writer->get();
+            {
+                BufferedStreamSink sink(sw);
+                write_header(sink, LogLevel::DEBUG);
+                if (label) {
+                    fmt::format_to(sink.out(), "{} ({} bytes):", label, len);
+                }
+                fmt::format_to(sink.out(), "{}", COLOR_RESET_NEWLINE);
             }
-            write_footer();
 
             constexpr size_t ROW_WIDTH = 16;
             for (size_t i = 0; i < len; i += ROW_WIDTH) {
-                write<12>("  %04x: ", static_cast<unsigned>(i));
+                BufferedStreamSink sink(sw);
+                auto it = sink.out();
+                fmt::format_to(it, "  {:04x}: ", i);
                 for (size_t j = 0; j < ROW_WIDTH; ++j) {
                     if (i + j < len) {
-                        write<4>("%02x ", data[i + j]);
+                        fmt::format_to(it, "{:02x} ", data[i + j]);
                     } else {
-                        m_stream_writer->get().write("   ");
+                        fmt::format_to(it, "   ");
                     }
                 }
-                m_stream_writer->get().write(" ");
+                fmt::format_to(it, " ");
                 for (size_t j = 0; j < ROW_WIDTH && i + j < len; ++j) {
-                    uint8_t c = data[i + j];
-                    write<2>("%c", static_cast<char>((c >= 0x20 && c < 0x7f) ? c : '.'));
+                    const uint8_t c = data[i + j];
+                    const char printable = static_cast<char>((c >= 0x20 && c < 0x7f) ? c : '.');
+                    fmt::format_to(it, "{}", printable);
                 }
-                m_stream_writer->get().write("\n");
+                fmt::format_to(it, "\n");
             }
         }
 
@@ -194,24 +192,24 @@ namespace tempo {
         }
 
         template <typename... Args>
-        void error(const char* fmt, Args... args) const {
-            log<LogLevel::ERROR>(fmt, args...);
+        void error(fmt::format_string<Args...> fs, Args&&... args) const {
+            log<LogLevel::ERROR>(fs, std::forward<Args>(args)...);
         }
         template <typename... Args>
-        void warn(const char* fmt, Args... args) const {
-            log<LogLevel::WARN>(fmt, args...);
+        void warn(fmt::format_string<Args...> fs, Args&&... args) const {
+            log<LogLevel::WARN>(fs, std::forward<Args>(args)...);
         }
         template <typename... Args>
-        void info(const char* fmt, Args... args) const {
-            log<LogLevel::INFO>(fmt, args...);
+        void info(fmt::format_string<Args...> fs, Args&&... args) const {
+            log<LogLevel::INFO>(fs, std::forward<Args>(args)...);
         }
         template <typename... Args>
-        void debug(const char* fmt, Args... args) const {
-            log<LogLevel::DEBUG>(fmt, args...);
+        void debug(fmt::format_string<Args...> fs, Args&&... args) const {
+            log<LogLevel::DEBUG>(fs, std::forward<Args>(args)...);
         }
         template <typename... Args>
-        void verbose(const char* fmt, Args... args) const {
-            log<LogLevel::VERBOSE>(fmt, args...);
+        void verbose(fmt::format_string<Args...> fs, Args&&... args) const {
+            log<LogLevel::VERBOSE>(fs, std::forward<Args>(args)...);
         }
 
         void hexdump(const char* label, const void* data, size_t len) const {
@@ -227,9 +225,9 @@ namespace tempo {
         }
 
         template <typename... Args>
-        void check(bool cond, const char* fmt, Args... args) const {
+        void check(bool cond, fmt::format_string<Args...> fs, Args&&... args) const {
             if (!cond) {
-                error(fmt, args...);
+                error(fs, std::forward<Args>(args)...);
             }
         }
     };

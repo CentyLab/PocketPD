@@ -159,7 +159,7 @@ namespace tempo {
             m_conductor.template start<InitialStage>();
 
             m_started = true;
-            log.info("tempo: started, Stage=%s", m_conductor.current_name());
+            log.info("tempo: started, Stage={}", m_conductor.current_name());
         }
 
         /**
@@ -177,7 +177,7 @@ namespace tempo {
             if (m_conductor.apply_pending_transition()) {
                 const size_t after = m_conductor.current_index();
                 m_scheduler.notify_stage_changed(before, after);
-                log.info("Stage %s -> %s", name_of_stage_at(before), name_of_stage_at(after));
+                log.info("Stage {} -> {}", name_of_stage_at(before), name_of_stage_at(after));
             }
 
             const size_t current = m_conductor.current_index();

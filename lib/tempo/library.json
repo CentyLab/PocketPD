@@ -4,5 +4,8 @@
   "build": {
     "includeDir": "include",
     "srcFilter": "+<tempo.cpp>"
+  },
+  "dependencies": {
+    "fmt": "https://github.com/fmtlib/fmt.git#11.2.0"
   }
 }
