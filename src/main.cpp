@@ -9,6 +9,7 @@
 #include "v2/app.h"
 #include "v2/hal/ap33772_pd_sink.h"
 #include "v2/hal/arduino_clock.h"
+#include "v2/hal/arduino_output_gate.h"
 #include "v2/hal/arduino_stream_writer.h"
 #include "v2/hal/ez_button_input.h"
 #include "v2/hal/rotary_encoder_input.h"
@@ -34,6 +35,8 @@ namespace {
 
     pocketpd::U8g2Display u8g2_display;
 
+    pocketpd::ArduinoOutputGate output_gate{pin_output_Enable};
+
     pocketpd::EzButtonInput encoder_button{pin_encoder_SW};
     pocketpd::EzButtonInput output_button{pin_button_outputSW};
     pocketpd::EzButtonInput select_vi_button{pin_button_selectVI};
@@ -43,7 +46,7 @@ namespace {
 
     pocketpd::BootStage boot_stage(u8g2_display);
     pocketpd::ObtainStage obtain_stage(pd_sink);
-    pocketpd::PdoPickerStage pdo_picker_stage(u8g2_display, pd_sink);
+    pocketpd::PdoPickerStage pdo_picker_stage(u8g2_display, pd_sink, output_gate);
     pocketpd::NormalStage normal_stage;
 
     // —— Tasks
@@ -61,6 +64,7 @@ void setup() {
     Wire.begin();
 
     u8g2_display.begin();
+    output_gate.begin();
     encoder.begin();
 
     app.register_stage(boot_stage);

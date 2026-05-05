@@ -9,6 +9,7 @@
 #define VERSION "\"test\""
 
 #include <MockDisplay.h>
+#include <MockOutputGate.h>
 #include <MockPdSink.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -196,7 +197,8 @@ TEST(ObtainStage, EncoderRotationJumpsToPdoPickerInSelectMode) {
     ObtainStage stage(sink);
     stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     NiceMock<MockDisplay> picker_display;
-    PdoPickerStage picker(picker_display, sink);
+    FakeOutputGate picker_output_gate;
+    PdoPickerStage picker(picker_display, sink, picker_output_gate);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(picker);
@@ -221,7 +223,8 @@ TEST(ObtainStage, TimeoutTransitionsToPdoPickerInReviewMode) {
     ObtainStage stage(sink);
     stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     NiceMock<MockDisplay> picker_display;
-    PdoPickerStage picker(picker_display, sink);
+    FakeOutputGate picker_output_gate;
+    PdoPickerStage picker(picker_display, sink, picker_output_gate);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(picker);
