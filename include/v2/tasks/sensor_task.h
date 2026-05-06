@@ -1,0 +1,41 @@
+/**
+ * @file sensor_task.h
+ * @brief Reads PowerMonitor at 33 ms while NormalStage is active and publishes
+ * a `SensorEvent` carrying the snapshot. NormalStage consumes the event.
+ */
+#pragma once
+
+#include <cstdint>
+
+#include "v2/app.h"
+#include "v2/events.h"
+#include "v2/hal/power_monitor.h"
+#include "v2/state.h"
+
+namespace pocketpd {
+
+    class SensorTask : public App::StageScopedTask, public App::UsePublisher<SensorTask> {
+    private:
+        PowerMonitor& m_monitor;
+
+    public:
+        static constexpr uint32_t PERIOD_MS = 33;
+
+        explicit SensorTask(PowerMonitor& monitor)
+            : App::StageScopedTask(PERIOD_MS, App::StageMask::of<NormalStage>()),
+              m_monitor(monitor) {}
+
+        void on_tick(uint32_t now_ms) override {
+            const auto reading = m_monitor.read();
+            SensorSnapshot snapshot{
+                now_ms,
+                reading.mv,
+                reading.ma,
+                reading.valid,
+            };
+            
+            publish(SensorEvent{snapshot});
+        }
+    };
+
+} // namespace pocketpd
