@@ -27,8 +27,6 @@
 #include "v2/events.h"
 #include "v2/hal/pd_sink_controller.h"
 #include "v2/pocketpd.h"
-#include "v2/stages/normal_stage.h"
-#include "v2/stages/profile_picker_stage.h"
 
 namespace pocketpd {
 
@@ -39,8 +37,14 @@ namespace pocketpd {
         PdSinkController& m_pd_sink;
         bool m_pd_ready = false;
 
-        tempo::IntervalTimer m_dump_timer{3000};
+        tempo::IntervalTimer m_dump_timer{1000};
         tempo::TimeoutTimer m_timeout;
+
+        void dump_pdo_list() {
+            std::array<char, 1024> buffer{};
+            ap33772::format_pdo(m_pd_sink, buffer.data(), buffer.size());
+            log.info(buffer.data());
+        }
 
     public:
         static constexpr const char* LOG_TAG = "Obtain";
@@ -71,24 +75,20 @@ namespace pocketpd {
         void on_tick(Conductor& conductor, uint32_t now_ms) override {
             // Periodically dump the PDO list for debugging
             if (m_dump_timer.tick(now_ms)) {
-                std::array<char, 2048> buffer{};
-                ap33772::format_pdo(m_pd_sink, buffer.data(), buffer.size());
-                log.info("{}", buffer.data());
+                dump_pdo_list();
             }
 
             if (!m_timeout.armed()) {
                 m_timeout.set(now_ms, OBTAIN_TO_PROFILE_PICKER_MS);
-                return;
             }
 
             if (m_timeout.reached(now_ms)) {
-                conductor.request<ProfilePickerStage>(ProfilePickerStage::Mode::REVIEW);
-                return; // Should return after stage change request to avoid executing more code
+                conductor.request<ProfilePickerStage>(ProfilePickerMode::REVIEW);
             }
         }
 
         void on_event(Conductor& conductor, const Event& event, uint32_t) override {
-            
+
             auto handler = tempo::overloaded{
                 [&](const ButtonEvent& evt) {
                     if (evt.gesture == Gesture::SHORT && m_pd_ready) {
@@ -99,7 +99,7 @@ namespace pocketpd {
                 },
                 [&](const EncoderEvent& evt) {
                     if (evt.delta != 0) {
-                        conductor.request<ProfilePickerStage>(ProfilePickerStage::Mode::SELECT);
+                        conductor.request<ProfilePickerStage>(ProfilePickerMode::SELECT);
                     }
                 },
                 [](const auto&) {
