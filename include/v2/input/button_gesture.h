@@ -15,7 +15,7 @@
 namespace pocketpd {
 
     struct ButtonGestureConfig {
-        uint32_t long_press_ms = 1500;
+        uint32_t long_press_ms = 750;
     };
 
     class ButtonGestureDetector {

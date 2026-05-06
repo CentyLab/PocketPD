@@ -26,6 +26,8 @@ namespace pocketpd {
             ButtonId id;
             tempo::ButtonInput* input;
             ButtonGestureDetector detector;
+            bool was_held = false;
+            uint32_t pressed_at_ms = 0;
 
             DetectorRef() = delete;
         };
@@ -83,13 +85,23 @@ namespace pocketpd {
             for (DetectorRef& ref : m_detectors) {
                 ref.input->update();
 
+                
+                // Debug button latency (including debounce time)
                 const bool is_held = ref.input->is_held();
+                if (is_held && !ref.was_held) {
+                    ref.pressed_at_ms = now_ms;
+                    log.debug("button={} press_start_at={}ms", button_name(ref.id), now_ms);
+                }
+                ref.was_held = is_held;
+
                 const std::optional<Gesture> gesture = ref.detector.update(is_held, now_ms);
                 if (gesture.has_value()) {
+                    const uint32_t duration = now_ms - ref.pressed_at_ms;
                     log.debug(
-                        "button={} detected gesture={}",
+                        "button={} gesture={} hold_duration={}",
                         button_name(ref.id),
-                        gesture.value() == Gesture::SHORT ? "SHORT" : "LONG"
+                        gesture.value() == Gesture::SHORT ? "SHORT" : "LONG",
+                        duration
                     );
                     publish(ButtonEvent{ref.id, gesture.value()});
                 }
