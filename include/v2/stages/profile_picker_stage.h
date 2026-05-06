@@ -21,7 +21,6 @@
 #include "v2/events.h"
 #include "v2/hal/pd_sink_controller.h"
 #include "v2/pocketpd.h"
-#include "v2/stages/normal_stage.h"
 #include "v2/state.h"
 
 namespace pocketpd {
@@ -30,7 +29,7 @@ namespace pocketpd {
 
     class ProfilePickerStage : public App::Stage, public App::UseLog<ProfilePickerStage> {
     public:
-        enum class Mode : uint8_t { REVIEW, SELECT };
+        using Mode = ProfilePickerMode;
 
     private:
         using Display = tempo::Display;
@@ -138,7 +137,7 @@ namespace pocketpd {
                  */
                 [&](const EncoderEvent& evt) {
                     if (evt.delta != 0) {
-                        conductor.request<ProfilePickerStage>(Mode::SELECT);
+                        conductor.request<ProfilePickerStage>(ProfilePickerMode::SELECT);
                     }
                 },
                 [](const auto&) {},
@@ -231,16 +230,4 @@ namespace pocketpd {
         display.flush();
     }
 
-    inline void NormalStage::on_event(Conductor& conductor, const Event& event, uint32_t) {
-        auto handler = tempo::overloaded{
-            [&](const ButtonEvent& evt) {
-                if (evt.id == ButtonId::L && evt.gesture == Gesture::LONG) {
-                    conductor.request<ProfilePickerStage>(ProfilePickerStage::Mode::SELECT);
-                }
-            },
-            [](const auto&) {},
-        };
-
-        std::visit(handler, event);
-    }
 } // namespace pocketpd

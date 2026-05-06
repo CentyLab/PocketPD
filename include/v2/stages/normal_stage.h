@@ -24,8 +24,6 @@
 
 namespace pocketpd {
 
-    class ProfilePickerStage;
-
     class NormalStage : public App::Stage, public App::UseLog<NormalStage> {
     private:
         Profile m_profile = Profile::PDO;
@@ -49,7 +47,18 @@ namespace pocketpd {
             log.info("entered profile={}", m_profile == Profile::PPS ? "PPS" : "PDO");
         }
 
-        void on_event(Conductor& conductor, const Event& event, uint32_t) override;
+        void on_event(Conductor& conductor, const Event& event, uint32_t) override {
+            auto handler = tempo::overloaded{
+                [&](const ButtonEvent& evt) {
+                    if (evt.id == ButtonId::L && evt.gesture == Gesture::LONG) {
+                        conductor.request<ProfilePickerStage>(ProfilePickerMode::SELECT);
+                    }
+                },
+                [](const auto&) {},
+            };
+
+            std::visit(handler, event);
+        }
     };
 
 } // namespace pocketpd
