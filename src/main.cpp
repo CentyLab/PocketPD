@@ -12,11 +12,14 @@
 #include "v2/hal/arduino_output_gate.h"
 #include "v2/hal/arduino_stream_writer.h"
 #include "v2/hal/ez_button_input.h"
+#include "v2/hal/power_monitor.h"
 #include "v2/hal/rotary_encoder_input.h"
 #include "v2/hal/u8g2_display.h"
 #include "v2/tasks/button_task.h"
 #include "v2/tasks/encoder_task.h"
+#include "v2/tasks/sensor_task.h"
 #include <AP33772.h>
+#include <INA226.h>
 
 namespace {
 
@@ -28,6 +31,9 @@ namespace {
 
     ArduinoTwoWireDevice ap33772_i2c{Wire, ap33772::ADDRESS};
     pocketpd::Ap33772PdSink pd_sink{ap33772_i2c, ::delay};
+
+    INA226 ina226_driver{pocketpd::INA226_I2C_ADDR};
+    pocketpd::Ina226PowerMonitor power_monitor{ina226_driver};
 
     pocketpd::U8g2Display u8g2_display;
 
@@ -43,12 +49,13 @@ namespace {
     pocketpd::BootStage boot_stage(u8g2_display);
     pocketpd::ObtainStage obtain_stage(pd_sink);
     pocketpd::ProfilePickerStage profile_picker_stage(u8g2_display, pd_sink);
-    pocketpd::NormalStage normal_stage;
+    pocketpd::NormalStage normal_stage(u8g2_display, pd_sink, output_gate);
 
     // —— Tasks
 
     pocketpd::ButtonTask button_task(encoder_button, l_button, r_button);
     pocketpd::EncoderTask encoder_task(encoder);
+    pocketpd::SensorTask sensor_task{power_monitor, normal_stage};
 
 } // namespace
 
@@ -58,6 +65,10 @@ void setup() {
     Wire.setSDA(pin_SDA);
     Wire.setSCL(pin_SCL);
     Wire.begin();
+
+    ina226_driver.begin();
+    ina226_driver.setMaxCurrentShunt(20.0f, 0.005f);
+    power_monitor.begin();
 
     u8g2_display.begin();
     output_gate.begin();
@@ -70,6 +81,7 @@ void setup() {
 
     app.add_task(button_task);
     app.add_task(encoder_task);
+    app.add_task(sensor_task);
 
     app.start<pocketpd::BootStage>();
 }

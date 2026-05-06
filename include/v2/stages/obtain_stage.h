@@ -94,7 +94,9 @@ namespace pocketpd {
                     if (evt.gesture == Gesture::SHORT && m_pd_ready) {
                         const Profile profile =
                             m_pd_sink.pps_count() > 0 ? Profile::PPS : Profile::PDO;
-                        conductor.request<NormalStage>(profile);
+                        const auto idx =
+                            static_cast<uint8_t>(m_pd_sink.default_index_for(profile));
+                        conductor.request<NormalStage>(profile, idx);
                     }
                 },
                 [&](const EncoderEvent& evt) {

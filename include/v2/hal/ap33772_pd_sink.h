@@ -11,6 +11,7 @@
 #include <I2CDevice.h>
 
 #include "v2/hal/pd_sink_controller.h"
+#include "v2/pocketpd.h"
 
 namespace pocketpd {
 
@@ -50,6 +51,18 @@ namespace pocketpd {
         }
         bool set_pps_pdo(int index, int voltage_mv, int current_ma) override {
             return m_driver.set_pps_pdo(index, voltage_mv, current_ma);
+        }
+        int default_index_for(Profile profile) const override {
+            const int count = m_driver.pdo_count();
+            for (int i = 0; i < count; ++i) {
+                if (profile == Profile::PPS && m_driver.is_index_pps(i)) {
+                    return i;
+                }
+                if (profile == Profile::PDO && m_driver.is_index_fixed(i)) {
+                    return i;
+                }
+            }
+            return 0;
         }
     };
 

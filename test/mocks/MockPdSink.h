@@ -3,6 +3,7 @@
 #include <gmock/gmock.h>
 
 #include "v2/hal/pd_sink_controller.h"
+#include "v2/pocketpd.h"
 
 namespace pocketpd {
 
@@ -18,6 +19,7 @@ namespace pocketpd {
         MOCK_METHOD(int, pdo_max_current_ma, (int index), (const, override));
         MOCK_METHOD(bool, set_pdo, (int index), (override));
         MOCK_METHOD(bool, set_pps_pdo, (int index, int voltage_mv, int current_ma), (override));
+        MOCK_METHOD(int, default_index_for, (Profile profile), (const, override));
     };
 
 } // namespace pocketpd

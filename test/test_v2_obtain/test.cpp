@@ -9,6 +9,7 @@
 #define VERSION "\"test\""
 
 #include <MockDisplay.h>
+#include <MockOutputGate.h>
 #include <MockPdSink.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -128,10 +129,13 @@ TEST(ObtainStage, ShortButtonResumesNormalInPpsProfileAfterPdReady) {
     EXPECT_CALL(sink, begin()).WillOnce(Return(true));
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
     EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(1));
+    EXPECT_CALL(sink, default_index_for(Profile::PPS)).WillRepeatedly(Return(2));
 
     ObtainStage stage(sink);
     stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
-    NormalStage normal;
+    NiceMock<MockDisplay> normal_display;
+    NiceMock<MockOutputGate> normal_gate;
+    NormalStage normal(normal_display, sink, normal_gate);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(normal);
@@ -143,6 +147,7 @@ TEST(ObtainStage, ShortButtonResumesNormalInPpsProfileAfterPdReady) {
     EXPECT_TRUE(conductor.apply_pending_transition());
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
     EXPECT_EQ(normal.profile(), Profile::PPS);
+    EXPECT_EQ(normal.active_pdo_index(), 2u);
 }
 
 TEST(ObtainStage, ShortButtonResumesNormalInPdoProfileWhenNoPps) {
@@ -152,10 +157,14 @@ TEST(ObtainStage, ShortButtonResumesNormalInPdoProfileWhenNoPps) {
     EXPECT_CALL(sink, begin()).WillOnce(Return(true));
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
     EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
+    EXPECT_CALL(sink, default_index_for(Profile::PDO)).WillRepeatedly(Return(0));
 
     ObtainStage stage(sink);
     stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
-    NormalStage normal;
+    NiceMock<MockDisplay> normal_display;
+    NiceMock<MockOutputGate> normal_gate;
+    NormalStage normal(normal_display, sink, normal_gate);
+    EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(normal);
@@ -167,6 +176,7 @@ TEST(ObtainStage, ShortButtonResumesNormalInPdoProfileWhenNoPps) {
     EXPECT_TRUE(conductor.apply_pending_transition());
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
     EXPECT_EQ(normal.profile(), Profile::PDO);
+    EXPECT_EQ(normal.active_pdo_index(), 0u);
 }
 
 TEST(ObtainStage, ShortButtonIgnoredWhenPdNotReady) {

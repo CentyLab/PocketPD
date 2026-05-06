@@ -8,6 +8,8 @@
  */
 #pragma once
 
+#include "v2/pocketpd.h"
+
 namespace pocketpd {
 
     /**
@@ -53,6 +55,18 @@ namespace pocketpd {
 
         /** @brief Request a PPS APDO with explicit voltage and current. */
         [[nodiscard]] virtual bool set_pps_pdo(int index, int voltage_mv, int current_ma) = 0;
+
+        // —— Defaults
+
+        /**
+         * @brief Default PDO index for a given profile.
+         *
+         * For `Profile::PDO` returns the lowest fixed-PDO index (or 0 if no
+         * fixed PDO is present). For `Profile::PPS` returns the lowest PPS
+         * index (or 0 if none). Used by stages that resume Normal without
+         * picker cursor input.
+         */
+        virtual int default_index_for(Profile profile) const = 0;
     };
 
 } // namespace pocketpd

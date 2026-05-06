@@ -56,7 +56,8 @@ namespace pocketpd {
                 return; // empty-PDO fallback: long-press is a no-op
             }
             m_cursor = m_pending_cursor;
-            conductor.request<NormalStage>(profile_at(m_cursor));
+            const auto idx = static_cast<uint8_t>(m_cursor);
+            conductor.request<NormalStage>(profile_at(m_cursor), idx);
         }
 
     public:
@@ -106,7 +107,9 @@ namespace pocketpd {
             }
 
             if (m_review_timeout.reached(now_ms)) {
-                conductor.request<NormalStage>(profile_for_charger());
+                const auto profile = profile_for_charger();
+                const auto idx = static_cast<uint8_t>(m_pd_sink.default_index_for(profile));
+                conductor.request<NormalStage>(profile, idx);
                 return;
             }
         }
@@ -127,7 +130,10 @@ namespace pocketpd {
             auto handler = tempo::overloaded{
                 [&](const ButtonEvent& evt) {
                     if (evt.gesture == Gesture::SHORT) {
-                        conductor.request<NormalStage>(profile_for_charger());
+                        const auto profile = profile_for_charger();
+                        const auto idx =
+                            static_cast<uint8_t>(m_pd_sink.default_index_for(profile));
+                        conductor.request<NormalStage>(profile, idx);
                     }
                 },
                 /**
