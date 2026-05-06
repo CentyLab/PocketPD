@@ -18,7 +18,7 @@ namespace pocketpd {
         mutable ezButton m_button;
 
     public:
-        explicit EzButtonInput(int pin, unsigned long debounce_ms = 50) : m_button(pin) {
+        explicit EzButtonInput(int pin, unsigned long debounce_ms = 30) : m_button(pin) {
             m_button.setDebounceTime(debounce_ms);
         }
 
