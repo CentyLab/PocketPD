@@ -12,6 +12,13 @@
 
 namespace tempo {
 
+    enum class Font : uint8_t {
+        SM,
+        BASE,
+        LG,
+        XL,
+    };
+
     class Display {
     public:
         virtual ~Display() = default;
@@ -20,6 +27,11 @@ namespace tempo {
 
         virtual void clear() = 0;
         virtual void flush() = 0;
+
+        // —— Font selection
+        // Implementation should default to Font::BASE.
+
+        virtual void set_font(Font font) = 0;
 
         // —— Drawing
         //

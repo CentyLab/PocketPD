@@ -9,6 +9,7 @@ namespace pocketpd {
     public:
         MOCK_METHOD(void, clear, (), (override));
         MOCK_METHOD(void, flush, (), (override));
+        MOCK_METHOD(void, set_font, (tempo::Font font), (override));
         MOCK_METHOD(
             void,
             draw_bitmap,
