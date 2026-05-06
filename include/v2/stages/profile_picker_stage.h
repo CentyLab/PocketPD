@@ -2,8 +2,8 @@
  * @file profile_picker_stage.h
  * @brief Profile-selection / capability-list stage. Two modes via payload-passing transition:
  * - REVIEW renders the source PDO list and waits for input;
- * - SELECT renders the same list with an encoder-driven cursor and lets the user commit a profile
- * via long-press of the encoder button.
+ * - SELECT renders the same list with an encoder-driven cursor. The user commits a profile by
+ * long-pressing the encoder button.
  */
 #pragma once
 
@@ -43,20 +43,12 @@ namespace pocketpd {
 
         tempo::TimeoutTimer m_review_timeout;
 
-        Profile profile_for_charger() const {
-            return m_pd_sink.pps_count() > 0 ? Profile::PPS : Profile::PDO;
-        }
-
-        Profile profile_at(int cursor) const {
-            return m_pd_sink.is_index_pps(cursor) ? Profile::PPS : Profile::PDO;
-        }
-
         void commit(Conductor& conductor) {
             if (m_pd_sink.pdo_count() <= 0) {
                 return; // empty-PDO fallback: long-press is a no-op
             }
             m_cursor = m_pending_cursor;
-            conductor.request<NormalStage>(profile_at(m_cursor));
+            conductor.request<NormalStage>(static_cast<int8_t>(m_cursor));
         }
 
     public:
@@ -106,7 +98,10 @@ namespace pocketpd {
             }
 
             if (m_review_timeout.reached(now_ms)) {
-                conductor.request<NormalStage>(profile_for_charger());
+                if (m_pd_sink.pdo_count() <= 0) {
+                    return; // stay in REVIEW until a charger is detected
+                }
+                conductor.request<NormalStage>(static_cast<int8_t>(-1));
                 return;
             }
         }
@@ -126,8 +121,8 @@ namespace pocketpd {
         void handle_review_event(Conductor& conductor, const Event& event) {
             auto handler = tempo::overloaded{
                 [&](const ButtonEvent& evt) {
-                    if (evt.gesture == Gesture::SHORT) {
-                        conductor.request<NormalStage>(profile_for_charger());
+                    if (evt.gesture == Gesture::SHORT && m_pd_sink.pdo_count() > 0) {
+                        conductor.request<NormalStage>(static_cast<int8_t>(-1));
                     }
                 },
                 /**
@@ -186,7 +181,10 @@ namespace pocketpd {
 
         const int count = pd_sink.pdo_count();
         if (count == 0) {
-            display.draw_text(8, 34, "No Profile Detected");
+            const char* msg = "[No Profile Detected]";
+            const auto w = display.text_width(msg);
+            const auto x = static_cast<uint8_t>((128 - w) / 2);
+            display.draw_text(x, 34, msg);
             display.flush();
             return;
         }
