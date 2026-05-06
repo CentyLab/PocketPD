@@ -92,9 +92,7 @@ namespace pocketpd {
             auto handler = tempo::overloaded{
                 [&](const ButtonEvent& evt) {
                     if (evt.gesture == Gesture::SHORT && m_pd_ready) {
-                        const Profile profile =
-                            m_pd_sink.pps_count() > 0 ? Profile::PPS : Profile::PDO;
-                        conductor.request<NormalStage>(profile);
+                        conductor.request<NormalStage>(static_cast<int8_t>(-1));
                     }
                 },
                 [&](const EncoderEvent& evt) {

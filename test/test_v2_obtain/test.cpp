@@ -9,6 +9,7 @@
 #define VERSION "\"test\""
 
 #include <MockDisplay.h>
+#include <MockOutputGate.h>
 #include <MockPdSink.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -131,7 +132,9 @@ TEST(ObtainStage, ShortButtonResumesNormalInPpsProfileAfterPdReady) {
 
     ObtainStage stage(sink);
     stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
-    NormalStage normal;
+    NiceMock<MockDisplay> normal_display;
+    NiceMock<MockOutputGate> normal_gate;
+    NormalStage normal(normal_display, sink, normal_gate);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(normal);
@@ -142,7 +145,7 @@ TEST(ObtainStage, ShortButtonResumesNormalInPpsProfileAfterPdReady) {
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition());
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
-    EXPECT_EQ(normal.profile(), Profile::PPS);
+    EXPECT_EQ(normal.active_pdo_index(), -1);
 }
 
 TEST(ObtainStage, ShortButtonResumesNormalInPdoProfileWhenNoPps) {
@@ -155,7 +158,9 @@ TEST(ObtainStage, ShortButtonResumesNormalInPdoProfileWhenNoPps) {
 
     ObtainStage stage(sink);
     stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
-    NormalStage normal;
+    NiceMock<MockDisplay> normal_display;
+    NiceMock<MockOutputGate> normal_gate;
+    NormalStage normal(normal_display, sink, normal_gate);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(normal);
@@ -166,7 +171,7 @@ TEST(ObtainStage, ShortButtonResumesNormalInPdoProfileWhenNoPps) {
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition());
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
-    EXPECT_EQ(normal.profile(), Profile::PDO);
+    EXPECT_EQ(normal.active_pdo_index(), -1);
 }
 
 TEST(ObtainStage, ShortButtonIgnoredWhenPdNotReady) {

@@ -44,6 +44,13 @@ namespace pocketpd {
         int delta = 0;
     };
 
-    using Event = tempo::Events<PdReadyEvent, ButtonEvent, EncoderEvent>;
+    /**
+     * @brief Published by SensorTask. Carries one bus reading.
+     */
+    struct SensorEvent {
+        SensorSnapshot snapshot;
+    };
+
+    using Event = tempo::Events<PdReadyEvent, ButtonEvent, EncoderEvent, SensorEvent>;
 
 } // namespace pocketpd
