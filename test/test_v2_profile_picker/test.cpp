@@ -439,8 +439,8 @@ TEST(ProfilePickerStage, SelectLongPressLExitsToNormalWithoutChangingProfile) {
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(1));
     EXPECT_CALL(sink, is_index_fixed(0)).WillRepeatedly(Return(true));
     EXPECT_CALL(sink, is_index_pps(::testing::_)).WillRepeatedly(Return(false));
-    EXPECT_CALL(sink, pdo_max_voltage_mv(0)).WillRepeatedly(Return(5000));
-    EXPECT_CALL(sink, pdo_max_current_ma(0)).WillRepeatedly(Return(3000));
+    EXPECT_CALL(sink, pdo_max_voltage_mv(::testing::_)).WillRepeatedly(Return(5000));
+    EXPECT_CALL(sink, pdo_max_current_ma(::testing::_)).WillRepeatedly(Return(3000));
     EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
 
     ProfilePickerStage stage(display, sink);

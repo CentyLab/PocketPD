@@ -21,3 +21,5 @@ CheckOptions:
     value: true
   - key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
     value: true
+  - key: cppcoreguidelines-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
+    value: true

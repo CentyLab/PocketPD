@@ -60,6 +60,10 @@ namespace pocketpd {
         uint16_t text_width(const char* text) override {
             return m_u8g2.getStrWidth(text);
         }
+
+        void draw_box(uint8_t x, uint8_t y, uint8_t w, uint8_t h) override {
+            m_u8g2.drawBox(x, y, w, h);
+        }
     };
 
 } // namespace pocketpd
