@@ -51,6 +51,9 @@ namespace pocketpd {
         bool set_pps_pdo(int index, int voltage_mv, int current_ma) override {
             return m_driver.set_pps_pdo(index, voltage_mv, current_ma);
         }
+        bool reset() const {
+            return m_driver.reset();
+        }
     };
 
 } // namespace pocketpd

@@ -18,6 +18,7 @@ namespace pocketpd {
         );
         MOCK_METHOD(void, draw_text, (uint8_t x, uint8_t y, const char* text), (override));
         MOCK_METHOD(uint16_t, text_width, (const char* text), (override));
+        MOCK_METHOD(void, draw_box, (uint8_t x, uint8_t y, uint8_t w, uint8_t h), (override));
     };
 
 } // namespace pocketpd
