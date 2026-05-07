@@ -29,23 +29,29 @@ namespace tempo {
         virtual void flush() = 0;
 
         // —— Font selection
-        // Implementation should default to Font::BASE.
 
         virtual void set_font(Font font) = 0;
 
         // —— Drawing
-        //
-        // Bitmap data is 1 bpp packed 8 pixels per byte horizontally; one row
-        // is `width_bytes` bytes. Pixel width therefore equals `width_bytes * 8`. Rows are stored
-        // top-to-bottom.
 
+        /**
+         * @brief Draw a bitmap at the given coordinates. Bitmap data is 1 bpp packed 8 pixels per
+         * byte horizontally; one row is `width_bytes` bytes. Pixel width therefore equals
+         * `width_bytes * 8`. Rows are stored top-to-bottom.
+         *
+         */
         virtual void draw_bitmap(
             uint8_t x, uint8_t y, uint8_t width_bytes, uint8_t height, const uint8_t* data
         ) = 0;
 
-        // Text Y is the baseline (matches U8g2 / typographic convention).
+        /**
+         * @brief Draw text at the given coordinates. Text is drawn using the current font.
+         *
+         */
         virtual void draw_text(uint8_t x, uint8_t y, const char* text) = 0;
         virtual uint16_t text_width(const char* text) = 0;
+
+        virtual void draw_box(uint8_t x, uint8_t y, uint8_t w, uint8_t h) = 0;
     };
 
 } // namespace tempo
