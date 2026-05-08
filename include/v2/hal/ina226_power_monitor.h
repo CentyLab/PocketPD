@@ -22,6 +22,8 @@ namespace pocketpd {
 
         void begin() override {
             m_driver.begin();
+            m_driver.setMaxCurrentShunt(20.0f, 0.005f);
+            m_driver.setAverage(INA226_4_SAMPLES);
         }
 
         PowerReading read() override {

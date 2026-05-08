@@ -67,9 +67,7 @@ void setup() {
     Wire.begin();
 
     ina226_driver.begin();
-    ina226_driver.setMaxCurrentShunt(20.0f, 0.005f);
     power_monitor.begin();
-
     u8g2_display.begin();
     output_gate.begin();
     encoder.begin();
