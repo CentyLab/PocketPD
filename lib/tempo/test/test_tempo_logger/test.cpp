@@ -47,7 +47,9 @@ protected:
 TEST_F(LoggerTest, EmitsHeaderTagFooter) {
     clock.now = 1234; // 00:00:01.234
     logger.info("body");
-    EXPECT_EQ(stream.captured, "\x1b[32m[00:00:01.234][I][TestTag] body\x1b[0m\n");
+    // gtest expands TEST_F bodies into a method named TestBody, which
+    // __builtin_FUNCTION() captures as the caller name in the header.
+    EXPECT_EQ(stream.captured, "\x1b[32m00:00:01.234 [I] (TestTag.TestBody) — body\x1b[0m\n");
 }
 
 TEST_F(LoggerTest, FormatsArgsWithBracePlaceholders) {
@@ -77,7 +79,7 @@ TEST_F(LoggerTest, LevelTagMatchesLevel) {
 TEST_F(LoggerTest, EncodesTimestampZeroPadded) {
     clock.now = 3'723'045; // 01:02:03.045
     logger.info("");
-    EXPECT_NE(stream.captured.find("[01:02:03.045]"), std::string::npos);
+    EXPECT_NE(stream.captured.find("01:02:03.045"), std::string::npos);
 }
 
 TEST(LoggerDisabled, NoCrashWhenStreamUnset) {
