@@ -1,6 +1,6 @@
 /**
  * @file stream.h
- * @brief Byte sink interface for log/diagnostic output.
+ * @brief Byte sink and source interfaces.
  */
 #pragma once
 #include <cstddef>
@@ -17,8 +17,8 @@ namespace tempo {
 
         /**
          * @brief Compile-time literal fast path.
-         * 
-         * @return size_t 
+         *
+         * @return size_t amount of bytes written
          */
         template <size_t N, typename T>
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
@@ -31,6 +31,25 @@ namespace tempo {
             );
             return write(literal, N - 1); // strip null terminator
         }
+    };
+
+    class StreamReader {
+    public:
+        virtual ~StreamReader() = default;
+
+        /**
+         * @brief Bytes ready to read
+         *
+         * @return Number of buffered bytes, or 0 when empty.
+         */
+        virtual int available() = 0;
+
+        /**
+         * @brief Pop one byte from the source.
+         *
+         * @return The next byte as 0..255, or -1 if no byte is available.
+         */
+        virtual int read() = 0;
     };
 
 } // namespace tempo

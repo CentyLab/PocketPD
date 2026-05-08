@@ -43,6 +43,7 @@ namespace tempo {
         // clang-format off
         static constexpr size_t MaxTasks           = DEFAULT_MAX_TASKS;
         static constexpr size_t EventQueueCapacity = DEFAULT_EVENT_QUEUE_CAP;
+        static constexpr const char* LOG_TAG = "Application";
 
         using Event           = TEvent;
         using Scheduler       = tempo::CooperativeScheduler<Event, MaxTasks, Stages...>;
@@ -60,16 +61,14 @@ namespace tempo {
 
         template <typename Derived>
         using UseLog          = tempo::UseLog<Derived>;
+
         template <typename Derived>
         using UsePublisher    = tempo::UsePublisher<Derived, Event>;
 
         using tempo::UseLog<Application>::log;
         // clang-format on
-
     private:
         static inline Application* instance = nullptr;
-
-        constexpr static const char* LOG_TAG = "Application";
 
         // —— External references
 
