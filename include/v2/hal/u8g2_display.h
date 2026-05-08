@@ -53,6 +53,12 @@ namespace pocketpd {
             m_u8g2.drawBitmap(x, y, width_bytes, height, data);
         }
 
+        void draw_xbm(
+            uint8_t x, uint8_t y, uint8_t width, uint8_t height, const uint8_t* data
+        ) override {
+            m_u8g2.drawXBMP(x, y, width, height, data);
+        }
+
         void draw_text(uint8_t x, uint8_t y, const char* text) override {
             m_u8g2.drawStr(x, y, text);
         }
