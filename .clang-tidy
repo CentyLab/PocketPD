@@ -12,6 +12,7 @@ Checks: "
   -cppcoreguidelines-avoid-const-or-ref-data-members,
   -cppcoreguidelines-pro-type-union-access,
   -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
   -modernize-use-trailing-return-type,
   -modernize-use-nodiscard
   "
