@@ -34,8 +34,10 @@ namespace pocketpd {
         int8_t m_active_pdo_index = -1;
         int8_t m_last_active_index = -1;
         Mode m_mode;
-        tempo::IntervalTimer m_render_interval{33};
+        tempo::IntervalTimer m_render_interval{40};
 
+        uint32_t m_last_draw_ms = 0;
+        static constexpr uint32_t SENSOR_EMA_DEN = 4;
     public:
         static constexpr const char* LOG_TAG = "Normal";
 
@@ -99,6 +101,12 @@ namespace pocketpd {
 
         void on_tick(Conductor&, uint32_t now_ms) override {
             if (m_render_interval.tick(now_ms)) {
+                if (m_last_draw_ms != 0) {
+                    const uint32_t period = now_ms - m_last_draw_ms;
+                    const uint32_t hz = period == 0 ? 0 : 1000 / period;
+                    log.debug("draw period={}ms (~{}Hz)", period, hz);
+                }
+                m_last_draw_ms = now_ms;
                 draw();
             }
         }
@@ -136,7 +144,7 @@ namespace pocketpd {
                         log.error(msg, m_active_pdo_index, pps->target_mv, pps->target_ma);
                     }
                 },
-                [&](const SensorEvent& evt) { m_snapshot = evt.snapshot; },
+                [&](const SensorEvent& evt) { ema_filter(evt.snapshot); },
                 [](const auto&) {},
             };
 
@@ -144,6 +152,24 @@ namespace pocketpd {
         }
 
     private:
+        /**
+         * @brief Apply EMA smoothing to displayed mV / mA.
+         */
+        void ema_filter(const SensorSnapshot& s) {
+            if (!m_snapshot.valid) {
+                m_snapshot = s;
+                return;
+            }
+
+            // For SENSOR_EMA_DEN = 4: new = 0.75 * new + 0.25 * old
+
+            const uint32_t a = SENSOR_EMA_DEN - 1;
+            m_snapshot.vbus_mv = (m_snapshot.vbus_mv * a + s.vbus_mv) / SENSOR_EMA_DEN;
+            m_snapshot.current_ma = (m_snapshot.current_ma * a + s.current_ma) / SENSOR_EMA_DEN;
+            m_snapshot.timestamp_ms = s.timestamp_ms;
+            m_snapshot.valid = s.valid;
+        }
+
         /**
          * @brief Enter (or re-enter) a PPS profile. Construct fresh state on profile change or
          * mode switch; otherwise preserve the user's prior target edits and reissue.
