@@ -45,6 +45,16 @@ namespace tempo {
         ) = 0;
 
         /**
+         * @brief Draw an XBM-format bitmap. Each byte packs 8 horizontal pixels with the
+         * least-significant bit at the leftmost position (XBM convention, opposite of
+         * `draw_bitmap`). Each row is `ceil(width / 8)` bytes; rows are stored top-to-bottom.
+         *
+         */
+        virtual void draw_xbm(
+            uint8_t x, uint8_t y, uint8_t width, uint8_t height, const uint8_t* data
+        ) = 0;
+
+        /**
          * @brief Draw text at the given coordinates. Text is drawn using the current font.
          *
          */
