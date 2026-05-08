@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstdio>
 
+#include "v2/images.h"
 #include "v2/pocketpd.h"
 #include "v2/state.h"
 
@@ -24,6 +25,7 @@ namespace pocketpd {
         bool has_profile = false;
         bool is_pps = false;
         bool output_enabled = false;
+        uint8_t arrow_frame = 0;
         SensorSnapshot snapshot{};
 
         // —— PPS branch (valid when has_profile && is_pps)
@@ -48,6 +50,10 @@ namespace pocketpd {
         static constexpr uint8_t TARGET_RIGHT_X = 75;
         static constexpr uint8_t STATUS_X = 110;
         static constexpr uint8_t OUTPUT_LABEL_X = 90;
+        static constexpr uint8_t ARROW_X = 105;
+        static constexpr uint8_t ARROW_Y = 0;
+        static constexpr uint8_t ARROW_W = 20;
+        static constexpr uint8_t ARROW_H = 20;
         static constexpr std::array<uint8_t, 3> CURSOR_X = {45, 39, 33};
         static constexpr uint8_t CURSOR_W = 6;
 
@@ -78,6 +84,11 @@ namespace pocketpd {
                 draw_target_pps(d, vm, buf);
             } else {
                 draw_target_fixed(d, vm, buf);
+            }
+
+            if (vm.output_enabled) {
+                const uint8_t frame = vm.arrow_frame % bitmap::ARROW_FRAMES.size();
+                d.draw_xbm(ARROW_X, ARROW_Y, ARROW_W, ARROW_H, bitmap::ARROW_FRAMES.at(frame));
             }
 
             d.flush();

@@ -35,6 +35,7 @@ namespace pocketpd {
         int8_t m_last_active_index = -1;
         Mode m_mode;
         tempo::IntervalTimer m_render_interval{40};
+        uint8_t m_arrow_frame = 0;
 
         uint32_t m_last_draw_ms = 0;
         static constexpr uint32_t SENSOR_EMA_DEN = 4;
@@ -212,6 +213,7 @@ namespace pocketpd {
                 .active_pdo_index = m_active_pdo_index,
                 .has_profile = m_active_pdo_index >= 0,
                 .output_enabled = m_output_gate.is_enabled(),
+                .arrow_frame = m_arrow_frame,
                 .snapshot = m_snapshot,
             };
 
@@ -239,6 +241,9 @@ namespace pocketpd {
 
         void draw() {
             NormalView::render(m_display, build_view_model());
+            if (m_output_gate.is_enabled()) {
+                m_arrow_frame = (m_arrow_frame + 1) % pocketpd::bitmap::ARROW_FRAMES.size();
+            }
         }
     };
 
