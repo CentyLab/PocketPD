@@ -17,6 +17,7 @@
 #pragma pop_macro("F")
 
 #include "tempo/core/time.h"
+#include "tempo/core/type_name.h"
 #include "tempo/diag/stream_iterator.h"
 #include "tempo/hardware/stream.h"
 
@@ -31,6 +32,33 @@
 #endif
 
 namespace tempo {
+
+    namespace detail {
+        template <typename T>
+        struct identity {
+            using type = T;
+        };
+        
+        template <typename T>
+        using identity_t = typename identity<T>::type;
+
+        /**
+         * @brief Wraps a fmt::format_string and captures the calling function name.
+         *
+         * The default-argument call to `__builtin_FUNCTION()` is evaluated at the call
+         * site of the enclosing log method, so `func` ends up holding the caller's
+         * function name without macros or explicit arguments.
+         */
+        template <typename... Args>
+        struct FMTLOG {
+            fmt::format_string<Args...> fs;
+            const char* func;
+
+            template <typename S>
+            FMT_CONSTEVAL FMTLOG(const S& s, const char* f = __builtin_FUNCTION())
+                : fs(s), func(f) {}
+        };
+    } // namespace detail
 
     enum class LogLevel : uint8_t {
         NONE = 0,
@@ -94,7 +122,7 @@ namespace tempo {
         std::optional<std::reference_wrapper<StreamWriter>> m_stream_writer;
 
         template <LogLevel L, typename... Args>
-        void log(fmt::format_string<Args...> fs, Args&&... args) const {
+        void log(const char* func, fmt::format_string<Args...> fs, Args&&... args) const {
             if constexpr (!compiledIn(L)) {
                 return;
             }
@@ -105,12 +133,12 @@ namespace tempo {
             }
 
             BufferedStreamSink sink(m_stream_writer->get());
-            write_header(sink, L);
+            write_header(sink, L, func);
             fmt::format_to(sink.out(), fs, std::forward<Args>(args)...);
             fmt::format_to(sink.out(), "{}", COLOR_RESET_NEWLINE);
         }
 
-        void write_header(BufferedStreamSink& sink, LogLevel level) const {
+        void write_header(BufferedStreamSink& sink, LogLevel level, const char* func) const {
             // clang-format off
             const uint32_t ms_total  = m_clock->get().now_ms();
             const uint32_t s_total   = ms_total / 1000;
@@ -120,24 +148,28 @@ namespace tempo {
             const uint32_t hr        = min_total / 60;
             const uint32_t min       = min_total - hr * 60;
             // clang-format on
+
+            constexpr const char* PATTERN = "{}{:02}:{:02}:{:02}.{:03} [{}] ({}.{}) — ";
             fmt::format_to(
                 sink.out(),
-                "{}[{:02}:{:02}:{:02}.{:03}][{}][{}] ",
+                PATTERN,
                 level_color(level),
                 hr,
                 min,
                 sec,
                 ms,
                 level_tag(level),
-                m_tag
+                m_tag,
+                func
             );
         }
 
-        void hexdump_impl(const char* label, const uint8_t* data, size_t len) const {
+        void
+        hexdump_impl(const char* func, const char* label, const uint8_t* data, size_t len) const {
             StreamWriter& sw = m_stream_writer->get();
             {
                 BufferedStreamSink sink(sw);
-                write_header(sink, LogLevel::DEBUG);
+                write_header(sink, LogLevel::DEBUG, func);
                 if (label) {
                     fmt::format_to(sink.out(), "{} ({} bytes):", label, len);
                 }
@@ -192,27 +224,29 @@ namespace tempo {
         }
 
         template <typename... Args>
-        void error(fmt::format_string<Args...> fs, Args&&... args) const {
-            log<LogLevel::ERROR>(fs, std::forward<Args>(args)...);
+        void error(detail::FMTLOG<detail::identity_t<Args>...> fl, Args&&... args) const {
+            log<LogLevel::ERROR>(fl.func, fl.fs, std::forward<Args>(args)...);
         }
         template <typename... Args>
-        void warn(fmt::format_string<Args...> fs, Args&&... args) const {
-            log<LogLevel::WARN>(fs, std::forward<Args>(args)...);
+        void warn(detail::FMTLOG<detail::identity_t<Args>...> fl, Args&&... args) const {
+            log<LogLevel::WARN>(fl.func, fl.fs, std::forward<Args>(args)...);
         }
         template <typename... Args>
-        void info(fmt::format_string<Args...> fs, Args&&... args) const {
-            log<LogLevel::INFO>(fs, std::forward<Args>(args)...);
+        void info(detail::FMTLOG<detail::identity_t<Args>...> fl, Args&&... args) const {
+            log<LogLevel::INFO>(fl.func, fl.fs, std::forward<Args>(args)...);
         }
         template <typename... Args>
-        void debug(fmt::format_string<Args...> fs, Args&&... args) const {
-            log<LogLevel::DEBUG>(fs, std::forward<Args>(args)...);
+        void debug(detail::FMTLOG<detail::identity_t<Args>...> fl, Args&&... args) const {
+            log<LogLevel::DEBUG>(fl.func, fl.fs, std::forward<Args>(args)...);
         }
         template <typename... Args>
-        void verbose(fmt::format_string<Args...> fs, Args&&... args) const {
-            log<LogLevel::VERBOSE>(fs, std::forward<Args>(args)...);
+        void verbose(detail::FMTLOG<detail::identity_t<Args>...> fl, Args&&... args) const {
+            log<LogLevel::VERBOSE>(fl.func, fl.fs, std::forward<Args>(args)...);
         }
 
-        void hexdump(const char* label, const void* data, size_t len) const {
+        void hexdump(
+            const char* label, const void* data, size_t len, const char* func = __builtin_FUNCTION()
+        ) const {
             if constexpr (!compiledIn(LogLevel::DEBUG)) {
                 return;
             }
@@ -221,13 +255,14 @@ namespace tempo {
                 return;
             }
 
-            hexdump_impl(label, static_cast<const uint8_t*>(data), len);
+            hexdump_impl(func, label, static_cast<const uint8_t*>(data), len);
         }
 
         template <typename... Args>
-        void check(bool cond, fmt::format_string<Args...> fs, Args&&... args) const {
+        void
+        check(bool cond, detail::FMTLOG<detail::identity_t<Args>...> fl, Args&&... args) const {
             if (!cond) {
-                error(fs, std::forward<Args>(args)...);
+                log<LogLevel::ERROR>(fl.func, fl.fs, std::forward<Args>(args)...);
             }
         }
     };
@@ -259,7 +294,7 @@ namespace tempo {
                 if constexpr (has_log_tag<Derived>::value) {
                     return Derived::LOG_TAG;
                 } else {
-                    return "<Unnamed>";
+                    return type_name<Derived>();
                 }
             }
 
