@@ -83,6 +83,11 @@ namespace pocketpd {
         }
 
         void on_enter(Conductor&) override {
+            // Turns off output if the profile has changed
+            if (m_active_pdo_index != m_last_active_index) {
+                m_output_gate.disable();
+            }
+
             if (m_active_pdo_index < 0) {
                 m_last_active_index = -1;
                 log.info("Entered with no profile selected");

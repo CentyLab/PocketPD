@@ -191,14 +191,16 @@ TEST(NormalStage, EncoderEventsIgnoredInPdoBranch) {
     EXPECT_CALL(sink, is_index_pps(::testing::_)).WillRepeatedly(Return(false));
     EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
     EXPECT_CALL(sink, set_pps_pdo).Times(0);
-    EXPECT_CALL(gate, enable).Times(0);
-    EXPECT_CALL(gate, disable).Times(0);
 
     NormalStage normal(display, sink, gate);
     TestConductor conductor;
     conductor.register_stage(normal);
     normal.prepare(0);
     conductor.start<NormalStage>();
+
+    ::testing::Mock::VerifyAndClearExpectations(&gate);
+    EXPECT_CALL(gate, enable).Times(0);
+    EXPECT_CALL(gate, disable).Times(0);
 
     normal.on_event(conductor, EncoderEvent{3}, 0);
     EXPECT_FALSE(conductor.has_pending());
