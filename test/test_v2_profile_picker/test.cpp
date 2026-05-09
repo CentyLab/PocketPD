@@ -580,7 +580,6 @@ TEST(NormalStage, IgnoresOtherButtonsAndShortPressOnL) {
     conductor.start<NormalStage>();
 
     normal.on_event(conductor, ButtonEvent{ButtonId::L, Gesture::SHORT}, 0);
-    normal.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::LONG}, 0);
     normal.on_event(conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
 
     EXPECT_FALSE(conductor.has_pending());

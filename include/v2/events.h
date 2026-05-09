@@ -51,6 +51,15 @@ namespace pocketpd {
         SensorSnapshot snapshot;
     };
 
-    using Event = tempo::Events<PdReadyEvent, ButtonEvent, EncoderEvent, SensorEvent>;
+    /**
+     * @brief Published by EnergyTask
+     */
+    struct EnergyEvent {
+        double accumulated_wh = 0.0;
+        double accumulated_ah = 0.0;
+        uint32_t total_seconds = 0;
+    };
+
+    using Event = tempo::Events<PdReadyEvent, ButtonEvent, EncoderEvent, SensorEvent, EnergyEvent>;
 
 } // namespace pocketpd

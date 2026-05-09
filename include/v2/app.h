@@ -20,6 +20,7 @@ namespace pocketpd {
     class ObtainStage;
     class ProfilePickerStage;
     class NormalStage;
+    class EnergyStage;
 
     // —— Can also define events here as well
 
@@ -32,7 +33,8 @@ namespace pocketpd {
 
     // —— Define the application alias which is a combination of Events and Stages
 
-    using App = tempo::Application<Event, BootStage, ObtainStage, ProfilePickerStage, NormalStage>;
+    using App = tempo::Application<
+        Event, BootStage, ObtainStage, ProfilePickerStage, NormalStage, EnergyStage>;
 } // namespace pocketpd
 
 /*
@@ -58,6 +60,7 @@ namespace pocketpd {
  * and the concrete stage types in one shot.
  */
 #include "v2/stages/boot_stage.h"
+#include "v2/stages/energy_stage.h"
 #include "v2/stages/normal_stage.h"
 #include "v2/stages/obtain_stage.h"
 #include "v2/stages/profile_picker_stage.h"

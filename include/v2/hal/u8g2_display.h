@@ -39,7 +39,7 @@ namespace pocketpd {
                 m_u8g2.setFont(u8g2_font_profont12_tr);
                 break;
             case tempo::Font::LG:
-                m_u8g2.setFont(u8g2_font_profont15_tr);
+                m_u8g2.setFont(u8g2_font_profont17_tr);
                 break;
             case tempo::Font::XL:
                 m_u8g2.setFont(u8g2_font_profont22_tr);

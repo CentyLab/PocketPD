@@ -50,10 +50,9 @@ TEST(SensorTask, OnTickPublishesSensorEventWithTimestampAndValues) {
     EXPECT_EQ(evt->snapshot.timestamp_ms, 42u);
     EXPECT_EQ(evt->snapshot.vbus_mv, 5000u);
     EXPECT_EQ(evt->snapshot.current_ma, 1234u);
-    EXPECT_TRUE(evt->snapshot.valid);
 }
 
-TEST(SensorTask, InvalidReadingPropagatesValidFalse) {
+TEST(SensorTask, InvalidReadingDoesNotPublish) {
     FakePowerMonitor monitor;
     TestQueue q;
     TestPublisher pub(q);
@@ -63,9 +62,7 @@ TEST(SensorTask, InvalidReadingPropagatesValidFalse) {
     monitor.push({0, 0, false});
     task.on_tick(99);
 
-    const auto* evt = pop_sensor(q);
-    ASSERT_NE(evt, nullptr);
-    EXPECT_FALSE(evt->snapshot.valid);
+    EXPECT_EQ(pop_sensor(q), nullptr);
 }
 
 int main(int argc, char** argv) {

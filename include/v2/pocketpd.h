@@ -25,27 +25,11 @@ namespace pocketpd {
     constexpr uint32_t PROFILE_PICKER_REVIEW_TO_NORMAL_MS = 3000;
 
     /**
-     * @brief Which PD protocol the active charger speaks.
-     */
-    enum class Profile : uint8_t {
-        PPS,
-        PDO,
-    };
-
-    /**
      * @brief What the rotary encoder is currently editing.
      */
     enum class AdjustMode : uint8_t {
         VOLTAGE,
         CURRENT,
-    };
-
-    /**
-     * @brief Main output screen vs. energy/coulomb counter screen.
-     */
-    enum class OutputScreen : uint8_t {
-        NORMAL,
-        ENERGY,
     };
 
     /**

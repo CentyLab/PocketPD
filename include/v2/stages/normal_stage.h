@@ -26,19 +26,25 @@ namespace pocketpd {
     class NormalStage : public App::Stage, public App::UseLog<NormalStage> {
     private:
         using Display = tempo::Display;
+        using IntervalTimer = tempo::IntervalTimer;
 
         Display& m_display;
         PdSinkController& m_pd_sink;
         OutputGate& m_output_gate;
+
         SensorSnapshot m_snapshot{};
+        bool m_snapshot_init = false;
+
         int8_t m_active_pdo_index = -1;
         int8_t m_last_active_index = -1;
         Mode m_mode;
-        tempo::IntervalTimer m_render_interval{40};
-        uint8_t m_arrow_frame = 0;
 
+        IntervalTimer m_render_interval{40};
+        uint8_t m_arrow_frame = 0;
         uint32_t m_last_draw_ms = 0;
+
         static constexpr uint32_t SENSOR_EMA_DEN = 4;
+
     public:
         static constexpr const char* LOG_TAG = "Normal";
 
@@ -121,11 +127,12 @@ namespace pocketpd {
             auto handler = tempo::overloaded{
                 [&](const ButtonEvent& evt) {
                     if (evt.id == ButtonId::R && evt.gesture == Gesture::SHORT) {
-                        if (m_output_gate.is_enabled()) {
-                            m_output_gate.disable();
-                        } else {
-                            m_output_gate.enable();
-                        }
+                        m_output_gate.toggle();
+                        return;
+                    }
+
+                    if (evt.id == ButtonId::R && evt.gesture == Gesture::LONG) {
+                        conductor.request<EnergyStage>(m_active_pdo_index);
                         return;
                     }
 
@@ -162,8 +169,9 @@ namespace pocketpd {
          * @brief Apply EMA smoothing to displayed mV / mA.
          */
         void ema_filter(const SensorSnapshot& s) {
-            if (!m_snapshot.valid) {
+            if (!m_snapshot_init) {
                 m_snapshot = s;
+                m_snapshot_init = true;
                 return;
             }
 
@@ -173,7 +181,6 @@ namespace pocketpd {
             m_snapshot.vbus_mv = (m_snapshot.vbus_mv * a + s.vbus_mv) / SENSOR_EMA_DEN;
             m_snapshot.current_ma = (m_snapshot.current_ma * a + s.current_ma) / SENSOR_EMA_DEN;
             m_snapshot.timestamp_ms = s.timestamp_ms;
-            m_snapshot.valid = s.valid;
         }
 
         /**
