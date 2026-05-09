@@ -359,7 +359,7 @@ TEST(NormalStage, OnEnterPdoBranchRendersVAReadoutAndPdoIndex) {
     TestConductor conductor;
     conductor.register_stage(normal);
     normal.prepare(2);
-    normal.on_event(conductor, SensorEvent{SensorSnapshot{0, 5000, 1234, true}}, 0);
+    normal.on_event(conductor, SensorEvent{SensorSnapshot{0, 5000, 1234}}, 0);
     conductor.start<NormalStage>();
 }
 

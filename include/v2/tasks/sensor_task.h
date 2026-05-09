@@ -22,19 +22,18 @@ namespace pocketpd {
         static constexpr uint32_t PERIOD_MS = 33;
 
         explicit SensorTask(PowerMonitor& monitor)
-            : App::StageScopedTask(PERIOD_MS, App::StageMask::of<NormalStage>()),
+            : App::StageScopedTask(
+                  PERIOD_MS,
+                  App::StageMask::of<NormalStage, EnergyStage, ProfilePickerStage>()
+              ),
               m_monitor(monitor) {}
 
         void on_tick(uint32_t now_ms) override {
             const auto reading = m_monitor.read();
-            SensorSnapshot snapshot{
-                now_ms,
-                reading.mv,
-                reading.ma,
-                reading.valid,
-            };
-            
-            publish(SensorEvent{snapshot});
+            if (!reading.valid) {
+                return;
+            }
+            publish(SensorEvent{SensorSnapshot{now_ms, reading.mv, reading.ma}});
         }
     };
 

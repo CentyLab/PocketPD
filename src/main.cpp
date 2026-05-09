@@ -19,6 +19,7 @@
 #include "v2/tasks/button_task.h"
 #include "v2/tasks/command_task.h"
 #include "v2/tasks/encoder_task.h"
+#include "v2/tasks/energy_task.h"
 #include "v2/tasks/sensor_task.h"
 #include <AP33772.h>
 #include <INA226.h>
@@ -55,12 +56,14 @@ namespace {
     pocketpd::ObtainStage obtain_stage(pd_sink);
     pocketpd::ProfilePickerStage profile_picker_stage(u8g2_display, pd_sink);
     pocketpd::NormalStage normal_stage(u8g2_display, pd_sink, output_gate);
+    pocketpd::EnergyStage energy_stage(u8g2_display, output_gate);
 
     // —— Tasks
 
     pocketpd::ButtonTask button_task(encoder_button, l_button, r_button);
     pocketpd::EncoderTask encoder_task(encoder);
     pocketpd::SensorTask sensor_task{power_monitor};
+    pocketpd::EnergyTask energy_task{output_gate};
     pocketpd::CommandTask command_task{arduino_stream_reader, arduino_stream_writer};
 
 } // namespace
@@ -82,10 +85,12 @@ void setup() {
     app.register_stage(obtain_stage);
     app.register_stage(profile_picker_stage);
     app.register_stage(normal_stage);
+    app.register_stage(energy_stage);
 
     app.add_task(button_task);
     app.add_task(encoder_task);
     app.add_task(sensor_task);
+    app.add_task(energy_task);
     app.add_task(command_task);
 
     app.start<pocketpd::BootStage>();

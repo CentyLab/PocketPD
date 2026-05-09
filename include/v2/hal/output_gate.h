@@ -14,6 +14,14 @@ namespace pocketpd {
         virtual void enable() = 0;
         virtual void disable() = 0;
         virtual bool is_enabled() const = 0;
+
+        void toggle() {
+            if (is_enabled()) {
+                disable();
+            } else {
+                enable();
+            }
+        }
     };
 
 } // namespace pocketpd
