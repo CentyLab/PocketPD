@@ -22,7 +22,7 @@ namespace pocketpd {
 
         void begin() override {
             m_driver.begin();
-            m_driver.setMaxCurrentShunt(20.0f, 0.005f);
+            m_driver.configure(0.005, 0.25, 50, 9970);
             m_driver.setAverage(INA226_4_SAMPLES);
         }
 
