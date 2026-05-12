@@ -22,7 +22,6 @@ namespace pocketpd {
      */
     constexpr uint32_t BOOT_TO_OBTAIN_MS = 500;
     constexpr uint32_t OBTAIN_TO_PROFILE_PICKER_MS = 1500;
-    constexpr uint32_t PROFILE_PICKER_REVIEW_TO_NORMAL_MS = 3000;
 
     /**
      * @brief What the rotary encoder is currently editing.

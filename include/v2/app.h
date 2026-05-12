@@ -26,11 +26,6 @@ namespace pocketpd {
 
     // —— Define common types
 
-    enum class ProfilePickerMode : uint8_t {
-        REVIEW,
-        SELECT,
-    };
-
     // —— Define the application alias which is a combination of Events and Stages
 
     using App = tempo::Application<

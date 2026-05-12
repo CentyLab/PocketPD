@@ -137,7 +137,7 @@ namespace pocketpd {
                     }
 
                     if (evt.id == ButtonId::L && evt.gesture == Gesture::LONG) {
-                        conductor.request<ProfilePickerStage>(ProfilePickerMode::SELECT);
+                        conductor.request<ProfilePickerStage>();
                         return;
                     }
 

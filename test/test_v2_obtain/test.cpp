@@ -122,7 +122,7 @@ TEST(ObtainStage, OnEnterIssuesNoRdoRequest) {
     conductor.start<ObtainStage>();
 }
 
-TEST(ObtainStage, ShortButtonResumesNormalInPpsProfileAfterPdReady) {
+TEST(ObtainStage, ShortButtonJumpsToProfilePickerAfterPdReady) {
     NiceMock<MockPdSink> sink;
     TestQueue queue;
     TestPublisher publisher(queue);
@@ -132,46 +132,18 @@ TEST(ObtainStage, ShortButtonResumesNormalInPpsProfileAfterPdReady) {
 
     ObtainStage stage(sink);
     stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
-    NiceMock<MockDisplay> normal_display;
-    NiceMock<MockOutputGate> normal_gate;
-    NormalStage normal(normal_display, sink, normal_gate);
+    NiceMock<MockDisplay> picker_display;
+    ProfilePickerStage picker(picker_display, sink);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.register_stage(normal);
+    conductor.register_stage(picker);
     conductor.start<ObtainStage>();
 
     stage.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::SHORT}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition());
-    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
-    EXPECT_EQ(normal.active_pdo_index(), -1);
-}
-
-TEST(ObtainStage, ShortButtonResumesNormalInPdoProfileWhenNoPps) {
-    NiceMock<MockPdSink> sink;
-    TestQueue queue;
-    TestPublisher publisher(queue);
-    EXPECT_CALL(sink, begin()).WillOnce(Return(true));
-    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
-    EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
-
-    ObtainStage stage(sink);
-    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
-    NiceMock<MockDisplay> normal_display;
-    NiceMock<MockOutputGate> normal_gate;
-    NormalStage normal(normal_display, sink, normal_gate);
-    TestConductor conductor;
-    conductor.register_stage(stage);
-    conductor.register_stage(normal);
-    conductor.start<ObtainStage>();
-
-    stage.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::SHORT}, 0);
-
-    EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
-    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
-    EXPECT_EQ(normal.active_pdo_index(), -1);
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
 }
 
 TEST(ObtainStage, ShortButtonIgnoredWhenPdNotReady) {
@@ -190,7 +162,7 @@ TEST(ObtainStage, ShortButtonIgnoredWhenPdNotReady) {
     EXPECT_FALSE(conductor.has_pending());
 }
 
-TEST(ObtainStage, EncoderRotationJumpsToProfilePickerInSelectMode) {
+TEST(ObtainStage, EncoderRotationJumpsToProfilePicker) {
     NiceMock<MockPdSink> sink;
     TestQueue queue;
     TestPublisher publisher(queue);
@@ -212,10 +184,9 @@ TEST(ObtainStage, EncoderRotationJumpsToProfilePickerInSelectMode) {
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition());
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
-    EXPECT_EQ(picker.mode(), ProfilePickerStage::Mode::SELECT);
 }
 
-TEST(ObtainStage, TimeoutTransitionsToProfilePickerInReviewMode) {
+TEST(ObtainStage, TimeoutTransitionsToProfilePicker) {
     NiceMock<MockPdSink> sink;
     TestQueue queue;
     TestPublisher publisher(queue);
@@ -240,7 +211,6 @@ TEST(ObtainStage, TimeoutTransitionsToProfilePickerInReviewMode) {
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition());
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
-    EXPECT_EQ(picker.mode(), ProfilePickerStage::Mode::REVIEW);
 }
 
 TEST(BootStage, RequestsObtainAfterTimeout) {

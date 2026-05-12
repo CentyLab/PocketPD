@@ -26,7 +26,7 @@ using ::testing::StrEq;
 
 using TestConductor = App::Conductor;
 
-TEST(ProfilePickerStage, ReviewEmptyListRendersFallback) {
+TEST(ProfilePickerStage, EmptyListRendersFallback) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(0));
@@ -38,13 +38,12 @@ TEST(ProfilePickerStage, ReviewEmptyListRendersFallback) {
     EXPECT_CALL(display, draw_text(::testing::Ne(1), ::testing::_, ::testing::_)).Times(0);
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::REVIEW);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ProfilePickerStage>();
 }
 
-TEST(ProfilePickerStage, ReviewRendersSingleFixedPdo) {
+TEST(ProfilePickerStage, RendersSingleFixedPdo) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(1));
@@ -54,17 +53,17 @@ TEST(ProfilePickerStage, ReviewRendersSingleFixedPdo) {
     EXPECT_CALL(sink, pdo_max_current_ma(0)).WillRepeatedly(Return(3000));
 
     EXPECT_CALL(display, clear()).Times(1);
+    EXPECT_CALL(display, draw_text(0, ::testing::_, StrEq(">"))).Times(::testing::AnyNumber());
     EXPECT_CALL(display, draw_text(5, 9, StrEq("PDO: 5V @ 3A"))).Times(1);
     EXPECT_CALL(display, flush()).Times(1);
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::REVIEW);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ProfilePickerStage>();
 }
 
-TEST(ProfilePickerStage, ReviewRendersFixedAndPpsLines) {
+TEST(ProfilePickerStage, RendersFixedAndPpsLines) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
@@ -80,17 +79,17 @@ TEST(ProfilePickerStage, ReviewRendersFixedAndPpsLines) {
     EXPECT_CALL(sink, pdo_max_voltage_mv(1)).WillRepeatedly(Return(21000));
     EXPECT_CALL(sink, pdo_max_current_ma(1)).WillRepeatedly(Return(3000));
 
+    EXPECT_CALL(display, draw_text(0, ::testing::_, StrEq(">"))).Times(::testing::AnyNumber());
     EXPECT_CALL(display, draw_text(5, 9, StrEq("PDO: 9V @ 2A"))).Times(1);
     EXPECT_CALL(display, draw_text(5, 18, StrEq("PPS: 3.3V~21.0V @ 3A"))).Times(1);
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::REVIEW);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ProfilePickerStage>();
 }
 
-TEST(ProfilePickerStage, ReviewRendersMultiplePpsLines) {
+TEST(ProfilePickerStage, RendersMultiplePpsLines) {
     // issue #24: chargers can advertise multiple PPS APDOs; each must render.
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
@@ -108,17 +107,17 @@ TEST(ProfilePickerStage, ReviewRendersMultiplePpsLines) {
     EXPECT_CALL(sink, pdo_max_voltage_mv(1)).WillRepeatedly(Return(21000));
     EXPECT_CALL(sink, pdo_max_current_ma(1)).WillRepeatedly(Return(5000));
 
+    EXPECT_CALL(display, draw_text(0, ::testing::_, StrEq(">"))).Times(::testing::AnyNumber());
     EXPECT_CALL(display, draw_text(5, 9, StrEq("PPS: 3.3V~11.0V @ 3A"))).Times(1);
     EXPECT_CALL(display, draw_text(5, 18, StrEq("PPS: 3.3V~21.0V @ 5A"))).Times(1);
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::REVIEW);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ProfilePickerStage>();
 }
 
-TEST(ProfilePickerStage, SelectEntryDrawsCursorAtFirstRow) {
+TEST(ProfilePickerStage, EntryDrawsCursorAtFirstRow) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
@@ -139,13 +138,12 @@ TEST(ProfilePickerStage, SelectEntryDrawsCursorAtFirstRow) {
     EXPECT_CALL(display, flush()).Times(1);
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::SELECT);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ProfilePickerStage>();
 }
 
-TEST(ProfilePickerStage, SelectEncoderMovesCursorAndRerenders) {
+TEST(ProfilePickerStage, EncoderMovesCursorAndRerenders) {
     using ::testing::_;
     using ::testing::AnyNumber;
 
@@ -160,7 +158,6 @@ TEST(ProfilePickerStage, SelectEncoderMovesCursorAndRerenders) {
     }
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::SELECT);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ProfilePickerStage>();
@@ -177,7 +174,7 @@ TEST(ProfilePickerStage, SelectEncoderMovesCursorAndRerenders) {
     stage.on_event(conductor, EncoderEvent{1}, 0);
 }
 
-TEST(ProfilePickerStage, SelectEncoderClampsAtTopAndBottom) {
+TEST(ProfilePickerStage, EncoderClampsAtTopAndBottom) {
     using ::testing::_;
     using ::testing::AnyNumber;
 
@@ -192,7 +189,6 @@ TEST(ProfilePickerStage, SelectEncoderClampsAtTopAndBottom) {
     }
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::SELECT);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ProfilePickerStage>();
@@ -216,13 +212,12 @@ TEST(ProfilePickerStage, SelectEncoderClampsAtTopAndBottom) {
     stage.on_event(conductor, EncoderEvent{4}, 0);
 }
 
-TEST(ProfilePickerStage, SelectEmptyListIgnoresEncoder) {
+TEST(ProfilePickerStage, EmptyListIgnoresEncoder) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(0));
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::SELECT);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ProfilePickerStage>();
@@ -233,106 +228,7 @@ TEST(ProfilePickerStage, SelectEmptyListIgnoresEncoder) {
     stage.on_event(conductor, EncoderEvent{1}, 0);
 }
 
-TEST(ProfilePickerStage, ReviewEncoderRequestsSelectModeReentry) {
-    NiceMock<MockDisplay> display;
-    NiceMock<MockPdSink> sink;
-    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
-    EXPECT_CALL(sink, is_index_fixed(0)).WillRepeatedly(Return(true));
-    EXPECT_CALL(sink, is_index_pps(0)).WillRepeatedly(Return(false));
-    EXPECT_CALL(sink, pdo_max_voltage_mv(0)).WillRepeatedly(Return(5000));
-    EXPECT_CALL(sink, pdo_max_current_ma(0)).WillRepeatedly(Return(3000));
-    EXPECT_CALL(sink, is_index_fixed(1)).WillRepeatedly(Return(true));
-    EXPECT_CALL(sink, is_index_pps(1)).WillRepeatedly(Return(false));
-    EXPECT_CALL(sink, pdo_max_voltage_mv(1)).WillRepeatedly(Return(9000));
-    EXPECT_CALL(sink, pdo_max_current_ma(1)).WillRepeatedly(Return(2000));
-
-    ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::REVIEW);
-    TestConductor conductor;
-    conductor.register_stage(stage);
-    conductor.start<ProfilePickerStage>();
-
-    stage.on_event(conductor, EncoderEvent{1}, 0);
-
-    EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
-    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
-    EXPECT_EQ(stage.mode(), ProfilePickerStage::Mode::SELECT);
-}
-
-TEST(ProfilePickerStage, ReviewShortButtonRequestsNormalPpsWhenChargerHasPps) {
-    NiceMock<MockDisplay> display;
-    NiceMock<MockPdSink> sink;
-    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
-    EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(1));
-
-    ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::REVIEW);
-    NiceMock<MockOutputGate> normal_gate;
-    NormalStage normal(display, sink, normal_gate);
-    TestConductor conductor;
-    conductor.register_stage(stage);
-    conductor.register_stage(normal);
-    conductor.start<ProfilePickerStage>();
-
-    stage.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::SHORT}, 0);
-
-    EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
-    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
-    EXPECT_EQ(normal.active_pdo_index(), -1);
-}
-
-TEST(ProfilePickerStage, ReviewShortButtonRequestsNormalPdoWhenNoPps) {
-    NiceMock<MockDisplay> display;
-    NiceMock<MockPdSink> sink;
-    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
-    EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
-
-    ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::REVIEW);
-    NiceMock<MockOutputGate> normal_gate;
-    NormalStage normal(display, sink, normal_gate);
-    TestConductor conductor;
-    conductor.register_stage(stage);
-    conductor.register_stage(normal);
-    conductor.start<ProfilePickerStage>();
-
-    stage.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::SHORT}, 0);
-
-    EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
-    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
-    EXPECT_EQ(normal.active_pdo_index(), -1);
-}
-
-TEST(ProfilePickerStage, ReviewTimeoutTransitionsToNormal) {
-    NiceMock<MockDisplay> display;
-    NiceMock<MockPdSink> sink;
-    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(1));
-    EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
-
-    ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::REVIEW);
-    NiceMock<MockOutputGate> normal_gate;
-    NormalStage normal(display, sink, normal_gate);
-    TestConductor conductor;
-    conductor.register_stage(stage);
-    conductor.register_stage(normal);
-    conductor.start<ProfilePickerStage>();
-
-    conductor.tick(0);
-    conductor.tick(PROFILE_PICKER_REVIEW_TO_NORMAL_MS - 1);
-    EXPECT_FALSE(conductor.has_pending());
-
-    conductor.tick(PROFILE_PICKER_REVIEW_TO_NORMAL_MS);
-    EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
-    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
-    EXPECT_EQ(normal.active_pdo_index(), -1);
-}
-
-TEST(ProfilePickerStage, SelectLongPressCommitsPpsWhenCursorOnPps) {
+TEST(ProfilePickerStage, LongPressCommitsPpsWhenCursorOnPps) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
@@ -347,7 +243,6 @@ TEST(ProfilePickerStage, SelectLongPressCommitsPpsWhenCursorOnPps) {
     EXPECT_CALL(sink, pdo_max_current_ma(1)).WillRepeatedly(Return(3000));
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::SELECT);
     NiceMock<MockOutputGate> normal_gate;
     NormalStage normal(display, sink, normal_gate);
     TestConductor conductor;
@@ -364,7 +259,7 @@ TEST(ProfilePickerStage, SelectLongPressCommitsPpsWhenCursorOnPps) {
     EXPECT_EQ(normal.active_pdo_index(), 1);
 }
 
-TEST(ProfilePickerStage, SelectLongPressCommitsPdoWhenCursorOnFixed) {
+TEST(ProfilePickerStage, LongPressCommitsPdoWhenCursorOnFixed) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(1));
@@ -374,7 +269,6 @@ TEST(ProfilePickerStage, SelectLongPressCommitsPdoWhenCursorOnFixed) {
     EXPECT_CALL(sink, pdo_max_current_ma(0)).WillRepeatedly(Return(3000));
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::SELECT);
     NiceMock<MockOutputGate> normal_gate;
     NormalStage normal(display, sink, normal_gate);
     EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
@@ -392,13 +286,12 @@ TEST(ProfilePickerStage, SelectLongPressCommitsPdoWhenCursorOnFixed) {
     EXPECT_EQ(normal.active_pdo_index(), 0);
 }
 
-TEST(ProfilePickerStage, SelectLongPressIgnoredWhenEmptyPdoList) {
+TEST(ProfilePickerStage, LongPressIgnoredWhenEmptyPdoList) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(0));
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::SELECT);
     NiceMock<MockOutputGate> normal_gate;
     NormalStage normal(display, sink, normal_gate);
     TestConductor conductor;
@@ -410,7 +303,7 @@ TEST(ProfilePickerStage, SelectLongPressIgnoredWhenEmptyPdoList) {
     EXPECT_FALSE(conductor.has_pending());
 }
 
-TEST(ProfilePickerStage, SelectIgnoresRLongPressAndEncoderShortPress) {
+TEST(ProfilePickerStage, IgnoresRLongPressAndEncoderShortPress) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(1));
@@ -420,7 +313,6 @@ TEST(ProfilePickerStage, SelectIgnoresRLongPressAndEncoderShortPress) {
     EXPECT_CALL(sink, pdo_max_current_ma(0)).WillRepeatedly(Return(3000));
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::SELECT);
     NiceMock<MockOutputGate> normal_gate;
     NormalStage normal(display, sink, normal_gate);
     TestConductor conductor;
@@ -433,7 +325,7 @@ TEST(ProfilePickerStage, SelectIgnoresRLongPressAndEncoderShortPress) {
     EXPECT_FALSE(conductor.has_pending());
 }
 
-TEST(ProfilePickerStage, SelectLongPressLExitsToNormalWithoutChangingProfile) {
+TEST(ProfilePickerStage, LongPressLExitsToNormalWithoutChangingProfile) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(1));
@@ -444,7 +336,6 @@ TEST(ProfilePickerStage, SelectLongPressLExitsToNormalWithoutChangingProfile) {
     EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::SELECT);
     NiceMock<MockOutputGate> normal_gate;
     NormalStage normal(display, sink, normal_gate);
     normal.prepare(7); // simulate prior session
@@ -461,7 +352,7 @@ TEST(ProfilePickerStage, SelectLongPressLExitsToNormalWithoutChangingProfile) {
     EXPECT_EQ(normal.active_pdo_index(), 7); // unchanged
 }
 
-TEST(ProfilePickerStage, ReviewClearsBeforeDrawingAndFlushesAfter) {
+TEST(ProfilePickerStage, ClearsBeforeDrawingAndFlushesAfter) {
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(1));
     EXPECT_CALL(sink, is_index_fixed(0)).WillRepeatedly(Return(true));
@@ -473,18 +364,18 @@ TEST(ProfilePickerStage, ReviewClearsBeforeDrawingAndFlushesAfter) {
     {
         InSequence seq;
         EXPECT_CALL(display, clear());
+        EXPECT_CALL(display, draw_text(0, 9, StrEq(">")));
         EXPECT_CALL(display, draw_text(5, 9, StrEq("PDO: 5V @ 3A")));
         EXPECT_CALL(display, flush());
     }
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::REVIEW);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ProfilePickerStage>();
 }
 
-TEST(ProfilePickerStage, SelectCommitPromotesPendingCursorAndPreservesAcrossReentry) {
+TEST(ProfilePickerStage, CommitPromotesPendingCursorAndPreservesAcrossReentry) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(3));
@@ -496,7 +387,6 @@ TEST(ProfilePickerStage, SelectCommitPromotesPendingCursorAndPreservesAcrossReen
     }
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::SELECT);
     NiceMock<MockOutputGate> normal_gate;
     NormalStage normal(display, sink, normal_gate);
     EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
@@ -511,13 +401,12 @@ TEST(ProfilePickerStage, SelectCommitPromotesPendingCursorAndPreservesAcrossReen
     stage.on_event(conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
     EXPECT_EQ(stage.cursor_index(), 2);
 
-    // Re-enter SELECT — committed cursor must persist.
-    stage.prepare(ProfilePickerStage::Mode::SELECT);
+    // Re-enter — committed cursor must persist.
     stage.on_enter(conductor);
     EXPECT_EQ(stage.cursor_index(), 2);
 }
 
-TEST(ProfilePickerStage, SelectExitViaLDoesNotPromotePendingCursor) {
+TEST(ProfilePickerStage, ExitViaLDoesNotPromotePendingCursor) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(3));
@@ -529,7 +418,6 @@ TEST(ProfilePickerStage, SelectExitViaLDoesNotPromotePendingCursor) {
     }
 
     ProfilePickerStage stage(display, sink);
-    stage.prepare(ProfilePickerStage::Mode::SELECT);
     NiceMock<MockOutputGate> normal_gate;
     NormalStage normal(display, sink, normal_gate);
     TestConductor conductor;
@@ -562,7 +450,6 @@ TEST(NormalStage, LongPressLReturnsToProfilePicker) {
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition());
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
-    EXPECT_EQ(picker.mode(), ProfilePickerStage::Mode::SELECT);
 }
 
 TEST(NormalStage, IgnoresOtherButtonsAndShortPressOnL) {
