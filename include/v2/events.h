@@ -34,6 +34,22 @@ namespace pocketpd {
     struct ButtonEvent {
         ButtonId id = ButtonId::ENCODER;
         Gesture gesture = Gesture::SHORT;
+
+        bool r_short() const {
+            return id == ButtonId::R && gesture == Gesture::SHORT;
+        }
+
+        bool r_long() const {
+            return id == ButtonId::R && gesture == Gesture::LONG;
+        }
+
+        bool l_long() const {
+            return id == ButtonId::L && gesture == Gesture::LONG;
+        }
+
+        bool l_short() const {
+            return id == ButtonId::L && gesture == Gesture::SHORT;
+        }
     };
 
     /**

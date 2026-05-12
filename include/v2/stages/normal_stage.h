@@ -126,17 +126,17 @@ namespace pocketpd {
         void on_event(Conductor& conductor, const Event& event, uint32_t) override {
             auto handler = tempo::overloaded{
                 [&](const ButtonEvent& evt) {
-                    if (evt.id == ButtonId::R && evt.gesture == Gesture::SHORT) {
+                    if (evt.r_short()) {
                         m_output_gate.toggle();
                         return;
                     }
 
-                    if (evt.id == ButtonId::R && evt.gesture == Gesture::LONG) {
+                    if (evt.r_long()) {
                         conductor.request<EnergyStage>(m_active_pdo_index);
                         return;
                     }
 
-                    if (evt.id == ButtonId::L && evt.gesture == Gesture::LONG) {
+                    if (evt.l_long()) {
                         conductor.request<ProfilePickerStage>();
                         return;
                     }

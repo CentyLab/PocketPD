@@ -50,8 +50,9 @@ namespace pocketpd {
         static constexpr uint8_t TARGET_RIGHT_X = 75;
         static constexpr uint8_t STATUS_X = 110;
         static constexpr uint8_t OUTPUT_LABEL_X = 90;
-        static constexpr uint8_t ARROW_X = 105;
-        static constexpr uint8_t ARROW_Y = 0;
+
+        static constexpr uint8_t ARROW_X = 108;
+        static constexpr uint8_t ARROW_Y = 20;
         static constexpr uint8_t ARROW_W = 20;
         static constexpr uint8_t ARROW_H = 20;
         static constexpr std::array<uint8_t, 3> CURSOR_X = {33, 39, 45};
@@ -76,9 +77,11 @@ namespace pocketpd {
 
             d.set_font(tempo::Font::BASE);
             std::snprintf(buf.data(), buf.size(), "[%u]", vm.active_pdo_index);
-            d.draw_text(STATUS_X, 50, buf.data());
+
+            const auto INDEX_X = STATUS_X - d.text_width(buf.data()) - 2;
+            d.draw_text(INDEX_X, 63, buf.data());
             d.draw_text(STATUS_X, 64, vm.is_pps ? "PPS" : "PDO");
-            d.draw_text(OUTPUT_LABEL_X, 14, vm.output_enabled ? "ON" : "OFF");
+            d.draw_text(INDEX_X + 2, 8, vm.output_enabled ? "ON" : "OFF");
 
             if (vm.is_pps) {
                 draw_target_pps(d, vm, buf);
