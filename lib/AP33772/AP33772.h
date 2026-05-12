@@ -141,8 +141,7 @@ namespace ap33772 {
                     .op_current = static_cast<uint32_t>(current_ma / PPS_RDO_CURRENT_LSB),
                     .voltage = static_cast<uint32_t>(voltage_20mv),
                     .obj_position = static_cast<uint32_t>(pdo_index + 1),
-                }
-            };
+                }};
 
             const bool success = write_rdo(rdo);
             if (success) {
@@ -159,8 +158,7 @@ namespace ap33772 {
                     .max_current = static_cast<uint32_t>(current_ma / FIXED_RDO_CURRENT_LSB),
                     .op_current = static_cast<uint32_t>(current_ma / FIXED_RDO_CURRENT_LSB),
                     .obj_position = pdo_index + 1u,
-                }
-            };
+                }};
 
             const bool success = write_rdo(rdo);
             if (success) {
@@ -181,13 +179,13 @@ namespace ap33772 {
         }
 
         int clamp_voltage(int index, int voltage_mv) const {
-            int min_voltage = m_pdo_list.at(index).min_voltage_mv();
-            int max_voltage = m_pdo_list.at(index).max_voltage_mv();
+            int min_voltage = m_pdo_list[index].min_voltage_mv();
+            int max_voltage = m_pdo_list[index].max_voltage_mv();
             return clamp(voltage_mv, min_voltage, max_voltage);
         }
 
         int clamp_current(int index, int current_ma) const {
-            int max_current = m_pdo_list.at(index).max_current_ma();
+            int max_current = m_pdo_list[index].max_current_ma();
             return clamp(current_ma, 0, max_current);
         }
 
@@ -221,15 +219,16 @@ namespace ap33772 {
          */
         [[nodiscard]]
         bool begin() {
-            const status_reg_t status = read_status();
-            if (status.ovp || status.ocp || !status.ready || !status.success || !status.newpdo) {
-                return false;
-            }
-
-            m_delay(10);
+            // Don't read STATUS register here. STATUS is read-clear (Table 7). A single read
+            // returns the latched event flags and resets them to zero. Reading at boot would
+            // discard any pending event before the firmware can act on it.
 
             uint8_t count = 0;
             if (!m_i2c.read(reg::PDONUM, &count, 1)) {
+                return false;
+            }
+
+            if (count == 0) {
                 return false;
             }
 
@@ -244,9 +243,9 @@ namespace ap33772 {
             m_pps_count = 0;
 
             for (int i = 0; i < m_pdo_count; i++) {
-                memcpy(&m_pdo_list.at(i).raw, &pdo_buf.at(i * 4), 4);
+                memcpy(&m_pdo_list[i].raw, &pdo_buf[i * 4], 4);
 
-                if (m_pdo_list.at(i).is_pps()) {
+                if (m_pdo_list[i].is_pps()) {
                     m_pps_mask |= (1 << i);
                     m_pps_count++;
                 }
@@ -268,7 +267,7 @@ namespace ap33772 {
                 return false;
             }
 
-            return request_fixed(pdo_index, m_pdo_list.at(pdo_index).max_current_ma());
+            return request_fixed(pdo_index, m_pdo_list[pdo_index].max_current_ma());
         }
 
         /**
@@ -323,8 +322,7 @@ namespace ap33772 {
 
             if (is_index_pps(m_pdo_active)) {
                 return request_pps(
-                    m_pdo_active, m_pps_voltage_20mv * PPS_RDO_VOLTAGE_LSB, clamped_ma
-                );
+                    m_pdo_active, m_pps_voltage_20mv * PPS_RDO_VOLTAGE_LSB, clamped_ma);
             }
 
             return request_fixed(m_pdo_active, clamped_ma);
@@ -390,9 +388,9 @@ namespace ap33772 {
                     continue;
                 }
 
-                if (voltage_mv >= m_pdo_list.at(i).min_voltage_mv() &&
-                    voltage_mv <= m_pdo_list.at(i).max_voltage_mv() &&
-                    current_ma <= m_pdo_list.at(i).max_current_ma()) {
+                if (voltage_mv >= m_pdo_list[i].min_voltage_mv() &&
+                    voltage_mv <= m_pdo_list[i].max_voltage_mv() &&
+                    current_ma <= m_pdo_list[i].max_current_ma()) {
                     return i;
                 }
             }
@@ -418,7 +416,7 @@ namespace ap33772 {
          * Check if a PDO index is a fixed-supply PDO
          */
         bool is_index_fixed(int index) const {
-            return is_index_valid(index) && m_pdo_list.at(index).is_fixed();
+            return is_index_valid(index) && m_pdo_list[index].is_fixed();
         }
 
         /**
@@ -427,7 +425,7 @@ namespace ap33772 {
          * @return voltage in millivolts, -1 if invalid index
          */
         int pdo_max_voltage_mv(int index) const {
-            return is_index_valid(index) ? m_pdo_list.at(index).max_voltage_mv() : -1;
+            return is_index_valid(index) ? m_pdo_list[index].max_voltage_mv() : -1;
         }
 
         /**
@@ -436,7 +434,7 @@ namespace ap33772 {
          * @return voltage in millivolts, -1 if invalid index
          */
         int pdo_min_voltage_mv(int index) const {
-            return is_index_valid(index) ? m_pdo_list.at(index).min_voltage_mv() : -1;
+            return is_index_valid(index) ? m_pdo_list[index].min_voltage_mv() : -1;
         }
 
         /**
@@ -445,7 +443,7 @@ namespace ap33772 {
          * @return current in milliamps, -1 if invalid index
          */
         int pdo_max_current_ma(int index) const {
-            return is_index_valid(index) ? m_pdo_list.at(index).max_current_ma() : -1;
+            return is_index_valid(index) ? m_pdo_list[index].max_current_ma() : -1;
         }
 
         // ── Protection thresholds
@@ -548,7 +546,6 @@ namespace ap33772 {
             std::array<uint8_t, 4> buffer{0};
             return m_i2c.write(reg::RDO, buffer.data(), buffer.size());
         }
-
     };
 
 } // namespace ap33772
