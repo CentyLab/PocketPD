@@ -3,10 +3,9 @@
  * @brief Stage that runs PD negotiation, learns the source PDO list, and
  * announces the result to the rest of the app via `PdReadyEvent`.
  *
- * After the announce, ObtainStage acts as a short window to handle user input:
- *  1. a short button press resumes Normal operation immediately,
- *  2. encoder rotation jumps to ProfilePicker in SELECT mode, and
- *  3. otherwise the stage times out into ProfilePicker REVIEW so the PDO list can be reviewed.
+ * After the announce, ObtainStage waits a short window then transitions to ProfilePicker so
+ * the user can choose a profile. Short button press or encoder rotation jumps to ProfilePicker
+ * immediately.
  *
  * Issue #33: ObtainStage must NOT issue an RDO request. The first request runs later
  * (NormalPpsStage / NormalPdoStage) once EEPROM has been consulted. Until then the AP33772 holds
@@ -83,7 +82,7 @@ namespace pocketpd {
             }
 
             if (m_timeout.reached(now_ms)) {
-                conductor.request<ProfilePickerStage>(ProfilePickerMode::REVIEW);
+                conductor.request<ProfilePickerStage>();
             }
         }
 
@@ -92,12 +91,12 @@ namespace pocketpd {
             auto handler = tempo::overloaded{
                 [&](const ButtonEvent& evt) {
                     if (evt.gesture == Gesture::SHORT && m_pd_ready) {
-                        conductor.request<NormalStage>(static_cast<int8_t>(-1));
+                        conductor.request<ProfilePickerStage>();
                     }
                 },
                 [&](const EncoderEvent& evt) {
                     if (evt.delta != 0) {
-                        conductor.request<ProfilePickerStage>(ProfilePickerMode::SELECT);
+                        conductor.request<ProfilePickerStage>();
                     }
                 },
                 [](const auto&) {

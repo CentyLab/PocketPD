@@ -1,9 +1,8 @@
 /**
  * @file profile_picker_stage.h
- * @brief Profile-selection / capability-list stage. Two modes via payload-passing transition:
- * - REVIEW renders the source PDO list and waits for input;
- * - SELECT renders the same list with an encoder-driven cursor. The user commits a profile by
- * long-pressing the encoder button.
+ * @brief Profile-selection stage. Renders the source PDO list with an encoder-driven cursor.
+ * The user commits a profile by long-pressing the encoder, or exits without changing by long-
+ * pressing L. There is no auto-transition to Normal — the user must choose.
  */
 #pragma once
 
@@ -20,7 +19,6 @@
 #include "v2/app.h"
 #include "v2/events.h"
 #include "v2/hal/pd_sink_controller.h"
-#include "v2/pocketpd.h"
 #include "v2/state.h"
 
 namespace pocketpd {
@@ -28,20 +26,14 @@ namespace pocketpd {
     void render_pdo_list(tempo::Display& display, const PdSinkController& pd_sink, int cursor = -1);
 
     class ProfilePickerStage : public App::Stage, public App::UseLog<ProfilePickerStage> {
-    public:
-        using Mode = ProfilePickerMode;
-
     private:
         using Display = tempo::Display;
 
         Display& m_display;
         PdSinkController& m_pd_sink;
 
-        Mode m_mode = Mode::REVIEW;
         int m_cursor = 0;
         int m_pending_cursor = 0;
-
-        tempo::TimeoutTimer m_review_timeout;
 
         void commit(Conductor& conductor) {
             if (m_pd_sink.pdo_count() <= 0) {
@@ -61,87 +53,18 @@ namespace pocketpd {
             return "PROFILE_PICKER";
         }
 
-        Mode mode() const {
-            return m_mode;
-        }
-
         int cursor_index() const {
             return m_cursor;
         }
 
-        void prepare(Mode mode) {
-            m_mode = mode;
-        }
-
         void on_enter(Conductor&) override {
-            m_review_timeout.disarm();
-
-            switch (m_mode) {
-            case Mode::REVIEW:
-                render_pdo_list(m_display, m_pd_sink);
-                break;
-            case Mode::SELECT:
-                m_pending_cursor = m_cursor;
-                render_pdo_list(m_display, m_pd_sink, m_pending_cursor);
-                break;
-            }
+            m_pending_cursor = m_cursor;
+            render_pdo_list(m_display, m_pd_sink, m_pending_cursor);
         }
 
-        void on_tick(Conductor& conductor, uint32_t now_ms) override {
-            if (m_mode != Mode::REVIEW) {
-                return;
-            }
-
-            if (!m_review_timeout.armed()) {
-                m_review_timeout.set(now_ms, PROFILE_PICKER_REVIEW_TO_NORMAL_MS);
-                return;
-            }
-
-            if (m_review_timeout.reached(now_ms)) {
-                if (m_pd_sink.pdo_count() <= 0) {
-                    return; // stay in REVIEW until a charger is detected
-                }
-                conductor.request<NormalStage>(static_cast<int8_t>(-1));
-                return;
-            }
-        }
+        void on_tick(Conductor&, uint32_t) override {}
 
         void on_event(Conductor& conductor, const Event& event, uint32_t) override {
-            switch (m_mode) {
-            case Mode::REVIEW:
-                handle_review_event(conductor, event);
-                break;
-            case Mode::SELECT:
-                handle_select_event(conductor, event);
-                break;
-            }
-        }
-
-    private:
-        void handle_review_event(Conductor& conductor, const Event& event) {
-            auto handler = tempo::overloaded{
-                [&](const ButtonEvent& evt) {
-                    if (evt.gesture == Gesture::SHORT && m_pd_sink.pdo_count() > 0) {
-                        conductor.request<NormalStage>(static_cast<int8_t>(-1));
-                    }
-                },
-                /**
-                 * @brief In review mode, turning the encoder auto-enters the SELECT mode
-                 *
-                 * @param evt incoming EncoderEvent
-                 */
-                [&](const EncoderEvent& evt) {
-                    if (evt.delta != 0) {
-                        conductor.request<ProfilePickerStage>(ProfilePickerMode::SELECT);
-                    }
-                },
-                [](const auto&) {},
-            };
-
-            std::visit(handler, event);
-        }
-
-        void handle_select_event(Conductor& conductor, const Event& event) {
             auto handler = tempo::overloaded{
                 [&](const EncoderEvent& evt) {
                     const int count = m_pd_sink.pdo_count();
@@ -158,7 +81,6 @@ namespace pocketpd {
                     render_pdo_list(m_display, m_pd_sink, m_pending_cursor);
                 },
                 [&](const ButtonEvent& evt) {
-                    // Exit — do nothing
                     if (evt.id == ButtonId::L && evt.gesture == Gesture::LONG) {
                         conductor.request<NormalStage>();
                         return;

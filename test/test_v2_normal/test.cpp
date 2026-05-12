@@ -161,7 +161,7 @@ TEST(NormalStage, RShortToggleEnablesAndDisablesOutput) {
     EXPECT_FALSE(enabled);
 }
 
-TEST(NormalStage, LLongRequestsProfilePickerSelect) {
+TEST(NormalStage, LLongRequestsProfilePicker) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     NiceMock<MockOutputGate> gate;
@@ -181,7 +181,6 @@ TEST(NormalStage, LLongRequestsProfilePickerSelect) {
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition());
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
-    EXPECT_EQ(picker.mode(), ProfilePickerStage::Mode::SELECT);
 }
 
 TEST(NormalStage, EncoderEventsIgnoredInPdoBranch) {
