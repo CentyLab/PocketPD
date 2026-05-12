@@ -52,7 +52,7 @@ TEST(NormalStage, OnEnterPpsProfileResetsTargetsToDefaults) {
     EXPECT_CALL(sink, pdo_max_voltage_mv(1)).WillRepeatedly(Return(11000));
     EXPECT_CALL(sink, pdo_max_current_ma(1)).WillRepeatedly(Return(3000));
     EXPECT_CALL(sink, set_pdo).Times(0);
-    EXPECT_CALL(sink, set_pps_pdo(1, 3300, 1000)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(sink, set_pps_pdo(1, 5000, 1000)).Times(1).WillOnce(Return(true));
 
     NormalStage normal(display, sink, gate);
     TestConductor conductor;
@@ -60,7 +60,7 @@ TEST(NormalStage, OnEnterPpsProfileResetsTargetsToDefaults) {
 
     normal.prepare(1);
     conductor.start<NormalStage>();
-    EXPECT_EQ(normal.target_mv(), 3300);
+    EXPECT_EQ(normal.target_mv(), 5000);
     EXPECT_EQ(normal.target_ma(), 1000);
 }
 
@@ -80,12 +80,12 @@ TEST(NormalStage, ReEnteringSamePpsProfilePreservesEdits) {
     normal.prepare(1);
     conductor.start<NormalStage>();
 
-    normal.on_event(conductor, EncoderEvent{-100}, 0);
-    ASSERT_EQ(normal.target_mv(), 5300);
+    normal.on_event(conductor, EncoderEvent{-2}, 0);
+    ASSERT_EQ(normal.target_mv(), 7000);
 
     normal.prepare(1);
     normal.on_enter(conductor);
-    EXPECT_EQ(normal.target_mv(), 5300);
+    EXPECT_EQ(normal.target_mv(), 7000);
     EXPECT_EQ(normal.target_ma(), 1000);
 }
 
@@ -230,9 +230,9 @@ namespace {
 
 TEST(NormalStage, EncoderDeltaInVoltageModeAdjustsTargetMv) {
     PpsHarness h;
-    EXPECT_CALL(h.sink, set_pps_pdo(1, 3360, 1000)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(h.sink, set_pps_pdo(1, 8000, 1000)).Times(1).WillOnce(Return(true));
     h.normal.on_event(h.conductor, EncoderEvent{-3}, 0);
-    EXPECT_EQ(h.normal.target_mv(), 3360);
+    EXPECT_EQ(h.normal.target_mv(), 8000);
     EXPECT_EQ(h.normal.adjust_mode(), AdjustMode::VOLTAGE);
 }
 
@@ -241,9 +241,9 @@ TEST(NormalStage, EncoderDeltaInCurrentModeAdjustsTargetMa) {
     h.normal.on_event(h.conductor, ButtonEvent{ButtonId::L, Gesture::SHORT}, 0);
     ASSERT_EQ(h.normal.adjust_mode(), AdjustMode::CURRENT);
 
-    EXPECT_CALL(h.sink, set_pps_pdo(1, 3300, 1200)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(h.sink, set_pps_pdo(1, 5000, 3000)).Times(1).WillOnce(Return(true));
     h.normal.on_event(h.conductor, EncoderEvent{-4}, 0);
-    EXPECT_EQ(h.normal.target_ma(), 1200);
+    EXPECT_EQ(h.normal.target_ma(), 3000);
 }
 
 TEST(NormalStage, EncoderShortPressCyclesIncrementIndex) {
@@ -266,19 +266,15 @@ TEST(NormalStage, EncoderShortPressCyclesIncrementIndex) {
 
 TEST(NormalStage, EncoderEditUsesActiveIncrementMagnitude) {
     PpsHarness h;
-    h.normal.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::SHORT}, 0);
-    h.normal.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::SHORT}, 0);
-    ASSERT_EQ(h.normal.voltage_increment_index(), 2);
+    ASSERT_EQ(h.normal.voltage_increment_index(), 0);
 
-    EXPECT_CALL(h.sink, set_pps_pdo(1, 4300, 1000)).Times(1).WillOnce(Return(true));
+    EXPECT_CALL(h.sink, set_pps_pdo(1, 6000, 1000)).Times(1).WillOnce(Return(true));
     h.normal.on_event(h.conductor, EncoderEvent{-1}, 0);
-    EXPECT_EQ(h.normal.target_mv(), 4300);
+    EXPECT_EQ(h.normal.target_mv(), 6000);
 }
 
 TEST(NormalStage, EncoderEditClampsTargetVoltageToPdoBounds) {
     PpsHarness h(1, 3300, 11000, 3000);
-    h.normal.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::SHORT}, 0);
-    h.normal.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::SHORT}, 0);
 
     EXPECT_CALL(h.sink, set_pps_pdo(1, 11000, ::testing::_)).WillRepeatedly(Return(true));
     h.normal.on_event(h.conductor, EncoderEvent{-20}, 0);
@@ -295,7 +291,7 @@ TEST(NormalStage, EncoderEditClampsCurrentAtZero) {
 
     EXPECT_CALL(h.sink, set_pps_pdo).WillRepeatedly(Return(true));
     h.normal.on_event(h.conductor, EncoderEvent{-20}, 0);
-    ASSERT_EQ(h.normal.target_ma(), 2000);
+    ASSERT_EQ(h.normal.target_ma(), 3000);
     h.normal.on_event(h.conductor, EncoderEvent{50}, 0);
     EXPECT_EQ(h.normal.target_ma(), 0);
 }
@@ -346,8 +342,8 @@ TEST(NormalStage, OnEnterPdoBranchRendersVAReadoutAndPdoIndex) {
         .Times(::testing::AnyNumber());
     EXPECT_CALL(display, clear()).Times(AtLeast(1));
     EXPECT_CALL(display, draw_text(1, 14, StrEq("V"))).Times(AtLeast(1));
-    EXPECT_CALL(display, draw_text(1, 47, StrEq("A"))).Times(AtLeast(1));
-    EXPECT_CALL(display, draw_text(::testing::_, 27, HasSubstr("20000 mV"))).Times(AtLeast(1));
+    EXPECT_CALL(display, draw_text(1, 48, StrEq("A"))).Times(AtLeast(1));
+    EXPECT_CALL(display, draw_text(::testing::_, 28, HasSubstr("20000 mV"))).Times(AtLeast(1));
     EXPECT_CALL(display, draw_text(::testing::_, 62, HasSubstr("5000 mA"))).Times(AtLeast(1));
     EXPECT_CALL(display, draw_text(110, 50, HasSubstr("[2]"))).Times(AtLeast(1));
     EXPECT_CALL(display, draw_text(110, 64, StrEq("PDO"))).Times(AtLeast(1));

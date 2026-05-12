@@ -23,15 +23,11 @@ namespace pocketpd {
         AdjustMode adjust_mode = AdjustMode::VOLTAGE;
 
         /**
-         * @brief Bind to a PD sink + PDO index and seed targets.
-         *
-         * Set `target_mv` to PDO minimum voltage. `target_ma` defaults to 1 A.
+         * @brief Bind to a PD sink + PDO index. Targets initializes at 5 V / 1 A, then clamp into
+         * the PDO's advertised range.
          */
         PPSMode(PdSinkController& sink, int8_t pdo_idx) : m_sink(&sink), m_pdo_idx(pdo_idx) {
-            const int v_lo = sink.pdo_min_voltage_mv(pdo_idx);
-            if (v_lo > 0) {
-                target_mv = v_lo;
-            }
+            clamp_to_pdo();
         }
 
         /**

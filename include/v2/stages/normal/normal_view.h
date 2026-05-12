@@ -44,8 +44,8 @@ namespace pocketpd {
     class NormalView {
     private:
         static constexpr uint8_t V_MEASURED_Y = 14;
-        static constexpr uint8_t A_MEASURED_Y = 47;
-        static constexpr uint8_t V_TARGET_Y = 27;
+        static constexpr uint8_t A_MEASURED_Y = 48;
+        static constexpr uint8_t V_TARGET_Y = 28;
         static constexpr uint8_t A_TARGET_Y = 62;
         static constexpr uint8_t TARGET_RIGHT_X = 75;
         static constexpr uint8_t STATUS_X = 110;
@@ -54,8 +54,8 @@ namespace pocketpd {
         static constexpr uint8_t ARROW_Y = 0;
         static constexpr uint8_t ARROW_W = 20;
         static constexpr uint8_t ARROW_H = 20;
-        static constexpr std::array<uint8_t, 3> CURSOR_X = {45, 39, 33};
-        static constexpr uint8_t CURSOR_W = 6;
+        static constexpr std::array<uint8_t, 3> CURSOR_X = {33, 39, 45};
+        static constexpr uint8_t CURSOR_W = 7;
 
     public:
         static void render(tempo::Display& d, const NormalViewModel& vm) {

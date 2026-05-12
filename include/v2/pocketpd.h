@@ -37,8 +37,8 @@ namespace pocketpd {
      * Short-press encoder cycles the active index. Mirrors v1
      * voltageIncrement[3] / currentIncrement[3] in StateMachine.
      */
-    constexpr std::array<uint16_t, 3> VOLTAGE_INCREMENTS_MV = {20, 100, 1000};
-    constexpr std::array<uint16_t, 3> CURRENT_INCREMENTS_MA = {50, 100, 1000};
+    constexpr std::array<uint16_t, 3> VOLTAGE_INCREMENTS_MV = {1000, 100, 20};
+    constexpr std::array<uint16_t, 3> CURRENT_INCREMENTS_MA = {1000, 100, 50};
 
     // PPS RDO stepping per USB-PD 3.0 spec.
     constexpr int32_t PPS_VOLTAGE_STEP_MV = 20;
