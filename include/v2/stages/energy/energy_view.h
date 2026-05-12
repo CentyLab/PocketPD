@@ -30,18 +30,19 @@ namespace pocketpd {
 
     class EnergyView {
     private:
-        static constexpr uint8_t ROW1_Y = 10;
-        static constexpr uint8_t ROW2_Y = 35;
-        static constexpr uint8_t ROW3_Y = 55;
+        static constexpr uint8_t ROW1_Y = 8;
+        static constexpr uint8_t ROW2_Y = 36;
+        static constexpr uint8_t ROW3_Y = 64;
 
         static constexpr uint8_t COL1_X = 4;
-        static constexpr uint8_t COL2_X = 70;
+        static constexpr uint8_t COL2_X = 90;
 
-        static constexpr uint8_t ROW1_V_X = 4;
-        static constexpr uint8_t ROW1_A_X = 48;
+        static constexpr uint8_t V_X = 72;
+        static constexpr uint8_t A_X = 72;
+        static constexpr uint8_t T_X = 50;
 
-        static constexpr uint8_t ARROW_X = 105;
-        static constexpr uint8_t ARROW_Y = 0;
+        static constexpr uint8_t ARROW_X = 108;
+        static constexpr uint8_t ARROW_Y = 20;
         static constexpr uint8_t ARROW_W = 20;
         static constexpr uint8_t ARROW_H = 20;
 
@@ -65,27 +66,27 @@ namespace pocketpd {
             display.set_font(tempo::Font::BASE);
 
             format_milli(buf, vm.snapshot.vbus_mv, 'V');
-            display.draw_text(ROW1_V_X, ROW1_Y, buf.data());
+            display.draw_text(V_X, ROW2_Y - 10, buf.data());
 
             format_milli(buf, vm.snapshot.current_ma, 'A');
-            display.draw_text(ROW1_A_X, ROW1_Y, buf.data());
+            display.draw_text(A_X, ROW2_Y + 5, buf.data());
+
+            format_time(buf, vm.total_seconds);
+            display.draw_text(T_X, ROW3_Y, buf.data());
+
+
+            format_auto(buf, vm.accumulated_wh);
+            draw_value(display, COL1_X, ROW3_Y, buf.data(), "Wh");
+
+            format_auto(buf, vm.accumulated_ah);
+            draw_value(display, COL2_X, ROW3_Y, buf.data(), "Ah");
 
             // Mid — watts and watt-hours
-            display.set_font(tempo::Font::LG);
+            display.set_font(tempo::Font::XL);
             const double watts = (vm.snapshot.vbus_mv * vm.snapshot.current_ma) / 1'000'000.0;
 
             format_auto(buf, watts);
             draw_value(display, COL1_X, ROW2_Y, buf.data(), "W");
-
-            format_auto(buf, vm.accumulated_wh);
-            draw_value(display, COL2_X, ROW2_Y, buf.data(), "Wh");
-
-            // Bottom — time and amp-hours
-            format_time(buf, vm.total_seconds);
-            display.draw_text(COL1_X, ROW3_Y, buf.data());
-
-            format_auto(buf, vm.accumulated_ah);
-            draw_value(display, COL2_X, ROW3_Y, buf.data(), "Ah");
 
             display.flush();
         }

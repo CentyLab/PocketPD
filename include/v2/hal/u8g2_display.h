@@ -8,6 +8,7 @@
 
 #include <tempo/hardware/display.h>
 
+#include "clib/u8g2.h"
 #include <U8g2lib.h>
 
 namespace pocketpd {
@@ -33,16 +34,16 @@ namespace pocketpd {
         void set_font(tempo::Font font) override {
             switch (font) {
             case tempo::Font::SM:
-                m_u8g2.setFont(u8g2_font_profont11_tr);
+                m_u8g2.setFont(u8g2_font_profont11_mr);
                 break;
             case tempo::Font::BASE:
-                m_u8g2.setFont(u8g2_font_profont12_tr);
+                m_u8g2.setFont(u8g2_font_profont12_mr);
                 break;
             case tempo::Font::LG:
-                m_u8g2.setFont(u8g2_font_profont17_tr);
+                m_u8g2.setFont(u8g2_font_profont17_mr);
                 break;
             case tempo::Font::XL:
-                m_u8g2.setFont(u8g2_font_profont22_tr);
+                m_u8g2.setFont(u8g2_font_profont22_mr);
                 break;
             }
         }

@@ -345,7 +345,7 @@ TEST(NormalStage, OnEnterPdoBranchRendersVAReadoutAndPdoIndex) {
     EXPECT_CALL(display, draw_text(1, 48, StrEq("A"))).Times(AtLeast(1));
     EXPECT_CALL(display, draw_text(::testing::_, 28, HasSubstr("20000 mV"))).Times(AtLeast(1));
     EXPECT_CALL(display, draw_text(::testing::_, 62, HasSubstr("5000 mA"))).Times(AtLeast(1));
-    EXPECT_CALL(display, draw_text(110, 50, HasSubstr("[2]"))).Times(AtLeast(1));
+    EXPECT_CALL(display, draw_text(::testing::_, 63, HasSubstr("[2]"))).Times(AtLeast(1));
     EXPECT_CALL(display, draw_text(110, 64, StrEq("PDO"))).Times(AtLeast(1));
     EXPECT_CALL(display, draw_text(::testing::_, ::testing::_, StrEq("OFF"))).Times(AtLeast(1));
     EXPECT_CALL(display, flush()).Times(AtLeast(1));
