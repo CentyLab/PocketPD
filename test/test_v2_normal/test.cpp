@@ -284,7 +284,7 @@ TEST(NormalStage, EncoderEditClampsTargetVoltageToPdoBounds) {
     EXPECT_EQ(h.normal.target_mv(), 3300);
 }
 
-TEST(NormalStage, EncoderEditClampsCurrentAtZero) {
+TEST(NormalStage, EncoderEditClampsCurrentAtPpsMinimum) {
     PpsHarness h(1, 3300, 11000, 3000);
     h.normal.on_event(h.conductor, ButtonEvent{ButtonId::L, Gesture::SHORT}, 0);
     ASSERT_EQ(h.normal.adjust_mode(), AdjustMode::CURRENT);
@@ -293,7 +293,7 @@ TEST(NormalStage, EncoderEditClampsCurrentAtZero) {
     h.normal.on_event(h.conductor, EncoderEvent{-20}, 0);
     ASSERT_EQ(h.normal.target_ma(), 3000);
     h.normal.on_event(h.conductor, EncoderEvent{50}, 0);
-    EXPECT_EQ(h.normal.target_ma(), 0);
+    EXPECT_EQ(h.normal.target_ma(), PPSMode::MIN_CURRENT_MA);
 }
 
 TEST(NormalStage, EncoderEditSnapsTargetVoltageToPpsStepGrid) {
