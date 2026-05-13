@@ -16,6 +16,7 @@
 #include <tempo/stage/conductor.h>
 
 #include "v2/app.h"
+#include "v2/stages/energy_stage.h"
 #include "v2/stages/normal_stage.h"
 #include "v2/stages/profile_picker_stage.h"
 
@@ -356,6 +357,176 @@ TEST(NormalStage, OnEnterPdoBranchRendersVAReadoutAndPdoIndex) {
     normal.prepare(2);
     normal.on_event(conductor, SensorEvent{SensorSnapshot{0, 5000, 1234}}, 0);
     conductor.start<NormalStage>();
+}
+
+TEST(NormalView, LockedRendersPadlock) {
+    using ::testing::_;
+    NiceMock<MockDisplay> display;
+
+    EXPECT_CALL(
+        display,
+        draw_xbm(
+            NormalView::PADLOCK_X, NormalView::PADLOCK_Y,
+            NormalView::PADLOCK_W, NormalView::PADLOCK_H,
+            bitmap::PADLOCK.data()
+        )
+    ).Times(1);
+
+    NormalViewModel vm{};
+    vm.has_profile = true;
+    vm.is_pps = false;
+    vm.output_enabled = false;
+    vm.locked = true;
+    vm.active_pdo_index = 0;
+
+    NormalView::render(display, vm);
+}
+
+TEST(NormalView, UnlockedDoesNotDrawPadlock) {
+    using ::testing::_;
+    NiceMock<MockDisplay> display;
+
+    EXPECT_CALL(
+        display,
+        draw_xbm(_, _, NormalView::PADLOCK_W, NormalView::PADLOCK_H, bitmap::PADLOCK.data())
+    ).Times(0);
+
+    NormalViewModel vm{};
+    vm.has_profile = true;
+    vm.is_pps = false;
+    vm.output_enabled = false;
+    vm.locked = false;
+    vm.active_pdo_index = 0;
+
+    NormalView::render(display, vm);
+}
+
+TEST(NormalStage, ComboLongTogglesLock) {
+    NiceMock<MockDisplay> display;
+    NiceMock<MockPdSink> sink;
+    NiceMock<MockOutputGate> gate;
+    EXPECT_CALL(sink, is_index_pps(::testing::_)).WillRepeatedly(Return(false));
+    EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
+
+    NormalStage normal(display, sink, gate);
+    TestConductor conductor;
+    conductor.register_stage(normal);
+    normal.prepare(0);
+    conductor.start<NormalStage>();
+
+    EXPECT_FALSE(normal.locked());
+    normal.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
+    EXPECT_TRUE(normal.locked());
+    normal.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
+    EXPECT_FALSE(normal.locked());
+}
+
+TEST(NormalStage, LockedIgnoresRShort) {
+    NiceMock<MockDisplay> display;
+    NiceMock<MockPdSink> sink;
+    NiceMock<MockOutputGate> gate;
+    EXPECT_CALL(sink, is_index_pps(::testing::_)).WillRepeatedly(Return(false));
+    EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
+    EXPECT_CALL(gate, disable()).Times(::testing::AnyNumber());
+    EXPECT_CALL(gate, enable()).Times(0);
+
+    NormalStage normal(display, sink, gate);
+    TestConductor conductor;
+    conductor.register_stage(normal);
+    normal.prepare(0);
+    conductor.start<NormalStage>();
+
+    normal.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
+    ASSERT_TRUE(normal.locked());
+
+    normal.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::SHORT}, 0);
+}
+
+TEST(NormalStage, LockedIgnoresEncoder) {
+    NiceMock<MockDisplay> display;
+    NiceMock<MockPdSink> sink;
+    NiceMock<MockOutputGate> gate;
+    EXPECT_CALL(sink, is_index_pps(1)).WillRepeatedly(Return(true));
+    EXPECT_CALL(sink, pdo_min_voltage_mv(1)).WillRepeatedly(Return(3300));
+    EXPECT_CALL(sink, pdo_max_voltage_mv(1)).WillRepeatedly(Return(11000));
+    EXPECT_CALL(sink, pdo_max_current_ma(1)).WillRepeatedly(Return(3000));
+    EXPECT_CALL(sink, set_pps_pdo).WillRepeatedly(Return(true));
+
+    NormalStage normal(display, sink, gate);
+    TestConductor conductor;
+    conductor.register_stage(normal);
+    normal.prepare(1);
+    conductor.start<NormalStage>();
+
+    const int32_t before = normal.target_mv();
+    normal.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
+    normal.on_event(conductor, EncoderEvent{2}, 0);
+    EXPECT_EQ(normal.target_mv(), before);
+}
+
+TEST(NormalStage, OnEnterResetsLocked) {
+    NiceMock<MockDisplay> display;
+    NiceMock<MockPdSink> sink;
+    NiceMock<MockOutputGate> gate;
+    EXPECT_CALL(sink, is_index_pps(::testing::_)).WillRepeatedly(Return(false));
+    EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
+
+    NormalStage normal(display, sink, gate);
+    TestConductor conductor;
+    conductor.register_stage(normal);
+    normal.prepare(0);
+    conductor.start<NormalStage>();
+
+    normal.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
+    ASSERT_TRUE(normal.locked());
+
+    normal.prepare(0);
+    normal.on_enter(conductor);
+    EXPECT_FALSE(normal.locked());
+}
+
+TEST(NormalStage, LockedIgnoresLLong) {
+    NiceMock<MockDisplay> display;
+    NiceMock<MockPdSink> sink;
+    NiceMock<MockOutputGate> gate;
+    EXPECT_CALL(sink, is_index_pps(::testing::_)).WillRepeatedly(Return(false));
+    EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
+
+    NormalStage normal(display, sink, gate);
+    ProfilePickerStage picker(display, sink);
+    TestConductor conductor;
+    conductor.register_stage(normal);
+    conductor.register_stage(picker);
+    normal.prepare(0);
+    conductor.start<NormalStage>();
+
+    normal.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
+    ASSERT_TRUE(normal.locked());
+
+    normal.on_event(conductor, ButtonEvent{ButtonId::L, Gesture::LONG}, 0);
+    EXPECT_TRUE(normal.locked());
+}
+
+TEST(NormalStage, LockedIgnoresRLong) {
+    NiceMock<MockDisplay> display;
+    NiceMock<MockPdSink> sink;
+    NiceMock<MockOutputGate> gate;
+    EXPECT_CALL(sink, is_index_pps(::testing::_)).WillRepeatedly(Return(false));
+    EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
+
+    NormalStage normal(display, sink, gate);
+    EnergyStage energy(display, gate);
+    TestConductor conductor;
+    conductor.register_stage(normal);
+    conductor.register_stage(energy);
+    normal.prepare(0);
+    conductor.start<NormalStage>();
+
+    normal.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
+    ASSERT_TRUE(normal.locked());
+
+    normal.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::LONG}, 0);
+    EXPECT_TRUE(normal.locked());
 }
 
 int main(int argc, char** argv) {

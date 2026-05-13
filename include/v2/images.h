@@ -173,6 +173,23 @@ namespace pocketpd::bitmap {
         0x00, 0x00, 0x00, 0x00,
     };
 
+    /**
+     * @brief Padlock, 8x8px. Used as the input-lock indicator on NormalStage / EnergyStage.
+     * ```
+     * ..####..
+     * .#....#.
+     * .#....#.
+     * ########
+     * ########
+     * ###..###
+     * ########
+     * ########
+     * ```
+     */
+    inline constexpr std::array<uint8_t, 8> PADLOCK = {
+        0x3C, 0x42, 0x42, 0xFF, 0xFF, 0xE7, 0xFF, 0xFF,
+    };
+
     // --- Arrow rotation animation, 20x20px per frame, 28 frames total ---
     // Frames 12-25 share identical bitmap data (held position).
 

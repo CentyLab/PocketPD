@@ -37,6 +37,7 @@ namespace pocketpd {
 
         int8_t m_active_pdo_index = -1;
         int8_t m_last_active_index = -1;
+        bool m_locked = false;
         Mode m_mode;
 
         IntervalTimer m_render_interval{40};
@@ -57,6 +58,10 @@ namespace pocketpd {
 
         int8_t active_pdo_index() const {
             return m_active_pdo_index;
+        }
+
+        bool locked() const {
+            return m_locked;
         }
 
         const Mode& mode() const {
@@ -89,6 +94,8 @@ namespace pocketpd {
         }
 
         void on_enter(Conductor&) override {
+            m_locked = false;
+
             // Turns off output if the profile has changed
             if (m_active_pdo_index != m_last_active_index) {
                 m_output_gate.disable();
@@ -126,6 +133,15 @@ namespace pocketpd {
         void on_event(Conductor& conductor, const Event& event, uint32_t) override {
             auto handler = tempo::overloaded{
                 [&](const ButtonEvent& evt) {
+                    // L+R combo always reachable; must precede lock guard so a locked screen can unlock.
+                    if (evt.lr_long()) {
+                        m_locked = !m_locked;
+                        return;
+                    }
+                    if (m_locked) {
+                        return;
+                    }
+
                     if (evt.r_short()) {
                         m_output_gate.toggle();
                         return;
@@ -147,6 +163,9 @@ namespace pocketpd {
                     }
                 },
                 [&](const EncoderEvent& evt) {
+                    if (m_locked) {
+                        return;
+                    }
                     auto* pps = std::get_if<PPSMode>(&m_mode);
                     if (pps == nullptr) {
                         return;
@@ -225,6 +244,7 @@ namespace pocketpd {
                 .active_pdo_index = m_active_pdo_index,
                 .has_profile = m_active_pdo_index >= 0,
                 .output_enabled = m_output_gate.is_enabled(),
+                .locked = m_locked,
                 .arrow_frame = m_arrow_frame,
                 .snapshot = m_snapshot,
             };
