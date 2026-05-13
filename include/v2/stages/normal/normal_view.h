@@ -25,6 +25,7 @@ namespace pocketpd {
         bool has_profile = false;
         bool is_pps = false;
         bool output_enabled = false;
+        bool locked = false;
         uint8_t arrow_frame = 0;
         SensorSnapshot snapshot{};
 
@@ -59,6 +60,11 @@ namespace pocketpd {
         static constexpr uint8_t CURSOR_W = 7;
 
     public:
+        static constexpr uint8_t PADLOCK_X = 116;
+        static constexpr uint8_t PADLOCK_Y = 0;
+        static constexpr uint8_t PADLOCK_W = 8;
+        static constexpr uint8_t PADLOCK_H = 8;
+
         static void render(tempo::Display& d, const NormalViewModel& vm) {
             d.clear();
 
@@ -81,7 +87,6 @@ namespace pocketpd {
             const auto INDEX_X = STATUS_X - d.text_width(buf.data()) - 2;
             d.draw_text(INDEX_X, 63, buf.data());
             d.draw_text(STATUS_X, 64, vm.is_pps ? "PPS" : "PDO");
-            d.draw_text(INDEX_X + 2, 8, vm.output_enabled ? "ON" : "OFF");
 
             if (vm.is_pps) {
                 draw_target_pps(d, vm, buf);
@@ -94,12 +99,22 @@ namespace pocketpd {
                 d.draw_xbm(ARROW_X, ARROW_Y, ARROW_W, ARROW_H, bitmap::ARROW_FRAMES.at(frame));
             }
 
+            if (vm.locked) {
+                d.draw_text(INDEX_X + 2, 8, vm.output_enabled ? "ON" : "OFF");
+                d.draw_xbm(PADLOCK_X, PADLOCK_Y, PADLOCK_W, PADLOCK_H, bitmap::PADLOCK.data());
+            } else {
+                d.draw_text(PADLOCK_X - 6, 8, vm.output_enabled ? "ON" : "OFF");
+            }
+
             d.flush();
         }
 
     private:
         static void draw_measured(
-            tempo::Display& d, const char* label, uint8_t y, uint32_t value,
+            tempo::Display& d,
+            const char* label,
+            uint8_t y,
+            uint32_t value,
             std::array<char, 32>& buf
         ) {
             d.draw_text(1, y, label);
@@ -110,9 +125,8 @@ namespace pocketpd {
             d.draw_text(static_cast<uint8_t>(TARGET_RIGHT_X - width), y, buf.data());
         }
 
-        static void draw_target_fixed(
-            tempo::Display& d, const NormalViewModel& vm, std::array<char, 32>& buf
-        ) {
+        static void
+        draw_target_fixed(tempo::Display& d, const NormalViewModel& vm, std::array<char, 32>& buf) {
             std::snprintf(buf.data(), buf.size(), "%ld mV", static_cast<long>(vm.pdo_max_mv));
             auto w = d.text_width(buf.data());
             d.draw_text(static_cast<uint8_t>(TARGET_RIGHT_X - w), V_TARGET_Y, buf.data());
@@ -122,9 +136,8 @@ namespace pocketpd {
             d.draw_text(static_cast<uint8_t>(TARGET_RIGHT_X - w), A_TARGET_Y, buf.data());
         }
 
-        static void draw_target_pps(
-            tempo::Display& d, const NormalViewModel& vm, std::array<char, 32>& buf
-        ) {
+        static void
+        draw_target_pps(tempo::Display& d, const NormalViewModel& vm, std::array<char, 32>& buf) {
             std::snprintf(buf.data(), buf.size(), "%ld mV", static_cast<long>(vm.target_mv));
             auto w = d.text_width(buf.data());
             d.draw_text(static_cast<uint8_t>(TARGET_RIGHT_X - w), V_TARGET_Y, buf.data());

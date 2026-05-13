@@ -50,6 +50,10 @@ namespace pocketpd {
         bool l_short() const {
             return id == ButtonId::L && gesture == Gesture::SHORT;
         }
+
+        bool lr_long() const {
+            return id == ButtonId::L_R && gesture == Gesture::LONG;
+        }
     };
 
     /**

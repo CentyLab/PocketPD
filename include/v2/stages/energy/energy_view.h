@@ -26,6 +26,7 @@ namespace pocketpd {
         uint32_t total_seconds = 0;
         uint8_t arrow_frame = 0;
         bool output_enabled = false;
+        bool locked = false;
     };
 
     class EnergyView {
@@ -51,6 +52,11 @@ namespace pocketpd {
         using Display = tempo::Display;
 
     public:
+        static constexpr uint8_t PADLOCK_X = 116;
+        static constexpr uint8_t PADLOCK_Y = 0;
+        static constexpr uint8_t PADLOCK_W = 8;
+        static constexpr uint8_t PADLOCK_H = 8;
+
         static void render(Display& display, const EnergyViewModel& vm) {
             display.clear();
             std::array<char, 16> buf{};
@@ -62,18 +68,18 @@ namespace pocketpd {
                 display.draw_xbm(ARROW_X, ARROW_Y, ARROW_W, ARROW_H, bitmap);
             }
 
-            // Top row — live V/A
             display.set_font(tempo::Font::BASE);
 
+            // Mid — Voltage Current
             format_milli(buf, vm.snapshot.vbus_mv, 'V');
             display.draw_text(V_X, ROW2_Y - 10, buf.data());
 
             format_milli(buf, vm.snapshot.current_ma, 'A');
             display.draw_text(A_X, ROW2_Y + 5, buf.data());
 
+            // Bottom row — Wh Time Ah
             format_time(buf, vm.total_seconds);
             display.draw_text(T_X, ROW3_Y, buf.data());
-
 
             format_auto(buf, vm.accumulated_wh);
             draw_value(display, COL1_X, ROW3_Y, buf.data(), "Wh");
@@ -81,12 +87,17 @@ namespace pocketpd {
             format_auto(buf, vm.accumulated_ah);
             draw_value(display, COL2_X, ROW3_Y, buf.data(), "Ah");
 
-            // Mid — watts and watt-hours
+            // The big W label in the middle
             display.set_font(tempo::Font::XL);
             const double watts = (vm.snapshot.vbus_mv * vm.snapshot.current_ma) / 1'000'000.0;
-
             format_auto(buf, watts);
             draw_value(display, COL1_X, ROW2_Y, buf.data(), "W");
+
+            if (vm.locked) {
+                display.draw_xbm(
+                    PADLOCK_X, PADLOCK_Y, PADLOCK_W, PADLOCK_H, bitmap::PADLOCK.data()
+                );
+            }
 
             display.flush();
         }

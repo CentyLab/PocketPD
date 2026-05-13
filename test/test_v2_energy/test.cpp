@@ -19,6 +19,8 @@
 #include <tempo/stage/conductor.h>
 
 #include "v2/app.h"
+#include "v2/images.h"
+#include "v2/stages/energy/energy_view.h"
 #include "v2/stages/energy_stage.h"
 #include "v2/stages/normal_stage.h"
 #include "v2/tasks/energy_task.h"
@@ -277,6 +279,121 @@ TEST(EnergyStage, EnergyEventDriveDisplayedAccumulators) {
     EXPECT_CALL(display, flush()).Times(AtLeast(1));
 
     energy.on_tick(conductor, 100);
+}
+
+// ——— EnergyStage lock ————————————————————————————————————————————————————————
+
+TEST(EnergyStage, ComboLongTogglesLock) {
+    NiceMock<MockDisplay> display;
+    NiceMock<MockOutputGate> gate;
+
+    EnergyStage stage(display, gate);
+    TestConductor conductor;
+    conductor.register_stage(stage);
+    stage.prepare(0);
+    conductor.start<EnergyStage>();
+
+    EXPECT_FALSE(stage.locked());
+    stage.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
+    EXPECT_TRUE(stage.locked());
+    stage.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
+    EXPECT_FALSE(stage.locked());
+}
+
+TEST(EnergyStage, LockedIgnoresRShort) {
+    NiceMock<MockDisplay> display;
+    NiceMock<MockOutputGate> gate;
+    EXPECT_CALL(gate, disable()).Times(::testing::AnyNumber());
+    EXPECT_CALL(gate, enable()).Times(0);
+
+    EnergyStage stage(display, gate);
+    TestConductor conductor;
+    conductor.register_stage(stage);
+    stage.prepare(0);
+    conductor.start<EnergyStage>();
+
+    stage.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
+    ASSERT_TRUE(stage.locked());
+
+    stage.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::SHORT}, 0);
+}
+
+TEST(EnergyStage, OnEnterResetsLocked) {
+    NiceMock<MockDisplay> display;
+    NiceMock<MockOutputGate> gate;
+
+    EnergyStage stage(display, gate);
+    TestConductor conductor;
+    conductor.register_stage(stage);
+    stage.prepare(0);
+    conductor.start<EnergyStage>();
+
+    stage.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
+    ASSERT_TRUE(stage.locked());
+
+    stage.prepare(0);
+    stage.on_enter(conductor);
+    EXPECT_FALSE(stage.locked());
+}
+
+// ——— EnergyView render ——————————————————————————————————————————————————————
+
+TEST(EnergyView, LockedRendersPadlock) {
+    using ::testing::_;
+    NiceMock<MockDisplay> display;
+
+    EXPECT_CALL(
+        display,
+        draw_xbm(
+            EnergyView::PADLOCK_X, EnergyView::PADLOCK_Y,
+            EnergyView::PADLOCK_W, EnergyView::PADLOCK_H,
+            bitmap::PADLOCK.data()
+        )
+    ).Times(1);
+
+    EnergyViewModel vm{};
+    vm.output_enabled = false;
+    vm.locked = true;
+
+    EnergyView::render(display, vm);
+}
+
+TEST(EnergyView, UnlockedDoesNotDrawPadlock) {
+    using ::testing::_;
+    NiceMock<MockDisplay> display;
+
+    EXPECT_CALL(
+        display,
+        draw_xbm(_, _, EnergyView::PADLOCK_W, EnergyView::PADLOCK_H, bitmap::PADLOCK.data())
+    ).Times(0);
+
+    EnergyViewModel vm{};
+    vm.output_enabled = false;
+    vm.locked = false;
+
+    EnergyView::render(display, vm);
+}
+
+TEST(EnergyStage, LockedIgnoresRLong) {
+    NiceMock<MockDisplay> display;
+    NiceMock<MockOutputGate> gate;
+    NiceMock<MockPdSink> sink;
+    EXPECT_CALL(sink, is_index_pps(::testing::_)).WillRepeatedly(Return(false));
+    EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
+
+    EnergyStage energy(display, gate);
+    NormalStage normal(display, sink, gate);
+    TestConductor conductor;
+    conductor.register_stage(energy);
+    conductor.register_stage(normal);
+    energy.prepare(0);
+    conductor.start<EnergyStage>();
+
+    energy.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
+    ASSERT_TRUE(energy.locked());
+
+    energy.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::LONG}, 0);
+    EXPECT_TRUE(energy.locked());
 }
 
 int main(int argc, char** argv) {

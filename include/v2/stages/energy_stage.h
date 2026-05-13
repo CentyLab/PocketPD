@@ -38,6 +38,7 @@ namespace pocketpd {
         int8_t m_active_pdo_index = -1;
         tempo::IntervalTimer m_render_interval{40};
         uint8_t m_arrow_frame = 0;
+        bool m_locked = false;
 
         static constexpr uint32_t SENSOR_EMA_DEN = 4;
 
@@ -55,11 +56,16 @@ namespace pocketpd {
             return m_active_pdo_index;
         }
 
+        bool locked() const {
+            return m_locked;
+        }
+
         void prepare(int8_t pdo_index = -1) {
             m_active_pdo_index = pdo_index;
         }
 
         void on_enter(Conductor&) override {
+            m_locked = false;
             log.info("Entered Energy screen pdo_index={}", m_active_pdo_index);
             draw();
         }
@@ -73,11 +79,19 @@ namespace pocketpd {
         void on_event(Conductor& conductor, const Event& event, uint32_t) override {
             auto handler = tempo::overloaded{
                 [&](const ButtonEvent& evt) {
+                    // L+R combo always reachable; must precede lock guard so a locked screen can unlock.
+                    if (evt.lr_long()) {
+                        m_locked = !m_locked;
+                        return;
+                    }
+                    if (m_locked) {
+                        return;
+                    }
+
                     if (evt.r_short()) {
                         m_output_gate.toggle();
                         return;
                     }
-
                     if (evt.r_long()) {
                         conductor.request<NormalStage>(m_active_pdo_index);
                     }
@@ -115,6 +129,7 @@ namespace pocketpd {
                 .total_seconds = m_energy.total_seconds,
                 .arrow_frame = m_arrow_frame,
                 .output_enabled = m_output_gate.is_enabled(),
+                .locked = m_locked,
             };
         }
 
