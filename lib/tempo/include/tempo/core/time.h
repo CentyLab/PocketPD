@@ -122,6 +122,7 @@ namespace tempo {
      */
     class TimeoutTimer {
     private:
+        uint32_t m_set_ms = 0;
         uint32_t m_due_ms = 0;
         bool m_armed = false;
 
@@ -131,8 +132,14 @@ namespace tempo {
          * `now_ms + duration_ms` is observed. Calling `set` again replaces any prior arm.
          */
         void set(uint32_t now_ms, uint32_t duration_ms) {
+            m_set_ms = now_ms;
             m_due_ms = now_ms + duration_ms;
             m_armed = true;
+        }
+
+        /** @brief Timestamp passed to the most recent `set()`. Undefined if never set. */
+        uint32_t set_ms() const {
+            return m_set_ms;
         }
 
         /**
