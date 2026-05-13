@@ -1,8 +1,6 @@
 /**
  * @file button_task.h
- * @brief Polls 3 buttons at 5 ms and feeds each into its own ButtonGestureDetector. Publishes a
- * `ButtonEvent` whenever a detector recognizes a SHORT or LONG gesture. `poll(now_ms)`
- * is public so native tests drive the task directly.
+ * @brief Run guesture recognition on 3 buttons at 5 ms interval.
  */
 #pragma once
 
@@ -10,10 +8,12 @@
 #include <tempo/hardware/button_input.h>
 
 #include <cstdint>
+#include <optional>
 
 #include "v2/app.h"
 #include "v2/events.h"
 #include "v2/input/button_gesture.h"
+#include "v2/input/two_buttons_gesture.h"
 #include "v2/state.h"
 
 namespace pocketpd {
@@ -26,15 +26,16 @@ namespace pocketpd {
             ButtonId id;
             tempo::ButtonInput* input;
             ButtonGestureDetector detector;
-            bool was_held = false;
-            uint32_t pressed_at_ms = 0;
 
             DetectorRef() = delete;
         };
-
-        std::array<DetectorRef, 3> m_detectors;
+        std::array<DetectorRef, 3> m_detector_refs;
+        TwoButtonsGestureDetector m_combo_detector;
 
         static constexpr uint32_t POLL_PERIOD_MS = 5;
+        static constexpr size_t IDX_ENCODER = 0;
+        static constexpr size_t IDX_L = 1;
+        static constexpr size_t IDX_R = 2;
 
     public:
         static constexpr const char* LOG_TAG = "ButtonTask";
@@ -46,7 +47,7 @@ namespace pocketpd {
             ButtonGestureConfig gesture_config = {}
         )
             : App::BackgroundTask(POLL_PERIOD_MS),
-              m_detectors{
+              m_detector_refs{
                   DetectorRef{
                       ButtonId::ENCODER,
                       &btn_encoder,
@@ -62,49 +63,60 @@ namespace pocketpd {
                       &btn_r,
                       ButtonGestureDetector{gesture_config},
                   },
-              } {}
+              },
+              m_combo_detector(gesture_config) {}
 
         const char* name() const override {
             return "ButtonTask";
         }
 
-        const char* button_name(ButtonId id) {
-            switch (id) {
-            case ButtonId::ENCODER:
-                return "ENCODER_BTN";
-            case ButtonId::L:
-                return "L_BTN";
-            case ButtonId::R:
-                return "R_BTN";
-            default:
-                return "UNKNOWN";
-            }
-        }
-
         void poll(uint32_t now_ms) {
-            for (DetectorRef& ref : m_detectors) {
+            // Update each button detector and capture the gesture.
+            std::array<std::optional<Gesture>, 3> gestures{};
+
+            for (size_t i = 0; i < m_detector_refs.size(); ++i) {
+                DetectorRef& ref = m_detector_refs[i];
                 ref.input->update();
+                gestures[i] = ref.detector.update(now_ms, ref.input->is_held());
 
-                
-                // Debug button latency (including debounce time)
-                const bool is_held = ref.input->is_held();
-                if (is_held && !ref.was_held) {
-                    ref.pressed_at_ms = now_ms;
-                    log.debug("button={} press_start_at={}ms", button_name(ref.id), now_ms);
+                if (ref.detector.is_pressed()) {
+                    log.debug("button={} press_start_at={}ms", to_string(ref.id), now_ms);
                 }
-                ref.was_held = is_held;
+            }
 
-                const std::optional<Gesture> gesture = ref.detector.update(is_held, now_ms);
-                if (gesture.has_value()) {
-                    const uint32_t duration = now_ms - ref.pressed_at_ms;
-                    log.debug(
-                        "button={} gesture={} hold_duration={}",
-                        button_name(ref.id),
-                        gesture.value() == Gesture::SHORT ? "SHORT" : "LONG",
-                        duration
-                    );
-                    publish(ButtonEvent{ref.id, gesture.value()});
+            // Run the combo detector. It stays active until both buttons are released. The combo
+            // active state suppresses L/R singles.
+            const auto combo_gesture = m_combo_detector.update(
+                now_ms,
+                m_detector_refs[IDX_L].detector.is_holding(),
+                m_detector_refs[IDX_R].detector.is_holding()
+            );
+
+            // If the combo detector fired, publish the combo gesture.
+            if (combo_gesture.has_value()) {
+                log.debug("combo={} gesture={}", to_string(ButtonId::L_R), "LONG");
+                publish(ButtonEvent{ButtonId::L_R, combo_gesture.value()});
+            }
+
+            // Publish each button gesture that is not suppressed by the combo detector.
+            for (size_t i = 0; i < m_detector_refs.size(); ++i) {
+                DetectorRef& ref = m_detector_refs[i];
+                const std::optional<Gesture>& gesture = gestures[i];
+
+                if (!gesture.has_value()) {
+                    continue;
                 }
+
+                // Suppress the gesture if it is an L or R single and the combo detector is active.
+                const bool is_LR = (ref.id == ButtonId::L) || (ref.id == ButtonId::R);
+                if (is_LR && m_combo_detector.is_active()) {
+                    continue;
+                }
+
+                const uint32_t duration = ref.detector.duration(now_ms);
+                const char* msg = "button={} gesture={} hold_duration={}";
+                log.debug(msg, to_string(ref.id), to_string(gesture.value()), duration);
+                publish(ButtonEvent{ref.id, gesture.value()});
             }
         }
 

@@ -3,7 +3,7 @@ ColumnLimit: 100
 IndentWidth: 4
 
 AccessModifierOffset: -4
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: BlockIndent
 AlignConsecutiveMacros: Consecutive
 AlignOperands: AlignAfterOperator
 AllowShortFunctionsOnASingleLine: Empty
