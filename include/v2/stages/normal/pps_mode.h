@@ -16,6 +16,8 @@
 namespace pocketpd {
 
     struct PPSMode {
+
+        constexpr static int32_t MIN_CURRENT_MA = 1000;
         int32_t target_mv = 5000;
         int32_t target_ma = 1000;
         uint8_t voltage_idx = 0;
@@ -65,6 +67,7 @@ namespace pocketpd {
             if (evt.delta == 0) {
                 return true;
             }
+
             apply_encoder_delta(-evt.delta);
             return apply();
         }
@@ -94,6 +97,7 @@ namespace pocketpd {
             } else {
                 const int32_t step = CURRENT_INCREMENTS_MA.at(current_idx);
                 target_ma += delta * step;
+                target_ma = std::max(target_ma, MIN_CURRENT_MA);
             }
         }
 
