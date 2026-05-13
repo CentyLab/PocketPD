@@ -23,16 +23,37 @@ namespace pocketpd {
         enum class State : uint8_t {
             IDLE,
             PRESSED,  
-            POST_LONG,
+            LATCHED,
         };
         
         State m_state = State::IDLE;
+        State m_prev_state = State::IDLE;
 
         ButtonGestureConfig m_config;
         tempo::TimeoutTimer m_long_timeout;
 
+
     public:
         explicit ButtonGestureDetector(ButtonGestureConfig config = {}) : m_config(config) {}
+
+        /** @brief True while the button is held (PRESSED or LATCHED). */
+        bool is_holding() const {
+            return m_state != State::IDLE;
+        }
+
+        /** @brief True only on the tick the press started (IDLE → PRESSED). */
+        bool is_pressed() const {
+            return m_prev_state == State::IDLE && m_state == State::PRESSED;
+        }
+
+        /** @brief Timestamp captured at IDLE → PRESSED. Undefined before first press. */
+        uint32_t pressed_at_ms() const {
+            return m_long_timeout.set_ms();
+        }
+
+        uint32_t duration(uint32_t now_ms) const {
+            return now_ms - pressed_at_ms();
+        }
 
         /**
          * @brief Feed one sample. Returns a gesture on the tick it is recognized, otherwise
@@ -43,15 +64,17 @@ namespace pocketpd {
          *
          * State diagram:
          * @verbatim
-         *     ┌──────┐  hold / arm timer   ┌─────────┐  reached / LONG    ┌───────────┐
-         *     │ IDLE │ ───────────────────▶│ PRESSED │ ──────────────────▶│ POST_LONG │
-         *     └──────┘                     └────┬────┘                    └─────┬─────┘
-         *         ▲                             │                               │
-         *         │       release / SHORT       │            release            │
-         *         └─────────────────────────────┴───────────────────────────────┘
+         *     ┌──────┐  hold / arm timer   ┌─────────┐  reached / LONG  ┌─────────┐
+         *     │ IDLE │ ───────────────────▶│ PRESSED │ ────────────────▶│ LATCHED │
+         *     └──────┘                     └────┬────┘                  └────┬────┘
+         *         ▲                             │                            │
+         *         │       release / SHORT       │           release          │
+         *         └─────────────────────────────┴────────────────────────────┘
          * @endverbatim
          */
-        std::optional<Gesture> update(bool is_holding, uint32_t now_ms) {
+        std::optional<Gesture> update(uint32_t now_ms, bool is_holding) {
+            m_prev_state = m_state;
+
             switch (m_state) {
             case State::IDLE:
                 if (is_holding) {
@@ -69,14 +92,14 @@ namespace pocketpd {
                 }
 
                 if (m_long_timeout.reached(now_ms)) {
-                    m_state = State::POST_LONG;
+                    m_state = State::LATCHED;
                     m_long_timeout.disarm();
                     return Gesture::LONG;
                 }
 
                 return std::nullopt;
 
-            case State::POST_LONG:
+            case State::LATCHED:
                 if (!is_holding) {
                     m_state = State::IDLE;
                 }
