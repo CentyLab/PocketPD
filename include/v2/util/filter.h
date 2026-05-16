@@ -28,6 +28,16 @@ namespace pocketpd {
                 .current_ma = ema(prev.current_ma, sample.current_ma, den),
             };
         }
+
+        /** @brief Per-field EMA across a `SupplyReading`. Caller filters invalid samples. */
+        static SupplyReading
+        ema(const SupplyReading& prev, const SupplyReading& sample, uint32_t den) {
+            return {
+                .timestamp_ms = sample.timestamp_ms,
+                .mv = ema(prev.mv, sample.mv, den),
+                .valid = sample.valid,
+            };
+        }
     };
 
 } // namespace pocketpd

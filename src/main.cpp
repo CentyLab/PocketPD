@@ -8,6 +8,8 @@
 
 #include "v2/app.h"
 #include "v2/hal/ap33772_pd_sink.h"
+#include "v2/hal/ap33772_supply_voltage_source.h"
+#include "v2/hal/adc_supply_voltage_source.h"
 #include "v2/hal/arduino_clock.h"
 #include "v2/hal/arduino_output_gate.h"
 #include "v2/hal/arduino_stream_reader.h"
@@ -40,6 +42,12 @@ namespace pocketpd {
     INA226 ina226_driver{INA226_I2C_ADDR};
     Ina226PowerMonitor power_monitor{ina226_driver};
 
+#if HW_VERSION_MAJOR == 1 && HW_VERSION_MINOR >= 3
+    AdcSupplyVoltageSource supply_voltage_source{pin_VSENSE};
+#else
+    Ap33772SupplyVoltageSource supply_voltage_source{pd_sink};
+#endif
+
     U8g2Display u8g2_display;
 
     ArduinoOutputGate output_gate{pin_output_Enable};
@@ -61,7 +69,7 @@ namespace pocketpd {
 
     ButtonTask button_task(encoder_button, l_button, r_button);
     EncoderTask encoder_task(encoder);
-    SensorTask sensor_task{power_monitor};
+    SensorTask sensor_task{power_monitor, supply_voltage_source};
     EnergyTask energy_task{output_gate};
     CommandTask command_task{arduino_stream_reader, arduino_stream_writer};
 
@@ -78,6 +86,7 @@ void setup() {
 
     ina226_driver.begin();
     power_monitor.begin();
+    supply_voltage_source.begin();
     u8g2_display.begin();
     output_gate.begin();
     encoder.begin();

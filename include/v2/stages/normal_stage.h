@@ -34,7 +34,9 @@ namespace pocketpd {
         OutputGate& m_output_gate;
 
         LoadReading m_load_reading{};
+        SupplyReading m_supply_reading{};
         bool m_load_init = false;
+        bool m_supply_init = false;
 
         int8_t m_active_pdo_index = -1;
         int8_t m_last_active_index = -1;
@@ -190,6 +192,12 @@ namespace pocketpd {
                         ? Filter::ema(m_load_reading, evt.load, SENSOR_EMA_DEN)
                         : evt.load;
                     m_load_init = true;
+                    if (evt.supply.valid) {
+                        m_supply_reading = m_supply_init
+                            ? Filter::ema(m_supply_reading, evt.supply, SENSOR_EMA_DEN)
+                            : evt.supply;
+                        m_supply_init = true;
+                    }
                 },
                 [](const auto&) {},
             };
@@ -244,6 +252,7 @@ namespace pocketpd {
                 .locked = m_locked,
                 .arrow_frame = m_arrow_frame,
                 .load_reading = m_load_reading,
+                .supply_reading = m_supply_reading,
             };
 
             if (!vm.has_profile) {

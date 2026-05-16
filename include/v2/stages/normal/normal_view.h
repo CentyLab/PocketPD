@@ -29,6 +29,7 @@ namespace pocketpd {
         bool locked = false;
         uint8_t arrow_frame = 0;
         LoadReading load_reading{};
+        SupplyReading supply_reading{};
 
         // —— PPS branch (valid when has_profile && is_pps)
 
@@ -79,9 +80,8 @@ namespace pocketpd {
             std::array<char, 32> buf{};
 
             d.set_font(tempo::Font::XL);
-            draw_measured(
-                d, "V", V_MEASURED_Y, vm.load_reading.vbus_mv, buf, vm.readout_visible
-            );
+            const uint32_t v_mv = vm.output_enabled ? vm.load_reading.vbus_mv : vm.supply_reading.mv;
+            draw_measured(d, "V", V_MEASURED_Y, v_mv, buf, vm.readout_visible);
             draw_measured(
                 d, "A", A_MEASURED_Y, vm.load_reading.current_ma, buf, vm.readout_visible
             );

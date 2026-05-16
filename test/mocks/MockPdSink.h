@@ -18,6 +18,7 @@ namespace pocketpd {
         MOCK_METHOD(int, pdo_max_current_ma, (int index), (const, override));
         MOCK_METHOD(bool, set_pdo, (int index), (override));
         MOCK_METHOD(bool, set_pps_pdo, (int index, int voltage_mv, int current_ma), (override));
+        MOCK_METHOD(int, read_vbus_mv, (), (override));
     };
 
 } // namespace pocketpd
