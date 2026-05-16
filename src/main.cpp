@@ -22,48 +22,50 @@
 #include "v2/tasks/energy_task.h"
 #include "v2/tasks/sensor_task.h"
 
-namespace {
+namespace pocketpd {
+
+    
 
     // —— Hardware adapters
 
+    ArduinoClock arduino_clock;
+    ArduinoStreamWriter arduino_stream_writer;
+    ArduinoStreamReader arduino_stream_reader;
+
+    App app(arduino_clock, arduino_stream_writer);
+
     ArduinoTwoWireDevice i2c_device_ap33772{Wire, ap33772::ADDRESS};
-    pocketpd::Ap33772PdSink pd_sink{i2c_device_ap33772, ::delay};
+    Ap33772PdSink pd_sink{i2c_device_ap33772, ::delay};
 
-    INA226 ina226_driver{pocketpd::INA226_I2C_ADDR};
-    pocketpd::Ina226PowerMonitor power_monitor{ina226_driver};
+    INA226 ina226_driver{INA226_I2C_ADDR};
+    Ina226PowerMonitor power_monitor{ina226_driver};
 
-    pocketpd::U8g2Display u8g2_display;
+    U8g2Display u8g2_display;
 
-    pocketpd::ArduinoOutputGate output_gate{pin_output_Enable};
+    ArduinoOutputGate output_gate{pin_output_Enable};
 
-    pocketpd::EzButtonInput encoder_button{pin_encoder_SW};
-    pocketpd::EzButtonInput r_button{pin_button_outputSW};
-    pocketpd::EzButtonInput l_button{pin_button_selectVI};
-    pocketpd::RotaryEncoderInput encoder{pin_encoder_A, pin_encoder_B};
-
-    pocketpd::ArduinoClock arduino_clock;
-    pocketpd::ArduinoStreamWriter arduino_stream_writer;
-    pocketpd::ArduinoStreamReader arduino_stream_reader;
-
-    pocketpd::App app(arduino_clock, arduino_stream_writer);
+    EzButtonInput encoder_button{pin_encoder_SW};
+    EzButtonInput r_button{pin_button_outputSW};
+    EzButtonInput l_button{pin_button_selectVI};
+    RotaryEncoderInput encoder{pin_encoder_A, pin_encoder_B};
 
     // —— Stages
 
-    pocketpd::BootStage boot_stage(u8g2_display);
-    pocketpd::ObtainStage obtain_stage(pd_sink);
-    pocketpd::ProfilePickerStage profile_picker_stage(u8g2_display, pd_sink);
-    pocketpd::NormalStage normal_stage(u8g2_display, pd_sink, output_gate);
-    pocketpd::EnergyStage energy_stage(u8g2_display, output_gate);
+    BootStage boot_stage(u8g2_display);
+    ObtainStage obtain_stage(pd_sink);
+    ProfilePickerStage profile_picker_stage(u8g2_display, pd_sink);
+    NormalStage normal_stage(u8g2_display, pd_sink, output_gate);
+    EnergyStage energy_stage(u8g2_display, output_gate);
 
     // —— Tasks
 
-    pocketpd::ButtonTask button_task(encoder_button, l_button, r_button);
-    pocketpd::EncoderTask encoder_task(encoder);
-    pocketpd::SensorTask sensor_task{power_monitor};
-    pocketpd::EnergyTask energy_task{output_gate};
-    pocketpd::CommandTask command_task{arduino_stream_reader, arduino_stream_writer};
+    ButtonTask button_task(encoder_button, l_button, r_button);
+    EncoderTask encoder_task(encoder);
+    SensorTask sensor_task{power_monitor};
+    EnergyTask energy_task{output_gate};
+    CommandTask command_task{arduino_stream_reader, arduino_stream_writer};
 
-} // namespace
+} // namespace pocketpd
 
 void setup() {
     Serial.begin(115200);
@@ -71,6 +73,8 @@ void setup() {
     Wire.setSDA(pin_SDA);
     Wire.setSCL(pin_SCL);
     Wire.begin();
+
+    using namespace pocketpd;
 
     ina226_driver.begin();
     power_monitor.begin();
@@ -90,9 +94,9 @@ void setup() {
     app.add_task(energy_task);
     app.add_task(command_task);
 
-    app.start<pocketpd::BootStage>();
+    app.start<BootStage>();
 }
 
 void loop() {
-    app.tick();
+    pocketpd::app.tick();
 }
