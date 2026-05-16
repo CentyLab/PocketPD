@@ -33,7 +33,7 @@ namespace pocketpd {
             if (!reading.valid) {
                 return;
             }
-            publish(SensorEvent{SensorSnapshot{now_ms, reading.mv, reading.ma}});
+            publish(SensorEvent{LoadReading{now_ms, reading.mv, reading.ma}});
         }
     };
 

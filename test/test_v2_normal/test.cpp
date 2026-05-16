@@ -355,7 +355,7 @@ TEST(NormalStage, OnEnterPdoBranchRendersVAReadoutAndPdoIndex) {
     TestConductor conductor;
     conductor.register_stage(normal);
     normal.prepare(2);
-    normal.on_event(conductor, SensorEvent{SensorSnapshot{0, 5000, 1234}}, 0);
+    normal.on_event(conductor, SensorEvent{LoadReading{0, 5000, 1234}}, 0);
     conductor.start<NormalStage>();
 }
 
@@ -420,7 +420,7 @@ TEST(NormalView, ReadoutHiddenKeepsLabelsHidesValues) {
     vm.output_enabled = false;
     vm.readout_visible = false;
     vm.active_pdo_index = 0;
-    vm.snapshot = SensorSnapshot{0, 5000, 1234};
+    vm.load_reading = LoadReading{0, 5000, 1234};
 
     NormalView::render(display, vm);
 }

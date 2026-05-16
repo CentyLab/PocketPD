@@ -36,7 +36,7 @@ using TestConductor = App::Conductor;
 namespace {
 
     SensorEvent make_sensor(uint32_t ts_ms, uint32_t mv, uint32_t ma) {
-        return SensorEvent{SensorSnapshot{ts_ms, mv, ma}};
+        return SensorEvent{LoadReading{ts_ms, mv, ma}};
     }
 
     const EnergyEvent* drain_last_energy(TestQueue& q) {

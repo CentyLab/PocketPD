@@ -67,7 +67,7 @@ namespace pocketpd {
     /**
      * @brief Latest sensor reading from INA226.
      */
-    struct SensorSnapshot {
+    struct LoadReading {
         uint32_t timestamp_ms = 0;
         uint32_t vbus_mv = 0;
         uint32_t current_ma = 0;
@@ -77,7 +77,7 @@ namespace pocketpd {
      * @brief Published by SensorTask. Carries one bus reading.
      */
     struct SensorEvent {
-        SensorSnapshot snapshot;
+        LoadReading load;
     };
 
     /**

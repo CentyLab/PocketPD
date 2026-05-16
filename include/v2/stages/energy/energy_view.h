@@ -21,7 +21,7 @@ namespace pocketpd {
      * @brief Frozen snapshot of everything EnergyView needs to draw one frame.
      */
     struct EnergyViewModel {
-        SensorSnapshot snapshot{};
+        LoadReading load_reading{};
         double accumulated_wh = 0.0;
         double accumulated_ah = 0.0;
         uint32_t total_seconds = 0;
@@ -72,10 +72,10 @@ namespace pocketpd {
             display.set_font(tempo::Font::BASE);
 
             // Mid — Voltage Current
-            format_milli(buf, vm.snapshot.vbus_mv, 'V');
+            format_milli(buf, vm.load_reading.vbus_mv, 'V');
             display.draw_text(V_X, ROW2_Y - 10, buf.data());
 
-            format_milli(buf, vm.snapshot.current_ma, 'A');
+            format_milli(buf, vm.load_reading.current_ma, 'A');
             display.draw_text(A_X, ROW2_Y + 5, buf.data());
 
             // Bottom row — Wh Time Ah
@@ -90,7 +90,8 @@ namespace pocketpd {
 
             // The big W label in the middle
             display.set_font(tempo::Font::XL);
-            const double watts = (vm.snapshot.vbus_mv * vm.snapshot.current_ma) / 1'000'000.0;
+            const double watts =
+                (vm.load_reading.vbus_mv * vm.load_reading.current_ma) / 1'000'000.0;
             format_auto(buf, watts);
             draw_value(display, COL1_X, ROW2_Y, buf.data(), "W");
 

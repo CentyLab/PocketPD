@@ -52,7 +52,7 @@ namespace pocketpd {
 
         void on_event(const Event& event, uint32_t) override {
             if (const auto sensor = std::get_if<SensorEvent>(&event)) {
-                integrate(sensor->snapshot);
+                integrate(sensor->load);
             }
         }
 
@@ -67,7 +67,7 @@ namespace pocketpd {
         }
 
     private:
-        void integrate(const SensorSnapshot& s) {
+        void integrate(const LoadReading& s) {
             if (!m_output_gate.is_enabled()) {
                 m_session_active = false;
                 return;
