@@ -11,7 +11,7 @@
 #include "v2/app.h"
 #include "v2/events.h"
 #include "v2/hal/output_gate.h"
-#include "v2/state.h"
+#include "v2/pocketpd.h"
 
 namespace pocketpd {
 

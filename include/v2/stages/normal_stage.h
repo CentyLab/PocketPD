@@ -17,7 +17,7 @@
 #include "v2/stages/normal/fixed_mode.h"
 #include "v2/stages/normal/normal_view.h"
 #include "v2/stages/normal/pps_mode.h"
-#include "v2/state.h"
+#include "v2/pocketpd.h"
 
 namespace pocketpd {
 

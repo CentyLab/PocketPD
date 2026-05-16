@@ -22,7 +22,7 @@
 #include "v2/hal/output_gate.h"
 #include "v2/images.h"
 #include "v2/stages/energy/energy_view.h"
-#include "v2/state.h"
+#include "v2/pocketpd.h"
 
 namespace pocketpd {
 
