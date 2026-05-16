@@ -1,6 +1,6 @@
 /**
  * @file sensor_task.h
- * @brief Polls PowerMonitor and SupplyVoltageSource at 33 ms while NormalStage,
+ * @brief Polls PowerMonitor and SupplyVoltageSource at 40 ms while NormalStage,
  * EnergyStage, or ProfilePickerStage is active. Publishes a fused `SensorEvent`.
  */
 #pragma once
@@ -21,7 +21,7 @@ namespace pocketpd {
         SupplyVoltageSource& m_supply;
 
     public:
-        static constexpr uint32_t PERIOD_MS = 33;
+        static constexpr uint32_t PERIOD_MS = 40;
 
         SensorTask(PowerMonitor& monitor, SupplyVoltageSource& supply)
             : App::StageScopedTask(
