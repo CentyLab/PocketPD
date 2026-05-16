@@ -23,6 +23,7 @@
 #include "v2/images.h"
 #include "v2/stages/energy/energy_view.h"
 #include "v2/pocketpd.h"
+#include "v2/util/filter.h"
 
 namespace pocketpd {
 
@@ -115,9 +116,9 @@ namespace pocketpd {
                 m_snapshot_seeded = true;
                 return;
             }
-            const uint32_t a = SENSOR_EMA_DEN - 1;
-            m_snapshot.vbus_mv = (m_snapshot.vbus_mv * a + s.vbus_mv) / SENSOR_EMA_DEN;
-            m_snapshot.current_ma = (m_snapshot.current_ma * a + s.current_ma) / SENSOR_EMA_DEN;
+            m_snapshot.vbus_mv = Filter::ema(m_snapshot.vbus_mv, s.vbus_mv, SENSOR_EMA_DEN);
+            m_snapshot.current_ma =
+                Filter::ema(m_snapshot.current_ma, s.current_ma, SENSOR_EMA_DEN);
             m_snapshot.timestamp_ms = s.timestamp_ms;
         }
 

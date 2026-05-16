@@ -18,6 +18,7 @@
 #include "v2/stages/normal/fixed_mode.h"
 #include "v2/stages/normal/normal_view.h"
 #include "v2/stages/normal/pps_mode.h"
+#include "v2/util/filter.h"
 
 namespace pocketpd {
 
@@ -199,11 +200,9 @@ namespace pocketpd {
                 return;
             }
 
-            // For SENSOR_EMA_DEN = 4: new = 0.75 * new + 0.25 * old
-
-            const uint32_t a = SENSOR_EMA_DEN - 1;
-            m_snapshot.vbus_mv = (m_snapshot.vbus_mv * a + s.vbus_mv) / SENSOR_EMA_DEN;
-            m_snapshot.current_ma = (m_snapshot.current_ma * a + s.current_ma) / SENSOR_EMA_DEN;
+            m_snapshot.vbus_mv = Filter::ema(m_snapshot.vbus_mv, s.vbus_mv, SENSOR_EMA_DEN);
+            m_snapshot.current_ma =
+                Filter::ema(m_snapshot.current_ma, s.current_ma, SENSOR_EMA_DEN);
             m_snapshot.timestamp_ms = s.timestamp_ms;
         }
 
