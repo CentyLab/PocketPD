@@ -49,6 +49,7 @@ namespace pocketpd {
         bool m_blink_visible = true;
 
         static constexpr uint32_t SENSOR_EMA_DEN = 4;
+        static constexpr uint32_t SUPPLY_EMA_DEN = 8;
         static constexpr uint32_t READOUT_BLINK_ON_MS = 1200;
         static constexpr uint32_t READOUT_BLINK_OFF_MS = 400;
         static constexpr uint32_t READOUT_BLINK_CYCLE_MS =
@@ -194,7 +195,7 @@ namespace pocketpd {
                     m_load_init = true;
                     if (evt.supply.valid) {
                         m_supply_reading = m_supply_init
-                            ? Filter::ema(m_supply_reading, evt.supply, SENSOR_EMA_DEN)
+                            ? Filter::ema(m_supply_reading, evt.supply, SUPPLY_EMA_DEN)
                             : evt.supply;
                         m_supply_init = true;
                     }
