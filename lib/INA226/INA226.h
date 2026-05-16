@@ -49,7 +49,7 @@
 
 
 //  for setAverage() and getAverage()
-enum ina226_average_enum {
+enum ina226_average_enum: uint8_t {
     INA226_1_SAMPLE     = 0,
     INA226_4_SAMPLES    = 1,
     INA226_16_SAMPLES   = 2,
@@ -62,7 +62,7 @@ enum ina226_average_enum {
 
 
 //  for BVCT and SVCT conversion timing.
-enum ina226_timing_enum {
+enum ina226_timing_enum: uint8_t {
     INA226_140_us  = 0,
     INA226_204_us  = 1,
     INA226_332_us  = 2,
