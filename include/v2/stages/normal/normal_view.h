@@ -4,11 +4,11 @@
  */
 #pragma once
 
-#include <tempo/hardware/display.h>
-
 #include <array>
 #include <cstdint>
 #include <cstdio>
+
+#include <tempo/hardware/display.h>
 
 #include "v2/events.h"
 #include "v2/images.h"
@@ -25,6 +25,7 @@ namespace pocketpd {
         bool has_profile = false;
         bool is_pps = false;
         bool output_enabled = false;
+        bool readout_visible = true;
         bool locked = false;
         uint8_t arrow_frame = 0;
         SensorSnapshot snapshot{};
@@ -57,7 +58,7 @@ namespace pocketpd {
         static constexpr uint8_t ARROW_W = 20;
         static constexpr uint8_t ARROW_H = 20;
         static constexpr std::array<uint8_t, 3> CURSOR_X = {33, 39, 45};
-        static constexpr uint8_t CURSOR_W = 7;
+        static constexpr uint8_t CURSOR_W = 6;
 
     public:
         static constexpr uint8_t PADLOCK_X = 116;
@@ -78,8 +79,8 @@ namespace pocketpd {
             std::array<char, 32> buf{};
 
             d.set_font(tempo::Font::XL);
-            draw_measured(d, "V", V_MEASURED_Y, vm.snapshot.vbus_mv, buf);
-            draw_measured(d, "A", A_MEASURED_Y, vm.snapshot.current_ma, buf);
+            draw_measured(d, "V", V_MEASURED_Y, vm.snapshot.vbus_mv, buf, vm.readout_visible);
+            draw_measured(d, "A", A_MEASURED_Y, vm.snapshot.current_ma, buf, vm.readout_visible);
 
             d.set_font(tempo::Font::BASE);
             std::snprintf(buf.data(), buf.size(), "[%u]", vm.active_pdo_index);
@@ -115,9 +116,13 @@ namespace pocketpd {
             const char* label,
             uint8_t y,
             uint32_t value,
-            std::array<char, 32>& buf
+            std::array<char, 32>& buf,
+            bool show_value
         ) {
             d.draw_text(1, y, label);
+            if (!show_value) {
+                return;
+            }
             const unsigned long whole = value / 1000;
             const unsigned long fraction = (value % 1000) / 10;
             std::snprintf(buf.data(), buf.size(), "%lu.%02lu", whole, fraction);

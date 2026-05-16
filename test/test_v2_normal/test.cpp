@@ -401,6 +401,30 @@ TEST(NormalView, UnlockedDoesNotDrawPadlock) {
     NormalView::render(display, vm);
 }
 
+TEST(NormalView, ReadoutHiddenKeepsLabelsHidesValues) {
+    using ::testing::_;
+    using ::testing::AtLeast;
+    using ::testing::HasSubstr;
+    using ::testing::StrEq;
+    NiceMock<MockDisplay> display;
+
+    EXPECT_CALL(display, draw_text(_, _, _)).Times(::testing::AnyNumber());
+    EXPECT_CALL(display, draw_text(1, 14, StrEq("V"))).Times(AtLeast(1));
+    EXPECT_CALL(display, draw_text(1, 48, StrEq("A"))).Times(AtLeast(1));
+    EXPECT_CALL(display, draw_text(_, 14, HasSubstr("5."))).Times(0);
+    EXPECT_CALL(display, draw_text(_, 48, HasSubstr("1."))).Times(0);
+
+    NormalViewModel vm{};
+    vm.has_profile = true;
+    vm.is_pps = false;
+    vm.output_enabled = false;
+    vm.readout_visible = false;
+    vm.active_pdo_index = 0;
+    vm.snapshot = SensorSnapshot{0, 5000, 1234};
+
+    NormalView::render(display, vm);
+}
+
 TEST(NormalStage, ComboLongTogglesLock) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;

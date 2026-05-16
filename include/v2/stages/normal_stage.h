@@ -4,20 +4,20 @@
  */
 #pragma once
 
+#include <variant>
+
 #include <tempo/bus/visit.h>
 #include <tempo/core/time.h>
 #include <tempo/hardware/display.h>
-
-#include <variant>
 
 #include "v2/app.h"
 #include "v2/events.h"
 #include "v2/hal/output_gate.h"
 #include "v2/hal/pd_sink_controller.h"
+#include "v2/pocketpd.h"
 #include "v2/stages/normal/fixed_mode.h"
 #include "v2/stages/normal/normal_view.h"
 #include "v2/stages/normal/pps_mode.h"
-#include "v2/pocketpd.h"
 
 namespace pocketpd {
 
@@ -43,8 +43,10 @@ namespace pocketpd {
         IntervalTimer m_render_interval{40};
         uint8_t m_arrow_frame = 0;
         uint32_t m_last_draw_ms = 0;
+        bool m_blink_visible = true;
 
         static constexpr uint32_t SENSOR_EMA_DEN = 4;
+        static constexpr uint32_t READOUT_BLINK_HALF_PERIOD_MS = 500;
 
     public:
         static constexpr const char* LOG_TAG = "Normal";
@@ -126,6 +128,8 @@ namespace pocketpd {
                     log.debug("draw period={}ms (~{}Hz)", period, hz);
                 }
                 m_last_draw_ms = now_ms;
+                m_blink_visible = m_output_gate.is_enabled() ||
+                                  ((now_ms / READOUT_BLINK_HALF_PERIOD_MS) % 2 == 0);
                 draw();
             }
         }
@@ -133,7 +137,8 @@ namespace pocketpd {
         void on_event(Conductor& conductor, const Event& event, uint32_t) override {
             auto handler = tempo::overloaded{
                 [&](const ButtonEvent& evt) {
-                    // L+R combo always reachable; must precede lock guard so a locked screen can unlock.
+                    // L+R combo always reachable; must precede lock guard so a locked screen can
+                    // unlock.
                     if (evt.lr_long()) {
                         m_locked = !m_locked;
                         return;
@@ -244,6 +249,7 @@ namespace pocketpd {
                 .active_pdo_index = m_active_pdo_index,
                 .has_profile = m_active_pdo_index >= 0,
                 .output_enabled = m_output_gate.is_enabled(),
+                .readout_visible = m_blink_visible,
                 .locked = m_locked,
                 .arrow_frame = m_arrow_frame,
                 .snapshot = m_snapshot,
