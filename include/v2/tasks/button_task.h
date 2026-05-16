@@ -14,7 +14,7 @@
 #include "v2/events.h"
 #include "v2/input/button_gesture.h"
 #include "v2/input/two_buttons_gesture.h"
-#include "v2/state.h"
+#include "v2/pocketpd.h"
 
 namespace pocketpd {
 
@@ -29,6 +29,7 @@ namespace pocketpd {
 
             DetectorRef() = delete;
         };
+        
         std::array<DetectorRef, 3> m_detector_refs;
         TwoButtonsGestureDetector m_combo_detector;
 

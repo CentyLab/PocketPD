@@ -19,7 +19,7 @@
 #include "v2/app.h"
 #include "v2/events.h"
 #include "v2/hal/pd_sink_controller.h"
-#include "v2/state.h"
+#include "v2/pocketpd.h"
 
 namespace pocketpd {
 

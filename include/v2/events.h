@@ -8,7 +8,7 @@
 
 #include <cstdint>
 
-#include "v2/state.h"
+#include "v2/pocketpd.h"
 
 namespace pocketpd {
 
@@ -62,6 +62,15 @@ namespace pocketpd {
      */
     struct EncoderEvent {
         int delta = 0;
+    };
+
+    /**
+     * @brief Latest sensor reading from INA226.
+     */
+    struct SensorSnapshot {
+        uint32_t timestamp_ms = 0;
+        uint32_t vbus_mv = 0;
+        uint32_t current_ma = 0;
     };
 
     /**

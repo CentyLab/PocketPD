@@ -1,7 +1,7 @@
+#include <AP33772.h>
 #include <Arduino.h>
-
-#ifdef HW1_3_V2
 #include <ArduinoTwoWireDevice.h>
+#include <INA226.h>
 #include <PocketPDPinOut.h>
 #include <Wire.h>
 #include <tempo/tempo.h>
@@ -21,11 +21,8 @@
 #include "v2/tasks/encoder_task.h"
 #include "v2/tasks/energy_task.h"
 #include "v2/tasks/sensor_task.h"
-#include <AP33772.h>
-#include <INA226.h>
 
 namespace {
-
 
     // —— Hardware adapters
 
@@ -47,7 +44,7 @@ namespace {
     pocketpd::ArduinoClock arduino_clock;
     pocketpd::ArduinoStreamWriter arduino_stream_writer;
     pocketpd::ArduinoStreamReader arduino_stream_reader;
-    
+
     pocketpd::App app(arduino_clock, arduino_stream_writer);
 
     // —— Stages
@@ -99,14 +96,3 @@ void setup() {
 void loop() {
     app.tick();
 }
-#else
-#include <v1/StateMachine.h>
-
-static StateMachine statemachine;
-
-void setup() {}
-
-void loop() {
-    statemachine.update();
-}
-#endif

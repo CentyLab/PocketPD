@@ -19,7 +19,7 @@
 #include "v2/events.h"
 #include "v2/input/button_gesture.h"
 #include "v2/input/two_buttons_gesture.h"
-#include "v2/state.h"
+#include "v2/pocketpd.h"
 #include "v2/tasks/button_task.h"
 #include "v2/tasks/encoder_task.h"
 

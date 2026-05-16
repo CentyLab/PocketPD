@@ -19,17 +19,19 @@ PackConstructorInitializers: NextLine
 PointerAlignment: Left
 ReflowComments: true
 SpaceAfterCStyleCast: true
-# Header include ordering — Google C++ Style Guide
-# https://google.github.io/styleguide/cppguide.html#Names_and_Order_of_Includes
+# Header include ordering
 #   1. C system headers      (<stdint.h>, <string.h>)
 #   2. C++ standard library  (<cstdint>, <vector>, <algorithm>)
-#   3. Other libraries / project headers (Arduino, third-party, local)
+#   3. Third-party libraries (Arduino, third-party)
+#   4. Local project headers (local)
 SortIncludes: CaseSensitive
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex: '^<[[:lower:]_/]+\.h>$'
+  - Regex: '^<(assert|complex|ctype|errno|fenv|float|inttypes|iso646|limits|locale|math|setjmp|signal|stdalign|stdarg|stdatomic|stdbool|stddef|stdint|stdio|stdlib|stdnoreturn|string|tgmath|threads|time|uchar|wchar|wctype|unistd|fcntl|dirent|pthread|sched|semaphore|sys/.+|netinet/.+|arpa/.+)\.h>$'
     Priority: 1
   - Regex: '^<[[:alpha:]_]+>$'
     Priority: 2
-  - Regex: '.*'
+  - Regex: '^<.+\.h>$'
     Priority: 3
+  - Regex: '.*'
+    Priority: 4

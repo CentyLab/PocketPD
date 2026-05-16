@@ -10,9 +10,9 @@
 #include <cstdint>
 #include <cstdio>
 
+#include "v2/events.h"
 #include "v2/images.h"
 #include "v2/pocketpd.h"
-#include "v2/state.h"
 
 namespace pocketpd {
 
