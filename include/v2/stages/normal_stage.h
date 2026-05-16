@@ -47,7 +47,10 @@ namespace pocketpd {
         bool m_blink_visible = true;
 
         static constexpr uint32_t SENSOR_EMA_DEN = 4;
-        static constexpr uint32_t READOUT_BLINK_HALF_PERIOD_MS = 500;
+        static constexpr uint32_t READOUT_BLINK_ON_MS = 1200;
+        static constexpr uint32_t READOUT_BLINK_OFF_MS = 400;
+        static constexpr uint32_t READOUT_BLINK_CYCLE_MS =
+            READOUT_BLINK_ON_MS + READOUT_BLINK_OFF_MS;
 
     public:
         static constexpr const char* LOG_TAG = "Normal";
@@ -130,7 +133,7 @@ namespace pocketpd {
                 }
                 m_last_draw_ms = now_ms;
                 m_blink_visible = m_output_gate.is_enabled() ||
-                                  ((now_ms / READOUT_BLINK_HALF_PERIOD_MS) % 2 == 0);
+                                  (now_ms % READOUT_BLINK_CYCLE_MS) < READOUT_BLINK_ON_MS;
                 draw();
             }
         }
