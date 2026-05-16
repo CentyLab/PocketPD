@@ -28,7 +28,7 @@ namespace pocketpd {
         bool readout_visible = true;
         bool locked = false;
         uint8_t arrow_frame = 0;
-        SensorSnapshot snapshot{};
+        LoadReading load_reading{};
 
         // —— PPS branch (valid when has_profile && is_pps)
 
@@ -79,8 +79,12 @@ namespace pocketpd {
             std::array<char, 32> buf{};
 
             d.set_font(tempo::Font::XL);
-            draw_measured(d, "V", V_MEASURED_Y, vm.snapshot.vbus_mv, buf, vm.readout_visible);
-            draw_measured(d, "A", A_MEASURED_Y, vm.snapshot.current_ma, buf, vm.readout_visible);
+            draw_measured(
+                d, "V", V_MEASURED_Y, vm.load_reading.vbus_mv, buf, vm.readout_visible
+            );
+            draw_measured(
+                d, "A", A_MEASURED_Y, vm.load_reading.current_ma, buf, vm.readout_visible
+            );
 
             d.set_font(tempo::Font::BASE);
             std::snprintf(buf.data(), buf.size(), "[%u]", vm.active_pdo_index);

@@ -18,6 +18,7 @@
 #include "v2/stages/normal/fixed_mode.h"
 #include "v2/stages/normal/normal_view.h"
 #include "v2/stages/normal/pps_mode.h"
+#include "v2/util/filter.h"
 
 namespace pocketpd {
 
@@ -32,8 +33,8 @@ namespace pocketpd {
         PdSinkController& m_pd_sink;
         OutputGate& m_output_gate;
 
-        SensorSnapshot m_snapshot{};
-        bool m_snapshot_init = false;
+        LoadReading m_load_reading{};
+        bool m_load_init = false;
 
         int8_t m_active_pdo_index = -1;
         int8_t m_last_active_index = -1;
@@ -181,7 +182,12 @@ namespace pocketpd {
                         log.error(msg, m_active_pdo_index, pps->target_mv, pps->target_ma);
                     }
                 },
-                [&](const SensorEvent& evt) { ema_filter(evt.snapshot); },
+                [&](const SensorEvent& evt) {
+                    m_load_reading = m_load_init
+                        ? Filter::ema(m_load_reading, evt.load, SENSOR_EMA_DEN)
+                        : evt.load;
+                    m_load_init = true;
+                },
                 [](const auto&) {},
             };
 
@@ -189,24 +195,6 @@ namespace pocketpd {
         }
 
     private:
-        /**
-         * @brief Apply EMA smoothing to displayed mV / mA.
-         */
-        void ema_filter(const SensorSnapshot& s) {
-            if (!m_snapshot_init) {
-                m_snapshot = s;
-                m_snapshot_init = true;
-                return;
-            }
-
-            // For SENSOR_EMA_DEN = 4: new = 0.75 * new + 0.25 * old
-
-            const uint32_t a = SENSOR_EMA_DEN - 1;
-            m_snapshot.vbus_mv = (m_snapshot.vbus_mv * a + s.vbus_mv) / SENSOR_EMA_DEN;
-            m_snapshot.current_ma = (m_snapshot.current_ma * a + s.current_ma) / SENSOR_EMA_DEN;
-            m_snapshot.timestamp_ms = s.timestamp_ms;
-        }
-
         /**
          * @brief Enter (or re-enter) a PPS profile. Construct fresh state on profile change or
          * mode switch; otherwise preserve the user's prior target edits and reissue.
@@ -252,7 +240,7 @@ namespace pocketpd {
                 .readout_visible = m_blink_visible,
                 .locked = m_locked,
                 .arrow_frame = m_arrow_frame,
-                .snapshot = m_snapshot,
+                .load_reading = m_load_reading,
             };
 
             if (!vm.has_profile) {

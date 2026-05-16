@@ -23,6 +23,7 @@
 #include "v2/images.h"
 #include "v2/stages/energy/energy_view.h"
 #include "v2/pocketpd.h"
+#include "v2/util/filter.h"
 
 namespace pocketpd {
 
@@ -32,8 +33,8 @@ namespace pocketpd {
 
         Display& m_display;
         OutputGate& m_output_gate;
-        SensorSnapshot m_snapshot{};
-        bool m_snapshot_seeded = false;
+        LoadReading m_load_reading{};
+        bool m_load_init = false;
         EnergyEvent m_energy{};
         int8_t m_active_pdo_index = -1;
         tempo::IntervalTimer m_render_interval{40};
@@ -96,7 +97,12 @@ namespace pocketpd {
                         conductor.request<NormalStage>(m_active_pdo_index);
                     }
                 },
-                [&](const SensorEvent& evt) { ema_filter(evt.snapshot); },
+                [&](const SensorEvent& evt) {
+                    m_load_reading = m_load_init
+                        ? Filter::ema(m_load_reading, evt.load, SENSOR_EMA_DEN)
+                        : evt.load;
+                    m_load_init = true;
+                },
                 [&](const EnergyEvent& evt) { m_energy = evt; },
                 [](const auto&) {},
             };
@@ -105,25 +111,9 @@ namespace pocketpd {
         }
 
     private:
-        /**
-         * @brief Apply EMA smoothing to displayed mV / mA. Same shape as
-         * NormalStage so the readout is consistent across screens.
-         */
-        void ema_filter(const SensorSnapshot& s) {
-            if (!m_snapshot_seeded) {
-                m_snapshot = s;
-                m_snapshot_seeded = true;
-                return;
-            }
-            const uint32_t a = SENSOR_EMA_DEN - 1;
-            m_snapshot.vbus_mv = (m_snapshot.vbus_mv * a + s.vbus_mv) / SENSOR_EMA_DEN;
-            m_snapshot.current_ma = (m_snapshot.current_ma * a + s.current_ma) / SENSOR_EMA_DEN;
-            m_snapshot.timestamp_ms = s.timestamp_ms;
-        }
-
         EnergyViewModel build_view_model() const {
             return EnergyViewModel{
-                .snapshot = m_snapshot,
+                .load_reading = m_load_reading,
                 .accumulated_wh = m_energy.accumulated_wh,
                 .accumulated_ah = m_energy.accumulated_ah,
                 .total_seconds = m_energy.total_seconds,

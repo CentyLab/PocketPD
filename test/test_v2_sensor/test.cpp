@@ -47,9 +47,9 @@ TEST(SensorTask, OnTickPublishesSensorEventWithTimestampAndValues) {
 
     const auto* evt = pop_sensor(q);
     ASSERT_NE(evt, nullptr);
-    EXPECT_EQ(evt->snapshot.timestamp_ms, 42u);
-    EXPECT_EQ(evt->snapshot.vbus_mv, 5000u);
-    EXPECT_EQ(evt->snapshot.current_ma, 1234u);
+    EXPECT_EQ(evt->load.timestamp_ms, 42u);
+    EXPECT_EQ(evt->load.vbus_mv, 5000u);
+    EXPECT_EQ(evt->load.current_ma, 1234u);
 }
 
 TEST(SensorTask, InvalidReadingDoesNotPublish) {
