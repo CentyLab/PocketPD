@@ -53,6 +53,14 @@ namespace pocketpd {
 
         /** @brief Request a PPS APDO with explicit voltage and current. */
         [[nodiscard]] virtual bool set_pps_pdo(int index, int voltage_mv, int current_ma) = 0;
+
+        // —— Live readings
+
+        /**
+         * @brief Read VBUS voltage from the sink in mV. Returns -1 on I2C error.
+         * Used by Ap33772VSenseSource on HW < 1.3 (no ADC voltage divider).
+         */
+        virtual int read_vbus_mv() = 0;
     };
 
 } // namespace pocketpd

@@ -4,9 +4,9 @@
  */
 #pragma once
 
-#include <tempo/bus/event.h>
-
 #include <cstdint>
+
+#include <tempo/bus/event.h>
 
 #include "v2/pocketpd.h"
 
@@ -65,7 +65,7 @@ namespace pocketpd {
     };
 
     /**
-     * @brief Latest sensor reading from INA226.
+     * @brief Load-side reading from INA226.
      */
     struct LoadReading {
         uint32_t timestamp_ms = 0;
@@ -74,10 +74,21 @@ namespace pocketpd {
     };
 
     /**
-     * @brief Published by SensorTask. Carries one bus reading.
+     * @brief Supply-side reading  Sourced from the V_SENSE ADC divider on HW1.3+ or the AP33772
+     * VOLTAGE register on earlier board.
+     */
+    struct SupplyReading {
+        uint32_t timestamp_ms = 0;
+        uint32_t mv = 0;
+        bool valid = false;
+    };
+
+    /**
+     * @brief Published by SensorTask
      */
     struct SensorEvent {
         LoadReading load;
+        SupplyReading supply;
     };
 
     /**

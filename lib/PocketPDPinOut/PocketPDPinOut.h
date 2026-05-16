@@ -12,3 +12,5 @@
 #define pin_SDA             4
 #define pin_SCL             5
 
+#define pin_VSENSE          29       // ADC3 — V_SENSE divider (2/13 of VBUS)
+
