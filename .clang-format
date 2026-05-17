@@ -10,6 +10,7 @@ AllowShortFunctionsOnASingleLine: Empty
 AlwaysBreakTemplateDeclarations: Yes
 BinPackArguments: false
 BinPackParameters: OnePerLine
+PenaltyReturnTypeOnItsOwnLine: 1000
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeColon
 DerivePointerAlignment: false

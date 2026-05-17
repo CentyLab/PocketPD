@@ -18,7 +18,6 @@
 #include "v2/stages/normal/fixed_mode.h"
 #include "v2/stages/normal/normal_view.h"
 #include "v2/stages/normal/pps_mode.h"
-#include "v2/util/filter.h"
 
 namespace pocketpd {
 
@@ -48,8 +47,12 @@ namespace pocketpd {
         uint32_t m_last_draw_ms = 0;
         bool m_blink_visible = true;
 
-        static constexpr uint32_t SENSOR_EMA_DEN = 4;
-        static constexpr uint32_t SUPPLY_EMA_DEN = 8;
+        // After OFF->ON, the first INA226 read returns a stale conversion (latched while FET
+        // was off; observed ~200 mV instead of true VBUS). Discard N load samples and hold the
+        // seeded supply value until the sensor has a fresh conversion in hand.
+        uint8_t m_postenable_discard_left = 0;
+        static constexpr uint8_t POSTENABLE_DISCARD_SAMPLES = 2;
+
         static constexpr uint32_t READOUT_BLINK_ON_MS = 1200;
         static constexpr uint32_t READOUT_BLINK_OFF_MS = 400;
         static constexpr uint32_t READOUT_BLINK_CYCLE_MS =
@@ -132,7 +135,7 @@ namespace pocketpd {
                 if (m_last_draw_ms != 0) {
                     const uint32_t period = now_ms - m_last_draw_ms;
                     const uint32_t hz = period == 0 ? 0 : 1000 / period;
-                    log.debug("draw period={}ms (~{}Hz)", period, hz);
+                    // log.debug("draw period={}ms (~{}Hz)", period, hz);
                 }
                 m_last_draw_ms = now_ms;
                 m_blink_visible = m_output_gate.is_enabled() ||
@@ -143,38 +146,48 @@ namespace pocketpd {
 
         void on_event(Conductor& conductor, const Event& event, uint32_t) override {
             auto handler = tempo::overloaded{
-                [&](const ButtonEvent& evt) {
+                [&](const ButtonEvent& event) {
                     // L+R combo always reachable; must precede lock guard so a locked screen can
                     // unlock.
-                    if (evt.lr_long()) {
+                    if (event.lr_long()) {
                         m_locked = !m_locked;
                         return;
                     }
+
                     if (m_locked) {
                         return;
                     }
 
-                    if (evt.r_short()) {
+                    if (event.r_short()) {
+                        const bool was_enabled = m_output_gate.is_enabled();
                         m_output_gate.toggle();
+                        // Display source flips from supply-side to load-side on enable. Seed the
+                        // load EMA with the current supply value so the first frame after toggle
+                        // shows the known VBUS rather than a stale or zero load_reading.
+                        if (!was_enabled && m_output_gate.is_enabled() && m_supply_init) {
+                            m_load_reading.vbus_mv = m_supply_reading.mv;
+                            m_load_init = true;
+                            m_postenable_discard_left = POSTENABLE_DISCARD_SAMPLES;
+                        }
                         return;
                     }
 
-                    if (evt.r_long()) {
+                    if (event.r_long()) {
                         conductor.request<EnergyStage>(m_active_pdo_index);
                         return;
                     }
 
-                    if (evt.l_long()) {
+                    if (event.l_long()) {
                         conductor.request<ProfilePickerStage>();
                         return;
                     }
 
                     // V/I are adjustable in PPS mode
                     if (auto* pps = std::get_if<PPSMode>(&m_mode)) {
-                        pps->on_button(evt);
+                        pps->on_button(event);
                     }
                 },
-                [&](const EncoderEvent& evt) {
+                [&](const EncoderEvent& event) {
                     if (m_locked) {
                         return;
                     }
@@ -183,21 +196,28 @@ namespace pocketpd {
                         return;
                     }
 
-                    if (!pps->on_encoder(evt)) {
+                    if (!pps->on_encoder(event)) {
                         const auto msg = "set_pps_pdo({}, {}, {}) failed";
                         log.error(msg, m_active_pdo_index, pps->target_mv, pps->target_ma);
                     }
                 },
-                [&](const SensorEvent& evt) {
-                    m_load_reading = m_load_init
-                        ? Filter::ema(m_load_reading, evt.load, SENSOR_EMA_DEN)
-                        : evt.load;
-                    m_load_init = true;
-                    if (evt.supply.valid) {
-                        m_supply_reading = m_supply_init
-                            ? Filter::ema(m_supply_reading, evt.supply, SUPPLY_EMA_DEN)
-                            : evt.supply;
-                        m_supply_init = true;
+                [&](const SensorEvent& event) {
+                    if (m_postenable_discard_left > 0) {
+                        --m_postenable_discard_left;
+                    } else if (m_load_init) {
+                        m_load_reading = m_load_reading.ema(event.load);
+                    } else {
+                        m_load_reading = event.load;
+                        m_load_init = true;
+                    }
+
+                    if (event.supply.valid) {
+                        if (m_supply_init) {
+                            m_supply_reading = m_supply_reading.ema(event.supply);
+                        } else {
+                            m_supply_reading = event.supply;
+                            m_supply_init = true;
+                        }
                     }
                 },
                 [](const auto&) {},

@@ -43,6 +43,19 @@ namespace pocketpd {
     // PPS RDO stepping per USB-PD 3.0 spec.
     constexpr int32_t PPS_VOLTAGE_STEP_MV = 20;
     constexpr int32_t PPS_CURRENT_STEP_MA = 50;
+    
+    constexpr uint8_t pin_encoder_SW = 18;
+    constexpr uint8_t pin_encoder_A = 19;  // CLK
+    constexpr uint8_t pin_encoder_B = 20;  // DATA
+
+    constexpr uint8_t pin_output_Enable = 1;
+    constexpr uint8_t pin_button_outputSW = 10;
+    constexpr uint8_t pin_button_selectVI = 11;
+
+    constexpr uint8_t pin_SDA = 4;
+    constexpr uint8_t pin_SCL = 5;
+
+    constexpr uint8_t pin_VSENSE = 29;  // ADC3 — V_SENSE divider (2/13 of VBUS)
 
     // —— I2C addresses
 

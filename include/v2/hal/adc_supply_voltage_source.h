@@ -4,9 +4,9 @@
  */
 #pragma once
 
-#include <Arduino.h>
-
 #include <cstdint>
+
+#include <Arduino.h>
 
 #include "v2/hal/supply_voltage_source.h"
 
@@ -22,6 +22,9 @@ namespace pocketpd {
         static constexpr uint32_t DIVIDER_NUM = 13;
         static constexpr uint32_t DIVIDER_DEN = 2;
 
+        // Oversample N raw samples per read(); sqrt(N) noise reduction on uncorrelated ADC noise.
+        static constexpr uint16_t OVERSAMPLE_N = 64; // tested ~300us loop time at 64 samples
+
     public:
         explicit AdcSupplyVoltageSource(uint8_t pin) : m_pin(pin) {}
 
@@ -30,9 +33,15 @@ namespace pocketpd {
         }
 
         SupplyVoltageReading read() override {
-            const uint32_t raw = analogRead(m_pin);
-            const uint32_t adc_mv = (raw * ADC_REF_MV) / ADC_MAX;
-            const uint32_t vbus_mv = (adc_mv * DIVIDER_NUM) / DIVIDER_DEN;
+            uint32_t sum = 0;
+            for (int i = 0; i < OVERSAMPLE_N; i++) {
+                sum += analogRead(m_pin);
+            }
+
+            const uint64_t numerator = (uint64_t) sum * ADC_REF_MV * DIVIDER_NUM;
+            const uint64_t denominator = (uint64_t) OVERSAMPLE_N * ADC_MAX * DIVIDER_DEN;
+            const uint32_t vbus_mv = numerator / denominator;
+
             return SupplyVoltageReading{vbus_mv, true};
         }
     };
