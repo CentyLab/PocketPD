@@ -22,8 +22,6 @@
 #include "v2/hal/output_gate.h"
 #include "v2/images.h"
 #include "v2/stages/energy/energy_view.h"
-#include "v2/pocketpd.h"
-#include "v2/util/filter.h"
 
 namespace pocketpd {
 
@@ -40,8 +38,6 @@ namespace pocketpd {
         tempo::IntervalTimer m_render_interval{40};
         uint8_t m_arrow_frame = 0;
         bool m_locked = false;
-
-        static constexpr uint32_t SENSOR_EMA_DEN = 4;
 
     public:
         static constexpr const char* LOG_TAG = "EnergyStage";
@@ -79,9 +75,10 @@ namespace pocketpd {
 
         void on_event(Conductor& conductor, const Event& event, uint32_t) override {
             auto handler = tempo::overloaded{
-                [&](const ButtonEvent& evt) {
-                    // L+R combo always reachable; must precede lock guard so a locked screen can unlock.
-                    if (evt.lr_long()) {
+                [&](const ButtonEvent& event) {
+                    // L+R combo always reachable; must precede lock guard so a locked screen can
+                    // unlock.
+                    if (event.lr_long()) {
                         m_locked = !m_locked;
                         return;
                     }
@@ -89,19 +86,21 @@ namespace pocketpd {
                         return;
                     }
 
-                    if (evt.r_short()) {
+                    if (event.r_short()) {
                         m_output_gate.toggle();
                         return;
                     }
-                    if (evt.r_long()) {
+                    if (event.r_long()) {
                         conductor.request<NormalStage>(m_active_pdo_index);
                     }
                 },
-                [&](const SensorEvent& evt) {
-                    m_load_reading = m_load_init
-                        ? Filter::ema(m_load_reading, evt.load, SENSOR_EMA_DEN)
-                        : evt.load;
-                    m_load_init = true;
+                [&](const SensorEvent& event) {
+                    if (m_load_init) {
+                        m_load_reading = m_load_reading.ema(event.load);
+                    } else {
+                        m_load_reading = event.load;
+                        m_load_init = true;
+                    }
                 },
                 [&](const EnergyEvent& evt) { m_energy = evt; },
                 [](const auto&) {},

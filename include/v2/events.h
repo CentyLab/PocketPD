@@ -9,6 +9,7 @@
 #include <tempo/bus/event.h>
 
 #include "v2/pocketpd.h"
+#include "v2/util/filter.h"
 
 namespace pocketpd {
 
@@ -68,9 +69,21 @@ namespace pocketpd {
      * @brief Load-side reading from INA226.
      */
     struct LoadReading {
+        static constexpr uint32_t LOAD_EMA_DEN = 4;
+        static constexpr uint32_t SNAP_MV = 200;
+        static constexpr uint32_t SNAP_MA = 20;
+
         uint32_t timestamp_ms = 0;
         uint32_t vbus_mv = 0;
         uint32_t current_ma = 0;
+
+        LoadReading ema(const LoadReading& sample ) const {
+            return {
+                .timestamp_ms = sample.timestamp_ms,
+                .vbus_mv = Filter::ema(vbus_mv, sample.vbus_mv, LOAD_EMA_DEN, SNAP_MV),
+                .current_ma = Filter::ema(current_ma, sample.current_ma, LOAD_EMA_DEN, SNAP_MA),
+            };
+        }
     };
 
     /**
@@ -78,9 +91,20 @@ namespace pocketpd {
      * VOLTAGE register on earlier board.
      */
     struct SupplyReading {
+        static constexpr uint32_t SUPPLY_EMA_DEN = 8;
+        static constexpr uint32_t SNAP_MV = 200;
+
         uint32_t timestamp_ms = 0;
         uint32_t mv = 0;
         bool valid = false;
+
+        SupplyReading ema(const SupplyReading& sample) const {
+            return {
+                .timestamp_ms = sample.timestamp_ms,
+                .mv = Filter::ema(mv, sample.mv, SUPPLY_EMA_DEN, SNAP_MV),
+                .valid = sample.valid,
+            };
+        }
     };
 
     /**

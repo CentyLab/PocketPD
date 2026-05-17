@@ -2,14 +2,13 @@
 #include <Arduino.h>
 #include <ArduinoTwoWireDevice.h>
 #include <INA226.h>
-#include <PocketPDPinOut.h>
 #include <Wire.h>
 #include <tempo/tempo.h>
 
 #include "v2/app.h"
+#include "v2/hal/adc_supply_voltage_source.h"
 #include "v2/hal/ap33772_pd_sink.h"
 #include "v2/hal/ap33772_supply_voltage_source.h"
-#include "v2/hal/adc_supply_voltage_source.h"
 #include "v2/hal/arduino_clock.h"
 #include "v2/hal/arduino_output_gate.h"
 #include "v2/hal/arduino_stream_reader.h"
@@ -25,8 +24,6 @@
 #include "v2/tasks/sensor_task.h"
 
 namespace pocketpd {
-
-    
 
     // —— Hardware adapters
 
@@ -76,13 +73,13 @@ namespace pocketpd {
 } // namespace pocketpd
 
 void setup() {
+    using namespace pocketpd;
+
     Serial.begin(115200);
 
     Wire.setSDA(pin_SDA);
     Wire.setSCL(pin_SCL);
     Wire.begin();
-
-    using namespace pocketpd;
 
     ina226_driver.begin();
     power_monitor.begin();

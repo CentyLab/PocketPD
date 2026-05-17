@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdlib>
 
 #include "v2/events.h"
 
@@ -15,28 +16,21 @@ namespace pocketpd {
         /**
          * @brief One EMA step. `new = ((den-1)*prev + sample) / den`.
          * For `den = 4`: weights 0.75 prev / 0.25 sample.
+         *
+         * @param prev The previous value.
+         * @param sample The new value.
+         * @param den The denominator of the EMA.
+         * @param snap The snap threshold.
+         * @return The EMA value.
          */
-        static uint32_t ema(uint32_t prev, uint32_t sample, uint32_t den) {
+        static uint32_t ema(
+            uint32_t prev, uint32_t sample, uint32_t den, uint32_t snap = UINT32_MAX
+        ) {
+            uint32_t diff = sample > prev ? sample - prev : prev - sample;
+            if (diff >= snap) {
+                return sample;
+            }
             return (prev * (den - 1) + sample) / den;
-        }
-
-        /** @brief Per-field EMA across a `LoadReading`. `timestamp_ms` tracks the latest. */
-        static LoadReading ema(const LoadReading& prev, const LoadReading& sample, uint32_t den) {
-            return LoadReading{
-                .timestamp_ms = sample.timestamp_ms,
-                .vbus_mv = ema(prev.vbus_mv, sample.vbus_mv, den),
-                .current_ma = ema(prev.current_ma, sample.current_ma, den),
-            };
-        }
-
-        /** @brief Per-field EMA across a `SupplyReading`. Caller filters invalid samples. */
-        static SupplyReading
-        ema(const SupplyReading& prev, const SupplyReading& sample, uint32_t den) {
-            return {
-                .timestamp_ms = sample.timestamp_ms,
-                .mv = ema(prev.mv, sample.mv, den),
-                .valid = sample.valid,
-            };
         }
     };
 
