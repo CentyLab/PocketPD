@@ -22,7 +22,14 @@ namespace pocketpd {
 
         void begin() override {
             m_driver.begin();
-            m_driver.configure(0.005, 0.25, 50, 9970);
+
+            #if HW_VERSION_MINOR == 0
+            // current_zero_offset_mA may need to be adjusted
+            m_driver.configure(0.010, 0.25, 6.4, 9972);
+            #else
+            m_driver.configure(0.005, 0.25, 50, 9972);
+            #endif
+
             m_driver.setAverage(INA226_4_SAMPLES);
         }
 
