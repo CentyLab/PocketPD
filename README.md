@@ -1,7 +1,7 @@
 [![PlatformIO CI](https://github.com/braamBeresford/PocketPD/actions/workflows/main.yml/badge.svg)](https://github.com/braamBeresford/PocketPD/actions/workflows/main.yml)
 ## Description
 
-PocketPD is a portable USB-C bench power supply that can fit in your pocket. Combine with a USB-C PD 3.0/3.1 power source and you can utilize the PPS profile to create a portable power supply with voltage and current adjustment.
+PocketPD turns any PPS-capable USB-C charger into a pocket-sized bench power supply, with a rotary encoder and two interface buttons for precise V/I control and monitoring.
 
 As the DIY community has grown, there are multiple ways to implement control features like adjusting parameters via Wifi, Bluetooth, or touch screen. We want to keep the design language simple, just physical knobs and buttons to control. This will give the system higher reliability when you need it to work.
 
@@ -9,22 +9,6 @@ As the DIY community has grown, there are multiple ways to implement control fea
 
 * [PocketPD Project - Hackaday](https://hackaday.io/project/194295-pocketpd-usb-c-portable-bench-power-supply)
 * [PocketPD Hardware - GitHub](https://github.com/CentyLab/PocketPD_HW)
-
-## System flow chart
-
-```mermaid
-flowchart LR
-    A[Boot up] --> |0.5s|B[Obtain charger capability]
-    B --> |1.5s|C[Display capabilities]
-    C --> |3s|D[Normal operation]
-    D --> |Long Press V/I|E[Menu]
-    B --> |Short Press any button|D
-    C --> |Short Press any button|D
-    E --> |Long Press V/I|D
-    E --> |Long Press Encoder|D
-    D --> |Long Press ON/OFF|F[Energy Screen]
-    F --> |Long Press ON/OFF|D
-```
 
 ## Operational manual
 
