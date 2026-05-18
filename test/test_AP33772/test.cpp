@@ -145,6 +145,25 @@ TEST_F(AP33772Test, BeginLoadsPDOsOnSuccess) {
     EXPECT_TRUE(ap.has_pps_profile());
 }
 
+// Issue #97: slow chargers (Anker Prime, Apple) finish PD negotiation hundreds of ms after
+// VBUS-on. begin() must poll PDONUM rather than fail on the first count=0 read.
+TEST_F(AP33772Test, BeginPollsUntilPDOsArrive) {
+    scriptHealthyBus({fixed_pdo_5v_3a(), pps_pdo_3v3_11v_3a()});
+
+    // Override the PDONUM default to return 0 the first 5 reads, then the real count.
+    int poll_calls = 0;
+    ON_CALL(m_i2c_device, read_bytes(reg::PDONUM, _, 1))
+        .WillByDefault(Invoke([&](uint8_t, uint8_t* buf, size_t) {
+            buf[0] = (poll_calls++ < 5) ? 0 : m_count_byte;
+            return true;
+        }));
+
+    AP33772 ap(m_i2c_device, noop_delay);
+    ASSERT_TRUE(ap.begin());
+    EXPECT_EQ(2, ap.pdo_count());
+    EXPECT_GE(poll_calls, 6);
+}
+
 // —— PDO decode
 TEST_F(AP33772Test, FixedPDODecode) {
     scriptHealthyBus({fixed_pdo_5v_3a()});

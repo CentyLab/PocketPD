@@ -63,6 +63,10 @@ namespace ap33772 {
     constexpr int NTC_DEFAULT_TR75 = 1928;  // 0x0788
     constexpr int NTC_DEFAULT_TR100 = 974;  // 0x03CE
 
+    // ── begin() poll budget for PD negotiation completion
+    constexpr uint32_t BEGIN_POLL_TIMEOUT_MS = 1000;
+    constexpr uint32_t BEGIN_POLL_INTERVAL_MS = 25;
+
     /**
      * STATUS register (0x1D) — read-clear (Table 7)
      */
@@ -224,12 +228,24 @@ namespace ap33772 {
             // discard any pending event before the firmware can act on it.
 
             uint8_t count = 0;
-            if (!m_i2c.read(reg::PDONUM, &count, 1)) {
-                return false;
-            }
+            uint32_t waited_ms = 0;
 
-            if (count == 0) {
-                return false;
+            // Polling loop for some slow chargers
+            while (true) {
+                if (!m_i2c.read(reg::PDONUM, &count, 1)) {
+                    return false;
+                }
+
+                if (count > 0) {
+                    break;
+                }
+
+                if (waited_ms >= BEGIN_POLL_TIMEOUT_MS) {
+                    return false;
+                }
+
+                m_delay(BEGIN_POLL_INTERVAL_MS);
+                waited_ms += BEGIN_POLL_INTERVAL_MS;
             }
 
             m_pdo_count = clamp<int>(count, 0, MAX_PDO);
