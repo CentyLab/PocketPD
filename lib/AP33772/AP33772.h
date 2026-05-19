@@ -64,7 +64,7 @@ namespace ap33772 {
     constexpr int NTC_DEFAULT_TR100 = 974;  // 0x03CE
 
     // ── begin() poll budget for PD negotiation completion
-    constexpr uint32_t BEGIN_POLL_TIMEOUT_MS = 1000;
+    constexpr uint32_t BEGIN_POLL_TIMEOUT_MS = 10000;
     constexpr uint32_t BEGIN_POLL_INTERVAL_MS = 25;
 
     /**
