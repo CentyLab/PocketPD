@@ -4,3 +4,4 @@
 .cache
 .worktrees
 compile_commands.json
+dist/
