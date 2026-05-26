@@ -8,6 +8,10 @@ namespace pocketpd {
 
     class MockPdSink : public PdSinkController {
     public:
+        MockPdSink() {
+            ON_CALL(*this, pdo_count()).WillByDefault(::testing::Return(8));
+        }
+
         MOCK_METHOD(bool, begin, (), (override));
         MOCK_METHOD(int, pdo_count, (), (const, override));
         MOCK_METHOD(int, pps_count, (), (const, override));

@@ -15,13 +15,10 @@
 #include "v2/hal/output_gate.h"
 #include "v2/hal/pd_sink_controller.h"
 #include "v2/pocketpd.h"
-#include "v2/stages/normal/fixed_mode.h"
+#include "v2/stages/normal/mode.h"
 #include "v2/stages/normal/normal_view.h"
-#include "v2/stages/normal/pps_mode.h"
 
 namespace pocketpd {
-
-    using Mode = std::variant<FixedMode, PPSMode>;
 
     class NormalStage : public App::Stage, public App::UseLog<NormalStage> {
     private:
@@ -39,14 +36,14 @@ namespace pocketpd {
 
         int8_t m_active_pdo_index = -1;
         int8_t m_last_active_index = -1;
-        bool m_locked = false;
         Mode m_mode;
-
+        
         IntervalTimer m_render_interval{40};
         uint8_t m_arrow_frame = 0;
         uint32_t m_last_draw_ms = 0;
         bool m_blink_visible = true;
-
+        
+        bool m_locked = false;
         // After OFF->ON, the first INA226 read returns a stale conversion (latched while FET
         // was off; observed ~200 mV instead of true VBUS). Discard N load samples and hold the
         // seeded supply value until the sensor has a fresh conversion in hand.
@@ -84,18 +81,22 @@ namespace pocketpd {
             const auto* p = std::get_if<PPSMode>(&m_mode);
             return p ? p->target_mv : 0;
         }
+
         int32_t target_ma() const {
             const auto* p = std::get_if<PPSMode>(&m_mode);
             return p ? p->target_ma : 0;
         }
+
         AdjustMode adjust_mode() const {
             const auto* p = std::get_if<PPSMode>(&m_mode);
             return p ? p->adjust_mode : AdjustMode::VOLTAGE;
         }
+
         uint8_t voltage_increment_index() const {
             const auto* p = std::get_if<PPSMode>(&m_mode);
             return p ? p->voltage_idx : 0;
         }
+
         uint8_t current_increment_index() const {
             const auto* p = std::get_if<PPSMode>(&m_mode);
             return p ? p->current_idx : 0;
@@ -108,16 +109,21 @@ namespace pocketpd {
         void on_enter(Conductor&) override {
             m_locked = false;
 
+            int count = m_pd_sink.pdo_count();
+            if (count == 0) {
+                m_mode = PassthroughMode{};
+                draw();
+                return;
+            }
+
+            // Set active PDO index to 0 if it has not been set before
+            if (m_active_pdo_index < 0) {
+                m_active_pdo_index = 0;
+            }
+
             // Turns off output if the profile has changed
             if (m_active_pdo_index != m_last_active_index) {
                 m_output_gate.disable();
-            }
-
-            if (m_active_pdo_index < 0) {
-                m_last_active_index = -1;
-                log.info("Entered with no profile selected");
-                draw();
-                return;
             }
 
             if (m_pd_sink.is_index_pps(m_active_pdo_index)) {
@@ -232,10 +238,8 @@ namespace pocketpd {
          * mode switch; otherwise preserve the user's prior target edits and reissue.
          */
         void enter_pps_profile() {
-            const bool same_profile = (m_active_pdo_index == m_last_active_index);
-            const bool reusable = same_profile && std::holds_alternative<PPSMode>(m_mode);
-
-            if (!reusable) {
+            bool same_profile = m_active_pdo_index == m_last_active_index;
+            if (!same_profile) {
                 PPSMode pps{m_pd_sink, m_active_pdo_index};
                 m_mode = pps;
 
@@ -254,9 +258,10 @@ namespace pocketpd {
          * @brief Enter a fixed PDO profile. Trigger `set_pdo` on every entry.
          */
         void enter_fixed_profile() {
-            if (!std::holds_alternative<FixedMode>(m_mode)) {
-                m_mode = FixedMode{};
-            }
+            m_mode = FixedMode{
+                .pdo_max_mv = m_pd_sink.pdo_max_voltage_mv(m_active_pdo_index),
+                .pdo_max_ma = m_pd_sink.pdo_max_current_ma(m_active_pdo_index),
+            };
 
             log.info("Entered PDO profile pdo_index={}", m_active_pdo_index);
             if (!m_pd_sink.set_pdo(m_active_pdo_index)) {
@@ -265,37 +270,16 @@ namespace pocketpd {
         }
 
         NormalViewModel build_view_model() const {
-            NormalViewModel vm = {
+            return NormalViewModel{
                 .active_pdo_index = m_active_pdo_index,
-                .has_profile = m_active_pdo_index >= 0,
                 .output_enabled = m_output_gate.is_enabled(),
                 .readout_visible = m_blink_visible,
                 .locked = m_locked,
                 .arrow_frame = m_arrow_frame,
                 .load_reading = m_load_reading,
                 .supply_reading = m_supply_reading,
+                .mode = m_mode,
             };
-
-            if (!vm.has_profile) {
-                return vm;
-            }
-
-            auto handle_mode = tempo::overloaded{
-                [&](const FixedMode& mode) {
-                    vm.pdo_max_mv = m_pd_sink.pdo_max_voltage_mv(m_active_pdo_index);
-                    vm.pdo_max_ma = m_pd_sink.pdo_max_current_ma(m_active_pdo_index);
-                },
-                [&](const PPSMode& mode) {
-                    vm.is_pps = true;
-                    vm.target_mv = mode.target_mv;
-                    vm.target_ma = mode.target_ma;
-                    vm.adjust_mode = mode.adjust_mode;
-                    vm.cursor_idx = mode.cursor_index();
-                },
-            };
-
-            std::visit(handle_mode, m_mode);
-            return vm;
         }
 
         void draw() {

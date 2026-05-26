@@ -30,12 +30,13 @@ TEST(ProfilePickerStage, EmptyListRendersFallback) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(0));
-    EXPECT_CALL(display, text_width(StrEq("[No Profile Detected]"))).WillRepeatedly(Return(126));
+    EXPECT_CALL(display, text_width(StrEq("Non-PD Source"))).WillRepeatedly(Return(78));
+    EXPECT_CALL(display, text_width(StrEq("Passthrough Mode"))).WillRepeatedly(Return(96));
 
     EXPECT_CALL(display, clear()).Times(1);
-    EXPECT_CALL(display, draw_text(1, 34, StrEq("[No Profile Detected]"))).Times(1);
+    EXPECT_CALL(display, draw_text(25, 28, StrEq("Non-PD Source"))).Times(1);
+    EXPECT_CALL(display, draw_text(16, 44, StrEq("Passthrough Mode"))).Times(1);
     EXPECT_CALL(display, flush()).Times(1);
-    EXPECT_CALL(display, draw_text(::testing::Ne(1), ::testing::_, ::testing::_)).Times(0);
 
     ProfilePickerStage stage(display, sink);
     TestConductor conductor;
@@ -54,7 +55,7 @@ TEST(ProfilePickerStage, RendersSingleFixedPdo) {
 
     EXPECT_CALL(display, clear()).Times(1);
     EXPECT_CALL(display, draw_text(0, ::testing::_, StrEq(">"))).Times(::testing::AnyNumber());
-    EXPECT_CALL(display, draw_text(5, 9, StrEq("PDO: 5V @ 3A"))).Times(1);
+    EXPECT_CALL(display, draw_text(10, 9, StrEq("PDO       5.0V  3A"))).Times(1);
     EXPECT_CALL(display, flush()).Times(1);
 
     ProfilePickerStage stage(display, sink);
@@ -80,8 +81,8 @@ TEST(ProfilePickerStage, RendersFixedAndPpsLines) {
     EXPECT_CALL(sink, pdo_max_current_ma(1)).WillRepeatedly(Return(3000));
 
     EXPECT_CALL(display, draw_text(0, ::testing::_, StrEq(">"))).Times(::testing::AnyNumber());
-    EXPECT_CALL(display, draw_text(5, 9, StrEq("PDO: 9V @ 2A"))).Times(1);
-    EXPECT_CALL(display, draw_text(5, 18, StrEq("PPS: 3.3V~21.0V @ 3A"))).Times(1);
+    EXPECT_CALL(display, draw_text(10, 9, StrEq("PDO       9.0V  2A"))).Times(1);
+    EXPECT_CALL(display, draw_text(10, 18, StrEq("PPS  3.3-21.0V  3A"))).Times(1);
 
     ProfilePickerStage stage(display, sink);
     TestConductor conductor;
@@ -108,8 +109,8 @@ TEST(ProfilePickerStage, RendersMultiplePpsLines) {
     EXPECT_CALL(sink, pdo_max_current_ma(1)).WillRepeatedly(Return(5000));
 
     EXPECT_CALL(display, draw_text(0, ::testing::_, StrEq(">"))).Times(::testing::AnyNumber());
-    EXPECT_CALL(display, draw_text(5, 9, StrEq("PPS: 3.3V~11.0V @ 3A"))).Times(1);
-    EXPECT_CALL(display, draw_text(5, 18, StrEq("PPS: 3.3V~21.0V @ 5A"))).Times(1);
+    EXPECT_CALL(display, draw_text(10, 9, StrEq("PPS  3.3-11.0V  3A"))).Times(1);
+    EXPECT_CALL(display, draw_text(10, 18, StrEq("PPS  3.3-21.0V  5A"))).Times(1);
 
     ProfilePickerStage stage(display, sink);
     TestConductor conductor;
@@ -133,8 +134,8 @@ TEST(ProfilePickerStage, EntryDrawsCursorAtFirstRow) {
     EXPECT_CALL(display, clear()).Times(1);
     EXPECT_CALL(display, draw_text(0, 9, StrEq(">"))).Times(1);
     EXPECT_CALL(display, draw_text(0, 18, StrEq(">"))).Times(0);
-    EXPECT_CALL(display, draw_text(5, 9, StrEq("PDO: 5V @ 3A"))).Times(1);
-    EXPECT_CALL(display, draw_text(5, 18, StrEq("PDO: 9V @ 2A"))).Times(1);
+    EXPECT_CALL(display, draw_text(10, 9, StrEq("PDO       5.0V  3A"))).Times(1);
+    EXPECT_CALL(display, draw_text(10, 18, StrEq("PDO       9.0V  2A"))).Times(1);
     EXPECT_CALL(display, flush()).Times(1);
 
     ProfilePickerStage stage(display, sink);
@@ -165,7 +166,7 @@ TEST(ProfilePickerStage, EncoderMovesCursorAndRerenders) {
     ::testing::Mock::VerifyAndClearExpectations(&display);
 
     EXPECT_CALL(display, clear()).Times(1);
-    EXPECT_CALL(display, draw_text(5, _, _)).Times(AnyNumber());
+    EXPECT_CALL(display, draw_text(10, _, _)).Times(AnyNumber());
     EXPECT_CALL(display, draw_text(0, 9, StrEq(">"))).Times(0);
     EXPECT_CALL(display, draw_text(0, 18, StrEq(">"))).Times(1);
     EXPECT_CALL(display, draw_text(0, 27, StrEq(">"))).Times(0);
@@ -200,7 +201,7 @@ TEST(ProfilePickerStage, EncoderClampsAtTopAndBottom) {
     ::testing::Mock::VerifyAndClearExpectations(&display);
 
     EXPECT_CALL(display, clear()).Times(1);
-    EXPECT_CALL(display, draw_text(5, _, _)).Times(AnyNumber());
+    EXPECT_CALL(display, draw_text(10, _, _)).Times(AnyNumber());
     EXPECT_CALL(display, draw_text(0, 9, StrEq(">"))).Times(0);
     EXPECT_CALL(display, draw_text(0, 18, StrEq(">"))).Times(1);
     EXPECT_CALL(display, flush()).Times(1);
@@ -212,20 +213,25 @@ TEST(ProfilePickerStage, EncoderClampsAtTopAndBottom) {
     stage.on_event(conductor, EncoderEvent{4}, 0);
 }
 
-TEST(ProfilePickerStage, EmptyListIgnoresEncoder) {
+TEST(ProfilePickerStage, EmptyListEncoderRotationTransitionsToNormal) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(0));
 
     ProfilePickerStage stage(display, sink);
+    NiceMock<MockOutputGate> normal_gate;
+    NormalStage normal(display, sink, normal_gate);
     TestConductor conductor;
     conductor.register_stage(stage);
+    conductor.register_stage(normal);
     conductor.start<ProfilePickerStage>();
-    ::testing::Mock::VerifyAndClearExpectations(&display);
 
-    EXPECT_CALL(display, clear()).Times(0);
-    EXPECT_CALL(display, flush()).Times(0);
     stage.on_event(conductor, EncoderEvent{1}, 0);
+
+    EXPECT_TRUE(conductor.has_pending());
+    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
+    EXPECT_EQ(normal.active_pdo_index(), -1);
 }
 
 TEST(ProfilePickerStage, LongPressCommitsPpsWhenCursorOnPps) {
@@ -286,7 +292,54 @@ TEST(ProfilePickerStage, LongPressCommitsPdoWhenCursorOnFixed) {
     EXPECT_EQ(normal.active_pdo_index(), 0);
 }
 
-TEST(ProfilePickerStage, LongPressIgnoredWhenEmptyPdoList) {
+TEST(ProfilePickerStage, EmptyListAutoTransitionsAfterTimeout) {
+    NiceMock<MockDisplay> display;
+    NiceMock<MockPdSink> sink;
+    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(0));
+
+    ProfilePickerStage stage(display, sink);
+    NiceMock<MockOutputGate> normal_gate;
+    NormalStage normal(display, sink, normal_gate);
+    TestConductor conductor;
+    conductor.register_stage(stage);
+    conductor.register_stage(normal);
+    conductor.start<ProfilePickerStage>();
+
+    // Arms the timeout on the first tick.
+    stage.on_tick(conductor, 0);
+    EXPECT_FALSE(conductor.has_pending());
+
+    // Just before the timeout elapses, still no transition.
+    stage.on_tick(conductor, PICKER_PASSTHROUGH_AUTO_MS - 1);
+    EXPECT_FALSE(conductor.has_pending());
+
+    // At/after the timeout, transition fires.
+    stage.on_tick(conductor, PICKER_PASSTHROUGH_AUTO_MS);
+    EXPECT_TRUE(conductor.has_pending());
+    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
+    EXPECT_EQ(normal.active_pdo_index(), -1);
+}
+
+TEST(ProfilePickerStage, NonEmptyListDoesNotAutoTransition) {
+    NiceMock<MockDisplay> display;
+    NiceMock<MockPdSink> sink;
+    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(1));
+    EXPECT_CALL(sink, is_index_fixed(0)).WillRepeatedly(Return(true));
+    EXPECT_CALL(sink, pdo_max_voltage_mv(0)).WillRepeatedly(Return(5000));
+    EXPECT_CALL(sink, pdo_max_current_ma(0)).WillRepeatedly(Return(3000));
+
+    ProfilePickerStage stage(display, sink);
+    TestConductor conductor;
+    conductor.register_stage(stage);
+    conductor.start<ProfilePickerStage>();
+
+    stage.on_tick(conductor, 0);
+    stage.on_tick(conductor, PICKER_PASSTHROUGH_AUTO_MS * 10);
+    EXPECT_FALSE(conductor.has_pending());
+}
+
+TEST(ProfilePickerStage, EmptyListAnyButtonTransitionsToNormal) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(0));
@@ -300,7 +353,11 @@ TEST(ProfilePickerStage, LongPressIgnoredWhenEmptyPdoList) {
     conductor.start<ProfilePickerStage>();
 
     stage.on_event(conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
-    EXPECT_FALSE(conductor.has_pending());
+
+    EXPECT_TRUE(conductor.has_pending());
+    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
+    EXPECT_EQ(normal.active_pdo_index(), -1);
 }
 
 TEST(ProfilePickerStage, IgnoresRLongPressAndEncoderShortPress) {
@@ -365,7 +422,7 @@ TEST(ProfilePickerStage, ClearsBeforeDrawingAndFlushesAfter) {
         InSequence seq;
         EXPECT_CALL(display, clear());
         EXPECT_CALL(display, draw_text(0, 9, StrEq(">")));
-        EXPECT_CALL(display, draw_text(5, 9, StrEq("PDO: 5V @ 3A")));
+        EXPECT_CALL(display, draw_text(10, 9, StrEq("PDO       5.0V  3A")));
         EXPECT_CALL(display, flush());
     }
 
