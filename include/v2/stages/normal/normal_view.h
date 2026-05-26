@@ -7,41 +7,30 @@
 #include <array>
 #include <cstdint>
 #include <cstdio>
+#include <variant>
 
+#include <tempo/bus/visit.h>
 #include <tempo/hardware/display.h>
 
 #include "v2/events.h"
 #include "v2/images.h"
 #include "v2/pocketpd.h"
+#include "v2/stages/normal/mode.h"
 
 namespace pocketpd {
 
     /**
      * @brief Frozen snapshot of everything NormalView needs to draw one frame.
-     *
      */
     struct NormalViewModel {
         int8_t active_pdo_index = -1;
-        bool has_profile = false;
-        bool is_pps = false;
         bool output_enabled = false;
         bool readout_visible = true;
         bool locked = false;
         uint8_t arrow_frame = 0;
         LoadReading load_reading{};
         SupplyReading supply_reading{};
-
-        // —— PPS branch (valid when has_profile && is_pps)
-
-        int32_t target_mv = 0;
-        int32_t target_ma = 0;
-        AdjustMode adjust_mode = AdjustMode::VOLTAGE;
-        uint8_t cursor_idx = 0;
-
-        // —— Fixed branch (valid when has_profile && !is_pps)
-
-        int32_t pdo_max_mv = 0;
-        int32_t pdo_max_ma = 0;
+        Mode mode = PassthroughMode{};
     };
 
     class NormalView {
@@ -70,13 +59,6 @@ namespace pocketpd {
         static void render(tempo::Display& d, const NormalViewModel& vm) {
             d.clear();
 
-            if (!vm.has_profile) {
-                d.set_font(tempo::Font::BASE);
-                d.draw_text(8, 34, "No Profile Selected");
-                d.flush();
-                return;
-            }
-
             std::array<char, 32> buf{};
 
             d.set_font(tempo::Font::XL);
@@ -87,29 +69,17 @@ namespace pocketpd {
             );
 
             d.set_font(tempo::Font::BASE);
-            std::snprintf(buf.data(), buf.size(), "[%u]", vm.active_pdo_index);
 
-            const auto INDEX_X = STATUS_X - d.text_width(buf.data()) - 2;
-            d.draw_text(INDEX_X, 63, buf.data());
-            d.draw_text(STATUS_X, 64, vm.is_pps ? "PPS" : "PDO");
+            std::visit(
+                tempo::overloaded{
+                    [&](const PassthroughMode&) { draw_passthrough(d); },
+                    [&](const FixedMode& mode) { draw_fixed(d, vm, mode, buf); },
+                    [&](const PPSMode& mode) { draw_pps(d, vm, mode, buf); },
+                },
+                vm.mode
+            );
 
-            if (vm.is_pps) {
-                draw_target_pps(d, vm, buf);
-            } else {
-                draw_target_fixed(d, vm, buf);
-            }
-
-            if (vm.output_enabled) {
-                const uint8_t frame = vm.arrow_frame % bitmap::ARROW_FRAMES.size();
-                d.draw_xbm(ARROW_X, ARROW_Y, ARROW_W, ARROW_H, bitmap::ARROW_FRAMES.at(frame));
-            }
-
-            if (vm.locked) {
-                d.draw_text(INDEX_X + 2, 8, vm.output_enabled ? "ON" : "OFF");
-                d.draw_xbm(PADLOCK_X, PADLOCK_Y, PADLOCK_W, PADLOCK_H, bitmap::PADLOCK.data());
-            } else {
-                d.draw_text(PADLOCK_X - 6, 8, vm.output_enabled ? "ON" : "OFF");
-            }
+            draw_output_indicator(d, vm);
 
             d.flush();
         }
@@ -134,30 +104,73 @@ namespace pocketpd {
             d.draw_text(static_cast<uint8_t>(TARGET_RIGHT_X - width), y, buf.data());
         }
 
-        static void
-        draw_target_fixed(tempo::Display& d, const NormalViewModel& vm, std::array<char, 32>& buf) {
-            std::snprintf(buf.data(), buf.size(), "%ld mV", static_cast<long>(vm.pdo_max_mv));
+        static void draw_passthrough(tempo::Display& d) {
+            const char* label = "Passthrough";
+            const auto label_w = d.text_width(label);
+            const auto label_x = static_cast<uint8_t>((128 - label_w) / 2);
+            d.draw_text(label_x, 63, label);
+        }
+
+        static void draw_pdo_badge(
+            tempo::Display& d, const NormalViewModel& vm, std::array<char, 32>& buf, const char* tag
+        ) {
+            std::snprintf(buf.data(), buf.size(), "[%u]", vm.active_pdo_index);
+            const auto index_x = STATUS_X - d.text_width(buf.data()) - 2;
+            d.draw_text(index_x, 63, buf.data());
+            d.draw_text(STATUS_X, 64, tag);
+        }
+
+        static void draw_fixed(
+            tempo::Display& d,
+            const NormalViewModel& vm,
+            const FixedMode& mode,
+            std::array<char, 32>& buf
+        ) {
+            draw_pdo_badge(d, vm, buf, "PDO");
+
+            std::snprintf(buf.data(), buf.size(), "%ld mV", static_cast<long>(mode.pdo_max_mv));
             auto w = d.text_width(buf.data());
             d.draw_text(static_cast<uint8_t>(TARGET_RIGHT_X - w), V_TARGET_Y, buf.data());
 
-            std::snprintf(buf.data(), buf.size(), "%ld mA", static_cast<long>(vm.pdo_max_ma));
+            std::snprintf(buf.data(), buf.size(), "%ld mA", static_cast<long>(mode.pdo_max_ma));
             w = d.text_width(buf.data());
             d.draw_text(static_cast<uint8_t>(TARGET_RIGHT_X - w), A_TARGET_Y, buf.data());
         }
 
-        static void
-        draw_target_pps(tempo::Display& d, const NormalViewModel& vm, std::array<char, 32>& buf) {
-            std::snprintf(buf.data(), buf.size(), "%ld mV", static_cast<long>(vm.target_mv));
+        static void draw_pps(
+            tempo::Display& d,
+            const NormalViewModel& vm,
+            const PPSMode& mode,
+            std::array<char, 32>& buf
+        ) {
+            draw_pdo_badge(d, vm, buf, "PPS");
+
+            std::snprintf(buf.data(), buf.size(), "%ld mV", static_cast<long>(mode.target_mv));
             auto w = d.text_width(buf.data());
             d.draw_text(static_cast<uint8_t>(TARGET_RIGHT_X - w), V_TARGET_Y, buf.data());
 
-            std::snprintf(buf.data(), buf.size(), "%ld mA", static_cast<long>(vm.target_ma));
+            std::snprintf(buf.data(), buf.size(), "%ld mA", static_cast<long>(mode.target_ma));
             w = d.text_width(buf.data());
             d.draw_text(static_cast<uint8_t>(TARGET_RIGHT_X - w), A_TARGET_Y, buf.data());
 
             const uint8_t cursor_y =
-                ((vm.adjust_mode == AdjustMode::VOLTAGE) ? V_TARGET_Y : A_TARGET_Y) + 1;
-            d.draw_box(CURSOR_X.at(vm.cursor_idx), cursor_y, CURSOR_W, 1);
+                ((mode.adjust_mode == AdjustMode::VOLTAGE) ? V_TARGET_Y : A_TARGET_Y) + 1;
+            d.draw_box(CURSOR_X.at(mode.cursor_index()), cursor_y, CURSOR_W, 1);
+        }
+
+        static void draw_output_indicator(tempo::Display& d, const NormalViewModel& vm) {
+            const char* state = vm.output_enabled ? "ON" : "OFF";
+            if (vm.locked) {
+                d.draw_text(OUTPUT_LABEL_X, 8, state);
+                d.draw_xbm(PADLOCK_X, PADLOCK_Y, PADLOCK_W, PADLOCK_H, bitmap::PADLOCK.data());
+            } else {
+                d.draw_text(PADLOCK_X - 6, 8, state);
+            }
+
+            if (vm.output_enabled) {
+                const uint8_t frame = vm.arrow_frame % bitmap::ARROW_FRAMES.size();
+                d.draw_xbm(ARROW_X, ARROW_Y, ARROW_W, ARROW_H, bitmap::ARROW_FRAMES.at(frame));
+            }
         }
     };
 

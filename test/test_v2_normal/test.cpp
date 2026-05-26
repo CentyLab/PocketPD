@@ -118,16 +118,20 @@ TEST(NormalStage, SwitchingPpsProfilesResetsTargetsToNewMinimum) {
     EXPECT_EQ(normal.target_ma(), 1000);
 }
 
-TEST(NormalStage, OnEnterWithNegativeIndexRendersNoProfileSelected) {
+TEST(NormalStage, OnEnterWithNegativeIndexRendersPassthrough) {
+    using ::testing::_;
+    using ::testing::AnyNumber;
     using ::testing::HasSubstr;
 
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     NiceMock<MockOutputGate> gate;
+    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(0));
     EXPECT_CALL(sink, set_pdo).Times(0);
     EXPECT_CALL(sink, set_pps_pdo).Times(0);
     EXPECT_CALL(display, clear()).Times(::testing::AtLeast(1));
-    EXPECT_CALL(display, draw_text(::testing::_, ::testing::_, HasSubstr("No Profile Selected")))
+    EXPECT_CALL(display, draw_text(_, _, _)).Times(AnyNumber());
+    EXPECT_CALL(display, draw_text(_, _, HasSubstr("Passthrough")))
         .Times(::testing::AtLeast(1));
     EXPECT_CALL(display, flush()).Times(::testing::AtLeast(1));
 
@@ -377,8 +381,7 @@ TEST(NormalView, LockedRendersPadlock) {
     ).Times(1);
 
     NormalViewModel vm{};
-    vm.has_profile = true;
-    vm.is_pps = false;
+    vm.mode = FixedMode{};
     vm.output_enabled = false;
     vm.locked = true;
     vm.active_pdo_index = 0;
@@ -396,8 +399,7 @@ TEST(NormalView, UnlockedDoesNotDrawPadlock) {
     ).Times(0);
 
     NormalViewModel vm{};
-    vm.has_profile = true;
-    vm.is_pps = false;
+    vm.mode = FixedMode{};
     vm.output_enabled = false;
     vm.locked = false;
     vm.active_pdo_index = 0;
@@ -419,8 +421,7 @@ TEST(NormalView, ReadoutHiddenKeepsLabelsHidesValues) {
     EXPECT_CALL(display, draw_text(_, 48, HasSubstr("1."))).Times(0);
 
     NormalViewModel vm{};
-    vm.has_profile = true;
-    vm.is_pps = false;
+    vm.mode = FixedMode{};
     vm.output_enabled = false;
     vm.readout_visible = false;
     vm.active_pdo_index = 0;

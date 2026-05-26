@@ -1,13 +1,16 @@
 /**
  * @file fixed_mode.h
- * @brief Fixed-PDO sub-mode marker for NormalStage.
- *
- * Empty tag struct. The fixed-PDO branch carry no per-mode state.
+ * @brief Fixed-PDO sub-mode for NormalStage.
  */
 #pragma once
 
+#include <cstdint>
+
 namespace pocketpd {
 
-    struct FixedMode {};
+    struct FixedMode {
+        int32_t pdo_max_mv = 0;
+        int32_t pdo_max_ma = 0;
+    };
 
 } // namespace pocketpd
