@@ -64,7 +64,7 @@ namespace ap33772 {
     constexpr int NTC_DEFAULT_TR100 = 974;  // 0x03CE
 
     // ── begin() poll budget for PD negotiation completion
-    constexpr uint32_t BEGIN_POLL_TIMEOUT_MS = 10000;
+    constexpr uint32_t BEGIN_POLL_TIMEOUT_MS = 5000;
     constexpr uint32_t BEGIN_POLL_INTERVAL_MS = 25;
 
     /**
@@ -219,10 +219,11 @@ namespace ap33772 {
 
         /**
          * Initialize the controller and load source PDOs from charger
+         * @param timeout_ms PDONUM poll budget. Default `BEGIN_POLL_TIMEOUT_MS` (5000 ms)
          * @return true if negotiation succeeded and PDOs were loaded
          */
         [[nodiscard]]
-        bool begin() {
+        bool begin(uint32_t timeout_ms = BEGIN_POLL_TIMEOUT_MS) {
             // Poll PDONUM (0x1C, RO) until the source PDO list is populated.
             //   1. Cold boot, slow source: chargers like Anker Prime / Apple need
             //      several hundred ms past VBUS-on before negotiation completes and
@@ -237,7 +238,7 @@ namespace ap33772 {
                     break;
                 }
 
-                if (waited_ms >= BEGIN_POLL_TIMEOUT_MS) {
+                if (waited_ms >= timeout_ms) {
                     return false;
                 }
 
