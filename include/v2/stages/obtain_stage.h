@@ -54,8 +54,8 @@ namespace pocketpd {
             return "OBTAIN";
         }
 
-        void on_enter(Conductor&, uint32_t) override {
-            m_timeout.disarm();
+        void on_enter(Conductor&, uint32_t now_ms) override {
+            m_timeout.set(now_ms, OBTAIN_TO_PROFILE_PICKER_MS);
             m_pd_ready = false;
 
             if (!m_pd_sink.begin()) {
@@ -75,10 +75,6 @@ namespace pocketpd {
             // Periodically dump the PDO list for debugging
             if (m_dump_timer.tick(now_ms)) {
                 dump_pdo_list();
-            }
-
-            if (!m_timeout.armed()) {
-                m_timeout.set(now_ms, OBTAIN_TO_PROFILE_PICKER_MS);
             }
 
             if (m_timeout.reached(now_ms)) {

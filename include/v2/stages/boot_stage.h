@@ -30,8 +30,8 @@ namespace pocketpd {
             return "BOOT";
         }
 
-        void on_enter(Conductor&, uint32_t) override {
-            m_timeout.disarm();
+        void on_enter(Conductor&, uint32_t now_ms) override {
+            m_timeout.set(now_ms, BOOT_TO_OBTAIN_MS);
             m_display.clear();
             m_display.draw_bitmap(0, 0, 128 / 8, 64, bitmap::LOGO.data());
             m_display.draw_text(67, 64, "FW: ");
@@ -40,10 +40,6 @@ namespace pocketpd {
         }
 
         void on_tick(Conductor& conductor, uint32_t now_ms) override {
-            if (!m_timeout.armed()) {
-                m_timeout.set(now_ms, BOOT_TO_OBTAIN_MS);
-                return;
-            }
             if (m_timeout.reached(now_ms)) {
                 conductor.request<ObtainStage>();
             }

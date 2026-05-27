@@ -60,22 +60,18 @@ namespace pocketpd {
             return (m_pd_sink.pdo_count() > 0) ? PowerSourceType::PD : PowerSourceType::NON_PD;
         }
 
-        void on_enter(Conductor&, uint32_t) override {
+        void on_enter(Conductor&, uint32_t now_ms) override {
             m_pending_cursor = m_cursor;
-            m_passthrough_timeout.disarm();
             render_pdo_list();
+
+            if (power_source_type() == PowerSourceType::NON_PD) {
+                m_passthrough_timeout.set(now_ms, PICKER_PASSTHROUGH_AUTO_MS);
+            } else {
+                m_passthrough_timeout.disarm();
+            }
         }
 
         void on_tick(Conductor& conductor, uint32_t now_ms) override {
-            if (power_source_type() != PowerSourceType::NON_PD) {
-                return;
-            }
-
-            if (!m_passthrough_timeout.armed()) {
-                m_passthrough_timeout.set(now_ms, PICKER_PASSTHROUGH_AUTO_MS);
-                return;
-            }
-
             if (m_passthrough_timeout.reached(now_ms)) {
                 conductor.request<NormalStage>(static_cast<int8_t>(-1));
             }
