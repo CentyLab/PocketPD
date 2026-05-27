@@ -30,7 +30,7 @@ namespace pocketpd {
             return "BOOT";
         }
 
-        void on_enter(Conductor&) override {
+        void on_enter(Conductor&, uint32_t) override {
             m_timeout.disarm();
             m_display.clear();
             m_display.draw_bitmap(0, 0, 128 / 8, 64, bitmap::LOGO.data());

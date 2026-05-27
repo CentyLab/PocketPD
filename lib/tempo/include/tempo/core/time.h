@@ -104,7 +104,7 @@ namespace tempo {
      *   class MyStage : public App::Stage {
      *       tempo::TimeoutTimer m_timeout;
      *
-     *       void on_enter(Conductor&) override {
+     *       void on_enter(Conductor&, uint32_t) override {
      *           m_timeout.disarm();
      *       }
      *

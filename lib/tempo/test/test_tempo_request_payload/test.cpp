@@ -37,7 +37,7 @@ namespace {
             ++prepare_call_count;
         }
 
-        void on_enter(TestConductor&) override {
+        void on_enter(TestConductor&, uint32_t) override {
             mode_seen_in_on_enter = last_prepared;
             ++on_enter_count;
         }
@@ -51,7 +51,7 @@ namespace {
             return "Plain";
         }
 
-        void on_enter(TestConductor&) override {
+        void on_enter(TestConductor&, uint32_t) override {
             ++on_enter_count;
         }
     };
@@ -64,12 +64,12 @@ TEST(RequestPayload, RequestWithoutArgsLeavesStageDefaults) {
     TestConductor c;
     c.register_stage(payload);
     c.register_stage(plain);
-    c.start<PlainStage>();
+    c.start<PlainStage>(0);
 
     c.request<StageWithPayload>();
     EXPECT_EQ(payload.prepare_call_count, 0);
 
-    c.apply_pending_transition();
+    c.apply_pending_transition(0);
     EXPECT_EQ(payload.on_enter_count, 1);
     EXPECT_EQ(payload.mode_seen_in_on_enter, Mode::REVIEW);
 }
@@ -80,7 +80,7 @@ TEST(RequestPayload, RequestWithArgCallsPrepareImmediately) {
     TestConductor c;
     c.register_stage(payload);
     c.register_stage(plain);
-    c.start<PlainStage>();
+    c.start<PlainStage>(0);
 
     c.request<StageWithPayload>(Mode::SELECT);
 
@@ -89,7 +89,7 @@ TEST(RequestPayload, RequestWithArgCallsPrepareImmediately) {
     EXPECT_EQ(payload.last_prepared, Mode::SELECT);
     EXPECT_EQ(payload.on_enter_count, 0);
 
-    c.apply_pending_transition();
+    c.apply_pending_transition(0);
     EXPECT_EQ(payload.on_enter_count, 1);
     EXPECT_EQ(payload.mode_seen_in_on_enter, Mode::SELECT);
 }
@@ -100,13 +100,13 @@ TEST(RequestPayload, LatestRequestWins) {
     TestConductor c;
     c.register_stage(payload);
     c.register_stage(plain);
-    c.start<PlainStage>();
+    c.start<PlainStage>(0);
 
     c.request<StageWithPayload>(Mode::REVIEW);
     c.request<StageWithPayload>(Mode::SELECT);
     EXPECT_EQ(payload.prepare_call_count, 2);
 
-    c.apply_pending_transition();
+    c.apply_pending_transition(0);
     EXPECT_EQ(payload.mode_seen_in_on_enter, Mode::SELECT);
 }
 
@@ -116,10 +116,10 @@ TEST(RequestPayload, PlainStageStillTransitions) {
     TestConductor c;
     c.register_stage(payload);
     c.register_stage(plain);
-    c.start<StageWithPayload>();
+    c.start<StageWithPayload>(0);
 
     c.request<PlainStage>();
-    c.apply_pending_transition();
+    c.apply_pending_transition(0);
     EXPECT_EQ(plain.on_enter_count, 1);
 }
 
@@ -131,13 +131,13 @@ TEST(RequestPayload, SameStageRequestReFiresLifecycleWithNewPayload) {
     c.register_stage(plain);
 
     payload.prepare(Mode::REVIEW);
-    c.start<StageWithPayload>();
+    c.start<StageWithPayload>(0);
     EXPECT_EQ(payload.on_enter_count, 1);
     EXPECT_EQ(payload.mode_seen_in_on_enter, Mode::REVIEW);
 
     // Same-stage request with a different payload should re-fire on_enter.
     c.request<StageWithPayload>(Mode::SELECT);
-    EXPECT_TRUE(c.apply_pending_transition());
+    EXPECT_TRUE(c.apply_pending_transition(0));
     EXPECT_EQ(payload.on_enter_count, 2);
     EXPECT_EQ(payload.mode_seen_in_on_enter, Mode::SELECT);
 }

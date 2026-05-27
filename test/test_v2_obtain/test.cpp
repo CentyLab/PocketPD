@@ -59,7 +59,7 @@ TEST(ObtainStage, OnEnterCallsBeginAndPublishesCount) {
     stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<ObtainStage>();
+    conductor.start<ObtainStage>(0);
 
     const auto ready = expect_pd_ready(queue);
     EXPECT_EQ(ready.num_pdo, 3);
@@ -79,7 +79,7 @@ TEST(ObtainStage, MultiPpsChargerReportsBothPps) {
     stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<ObtainStage>();
+    conductor.start<ObtainStage>(0);
 
     const auto ready = expect_pd_ready(queue);
     EXPECT_EQ(ready.num_pdo, 5);
@@ -97,7 +97,7 @@ TEST(ObtainStage, BeginFailureSuppressesPdReady) {
     stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<ObtainStage>();
+    conductor.start<ObtainStage>(0);
 
     Event e;
     EXPECT_FALSE(queue.pop(e));
@@ -119,7 +119,7 @@ TEST(ObtainStage, OnEnterIssuesNoRdoRequest) {
     stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<ObtainStage>();
+    conductor.start<ObtainStage>(0);
 }
 
 TEST(ObtainStage, ShortButtonJumpsToProfilePickerAfterPdReady) {
@@ -137,12 +137,12 @@ TEST(ObtainStage, ShortButtonJumpsToProfilePickerAfterPdReady) {
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(picker);
-    conductor.start<ObtainStage>();
+    conductor.start<ObtainStage>(0);
 
     stage.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::SHORT}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
 }
 
@@ -156,7 +156,7 @@ TEST(ObtainStage, ShortButtonIgnoredWhenPdNotReady) {
     stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<ObtainStage>();
+    conductor.start<ObtainStage>(0);
 
     stage.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::SHORT}, 0);
     EXPECT_FALSE(conductor.has_pending());
@@ -177,12 +177,12 @@ TEST(ObtainStage, EncoderRotationJumpsToProfilePicker) {
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(picker);
-    conductor.start<ObtainStage>();
+    conductor.start<ObtainStage>(0);
 
     stage.on_event(conductor, EncoderEvent{-1}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
 }
 
@@ -201,7 +201,7 @@ TEST(ObtainStage, TimeoutTransitionsToProfilePicker) {
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(picker);
-    conductor.start<ObtainStage>();
+    conductor.start<ObtainStage>(0);
 
     conductor.tick(0);
     conductor.tick(OBTAIN_TO_PROFILE_PICKER_MS - 1);
@@ -209,7 +209,7 @@ TEST(ObtainStage, TimeoutTransitionsToProfilePicker) {
 
     conductor.tick(OBTAIN_TO_PROFILE_PICKER_MS);
     EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
 }
 
@@ -229,7 +229,7 @@ TEST(BootStage, RequestsObtainAfterTimeout) {
     TestConductor conductor;
     conductor.register_stage(boot);
     conductor.register_stage(obtain);
-    conductor.start<BootStage>();
+    conductor.start<BootStage>(0);
 
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<BootStage>());
 
@@ -240,7 +240,7 @@ TEST(BootStage, RequestsObtainAfterTimeout) {
     conductor.tick(BOOT_TO_OBTAIN_MS);
     EXPECT_TRUE(conductor.has_pending());
 
-    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ObtainStage>());
 }
 

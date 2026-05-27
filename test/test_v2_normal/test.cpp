@@ -40,7 +40,7 @@ TEST(NormalStage, OnEnterPdoProfileRequestsFixedPdo) {
     conductor.register_stage(normal);
 
     normal.prepare(2);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 }
 
 TEST(NormalStage, OnEnterPpsProfileResetsTargetsToDefaults) {
@@ -60,7 +60,7 @@ TEST(NormalStage, OnEnterPpsProfileResetsTargetsToDefaults) {
     conductor.register_stage(normal);
 
     normal.prepare(1);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
     EXPECT_EQ(normal.target_mv(), 5000);
     EXPECT_EQ(normal.target_ma(), 1000);
 }
@@ -79,13 +79,13 @@ TEST(NormalStage, ReEnteringSamePpsProfilePreservesEdits) {
     TestConductor conductor;
     conductor.register_stage(normal);
     normal.prepare(1);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 
     normal.on_event(conductor, EncoderEvent{-2}, 0);
     ASSERT_EQ(normal.target_mv(), 7000);
 
     normal.prepare(1);
-    normal.on_enter(conductor);
+    normal.on_enter(conductor, 0);
     EXPECT_EQ(normal.target_mv(), 7000);
     EXPECT_EQ(normal.target_ma(), 1000);
 }
@@ -108,12 +108,12 @@ TEST(NormalStage, SwitchingPpsProfilesResetsTargetsToNewMinimum) {
     TestConductor conductor;
     conductor.register_stage(normal);
     normal.prepare(1);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
     normal.on_event(conductor, EncoderEvent{-100}, 0);
     ASSERT_NE(normal.target_mv(), 3300);
 
     normal.prepare(2);
-    normal.on_enter(conductor);
+    normal.on_enter(conductor, 0);
     EXPECT_EQ(normal.target_mv(), 5000);
     EXPECT_EQ(normal.target_ma(), 1000);
 }
@@ -139,7 +139,7 @@ TEST(NormalStage, OnEnterWithNegativeIndexRendersPassthrough) {
     TestConductor conductor;
     conductor.register_stage(normal);
     normal.prepare(-1);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 }
 
 TEST(NormalStage, RShortToggleEnablesAndDisablesOutput) {
@@ -157,7 +157,7 @@ TEST(NormalStage, RShortToggleEnablesAndDisablesOutput) {
     TestConductor conductor;
     conductor.register_stage(normal);
     normal.prepare(0);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 
     normal.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::SHORT}, 0);
     EXPECT_TRUE(enabled);
@@ -179,12 +179,12 @@ TEST(NormalStage, LLongRequestsProfilePicker) {
     conductor.register_stage(normal);
     conductor.register_stage(picker);
     normal.prepare(0);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 
     normal.on_event(conductor, ButtonEvent{ButtonId::L, Gesture::LONG}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
 }
 
@@ -200,7 +200,7 @@ TEST(NormalStage, EncoderEventsIgnoredInPdoBranch) {
     TestConductor conductor;
     conductor.register_stage(normal);
     normal.prepare(0);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 
     ::testing::Mock::VerifyAndClearExpectations(&gate);
     EXPECT_CALL(gate, enable).Times(0);
@@ -227,7 +227,7 @@ namespace {
             EXPECT_CALL(sink, set_pps_pdo).WillRepeatedly(Return(true));
             conductor.register_stage(normal);
             normal.prepare(static_cast<int8_t>(pdo_index));
-            conductor.start<NormalStage>();
+            conductor.start<NormalStage>(0);
         }
     };
 
@@ -322,7 +322,7 @@ TEST(NormalStage, LShortDoesNothingInPdoBranch) {
     TestConductor conductor;
     conductor.register_stage(normal);
     normal.prepare(0);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 
     const auto mode_before = normal.adjust_mode();
     normal.on_event(conductor, ButtonEvent{ButtonId::L, Gesture::SHORT}, 0);
@@ -364,7 +364,7 @@ TEST(NormalStage, OnEnterPdoBranchRendersVAReadoutAndPdoIndex) {
         SensorEvent{LoadReading{0, 5000, 1234}, SupplyReading{0, 20000, true}},
         0
     );
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 }
 
 TEST(NormalView, LockedRendersPadlock) {
@@ -442,7 +442,7 @@ TEST(NormalStage, ComboLongTogglesLock) {
     TestConductor conductor;
     conductor.register_stage(normal);
     normal.prepare(0);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 
     EXPECT_FALSE(normal.locked());
     normal.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
@@ -464,7 +464,7 @@ TEST(NormalStage, LockedIgnoresRShort) {
     TestConductor conductor;
     conductor.register_stage(normal);
     normal.prepare(0);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 
     normal.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
     ASSERT_TRUE(normal.locked());
@@ -486,7 +486,7 @@ TEST(NormalStage, LockedIgnoresEncoder) {
     TestConductor conductor;
     conductor.register_stage(normal);
     normal.prepare(1);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 
     const int32_t before = normal.target_mv();
     normal.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
@@ -505,13 +505,13 @@ TEST(NormalStage, OnEnterResetsLocked) {
     TestConductor conductor;
     conductor.register_stage(normal);
     normal.prepare(0);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 
     normal.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
     ASSERT_TRUE(normal.locked());
 
     normal.prepare(0);
-    normal.on_enter(conductor);
+    normal.on_enter(conductor, 0);
     EXPECT_FALSE(normal.locked());
 }
 
@@ -528,7 +528,7 @@ TEST(NormalStage, LockedIgnoresLLong) {
     conductor.register_stage(normal);
     conductor.register_stage(picker);
     normal.prepare(0);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 
     normal.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
     ASSERT_TRUE(normal.locked());
@@ -550,7 +550,7 @@ TEST(NormalStage, LockedIgnoresRLong) {
     conductor.register_stage(normal);
     conductor.register_stage(energy);
     normal.prepare(0);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 
     normal.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
     ASSERT_TRUE(normal.locked());

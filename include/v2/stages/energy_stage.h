@@ -61,7 +61,7 @@ namespace pocketpd {
             m_active_pdo_index = pdo_index;
         }
 
-        void on_enter(Conductor&) override {
+        void on_enter(Conductor&, uint32_t) override {
             m_locked = false;
             log.info("Entered Energy screen pdo_index={}", m_active_pdo_index);
             draw();

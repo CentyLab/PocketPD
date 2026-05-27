@@ -70,7 +70,7 @@ TEST(StageEvents, DispatchDeliversEventToActiveStageOnly) {
     TestConductor c;
     c.register_stage(a);
     c.register_stage(b);
-    c.start<StageA>();
+    c.start<StageA>(0);
 
     c.dispatch_event(TestEvent{Ping{42}}, 1000);
 
@@ -87,10 +87,10 @@ TEST(StageEvents, DispatchAfterTransitionReachesNewActiveStage) {
     TestConductor c;
     c.register_stage(a);
     c.register_stage(b);
-    c.start<StageA>();
+    c.start<StageA>(0);
 
     c.request<StageB>();
-    c.apply_pending_transition();
+    c.apply_pending_transition(0);
 
     c.dispatch_event(TestEvent{Ping{1}}, 2000);
 
@@ -104,7 +104,7 @@ TEST(StageEvents, MultipleEventsAccumulateOnActiveStage) {
     TestConductor c;
     c.register_stage(a);
     c.register_stage(b);
-    c.start<StageA>();
+    c.start<StageA>(0);
 
     c.dispatch_event(TestEvent{Ping{1}}, 100);
     c.dispatch_event(TestEvent{Pong{2}}, 200);

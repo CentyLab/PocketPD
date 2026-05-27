@@ -155,7 +155,7 @@ namespace tempo {
             TEMPO_CHECK(!m_started, "Application::start called twice");
 
             m_scheduler.start();
-            m_conductor.template start<InitialStage>();
+            m_conductor.template start<InitialStage>(m_clock.now_ms());
 
             m_started = true;
             log.info("tempo: started, Stage={}", m_conductor.current_name());
@@ -173,7 +173,7 @@ namespace tempo {
 
             // 1. Apply any pending Stage transition from the previous tick.
             const size_t before = m_conductor.current_index();
-            if (m_conductor.apply_pending_transition()) {
+            if (m_conductor.apply_pending_transition(now)) {
                 const size_t after = m_conductor.current_index();
                 m_scheduler.notify_stage_changed(before, after);
                 log.info("Stage {} -> {}", name_of_stage_at(before), name_of_stage_at(after));

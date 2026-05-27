@@ -35,8 +35,8 @@ namespace tempo {
             return "<unnamed_stage>";
         }
 
-        virtual void on_enter(Conductor&) {}
-        virtual void on_exit(Conductor&) {}
+        virtual void on_enter(Conductor&, uint32_t) {}
+        virtual void on_exit(Conductor&, uint32_t) {}
         virtual void on_tick(Conductor&, uint32_t) {}
 
         /**

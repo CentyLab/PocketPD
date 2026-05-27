@@ -60,7 +60,7 @@ namespace pocketpd {
             return (m_pd_sink.pdo_count() > 0) ? PowerSourceType::PD : PowerSourceType::NON_PD;
         }
 
-        void on_enter(Conductor&) override {
+        void on_enter(Conductor&, uint32_t) override {
             m_pending_cursor = m_cursor;
             m_passthrough_timeout.disarm();
             render_pdo_list();

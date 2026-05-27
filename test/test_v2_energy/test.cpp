@@ -171,11 +171,11 @@ TEST(NormalStageEnergy, RLongRequestsEnergyStageWithSamePdoIndex) {
     conductor.register_stage(energy);
 
     normal.prepare(2);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
     normal.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::LONG}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<EnergyStage>());
     EXPECT_EQ(energy.active_pdo_index(), 2);
 }
@@ -193,7 +193,7 @@ namespace {
         EnergyStageHarness() {
             conductor.register_stage(energy);
             energy.prepare(1);
-            conductor.start<EnergyStage>();
+            conductor.start<EnergyStage>(0);
         }
     };
 
@@ -224,11 +224,11 @@ TEST(EnergyStage, RLongReturnsToNormalStageWithStoredProfile) {
     conductor.register_stage(energy);
 
     energy.prepare(3);
-    conductor.start<EnergyStage>();
+    conductor.start<EnergyStage>(0);
     energy.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::LONG}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
     EXPECT_EQ(normal.active_pdo_index(), 3);
 }
@@ -259,7 +259,7 @@ TEST(EnergyStage, EnergyEventDriveDisplayedAccumulators) {
     conductor.register_stage(energy);
 
     energy.prepare(0);
-    conductor.start<EnergyStage>();
+    conductor.start<EnergyStage>(0);
 
     EnergyEvent ee{};
     ee.accumulated_wh = 1.23;
@@ -291,7 +291,7 @@ TEST(EnergyStage, ComboLongTogglesLock) {
     TestConductor conductor;
     conductor.register_stage(stage);
     stage.prepare(0);
-    conductor.start<EnergyStage>();
+    conductor.start<EnergyStage>(0);
 
     EXPECT_FALSE(stage.locked());
     stage.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
@@ -310,7 +310,7 @@ TEST(EnergyStage, LockedIgnoresRShort) {
     TestConductor conductor;
     conductor.register_stage(stage);
     stage.prepare(0);
-    conductor.start<EnergyStage>();
+    conductor.start<EnergyStage>(0);
 
     stage.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
     ASSERT_TRUE(stage.locked());
@@ -326,13 +326,13 @@ TEST(EnergyStage, OnEnterResetsLocked) {
     TestConductor conductor;
     conductor.register_stage(stage);
     stage.prepare(0);
-    conductor.start<EnergyStage>();
+    conductor.start<EnergyStage>(0);
 
     stage.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
     ASSERT_TRUE(stage.locked());
 
     stage.prepare(0);
-    stage.on_enter(conductor);
+    stage.on_enter(conductor, 0);
     EXPECT_FALSE(stage.locked());
 }
 
@@ -387,7 +387,7 @@ TEST(EnergyStage, LockedIgnoresRLong) {
     conductor.register_stage(energy);
     conductor.register_stage(normal);
     energy.prepare(0);
-    conductor.start<EnergyStage>();
+    conductor.start<EnergyStage>(0);
 
     energy.on_event(conductor, ButtonEvent{ButtonId::L_R, Gesture::LONG}, 0);
     ASSERT_TRUE(energy.locked());

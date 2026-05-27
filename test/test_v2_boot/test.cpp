@@ -39,7 +39,7 @@ TEST(BootStage, OnEnterDrawsSplash) {
     BootStage stage(display);
     BootConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<BootStage>();
+    conductor.start<BootStage>(0);
 }
 
 TEST(BootStage, RequestsObtainAfterBootTimeout) {
@@ -47,7 +47,7 @@ TEST(BootStage, RequestsObtainAfterBootTimeout) {
     BootStage stage(display);
     BootConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<BootStage>();
+    conductor.start<BootStage>(0);
 
     EXPECT_FALSE(conductor.has_pending());
 
@@ -66,12 +66,12 @@ TEST(BootStage, TransitionsToObtainOnApply) {
     BootStage stage(display);
     BootConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<BootStage>();
+    conductor.start<BootStage>(0);
 
     conductor.tick(0);
     conductor.tick(BOOT_TO_OBTAIN_MS);
 
-    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), BootConductor::index_of<ObtainStage>());
 }
 

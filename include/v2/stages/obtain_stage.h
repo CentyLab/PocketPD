@@ -36,7 +36,7 @@ namespace pocketpd {
         PdSinkController& m_pd_sink;
         bool m_pd_ready = false;
 
-        tempo::IntervalTimer m_dump_timer{1000};
+        tempo::IntervalTimer m_dump_timer{500};
         tempo::TimeoutTimer m_timeout;
 
         void dump_pdo_list() {
@@ -54,7 +54,7 @@ namespace pocketpd {
             return "OBTAIN";
         }
 
-        void on_enter(Conductor&) override {
+        void on_enter(Conductor&, uint32_t) override {
             m_timeout.disarm();
             m_pd_ready = false;
 

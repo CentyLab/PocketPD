@@ -41,7 +41,7 @@ TEST(ProfilePickerStage, EmptyListRendersFallback) {
     ProfilePickerStage stage(display, sink);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 }
 
 TEST(ProfilePickerStage, RendersSingleFixedPdo) {
@@ -61,7 +61,7 @@ TEST(ProfilePickerStage, RendersSingleFixedPdo) {
     ProfilePickerStage stage(display, sink);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 }
 
 TEST(ProfilePickerStage, RendersFixedAndPpsLines) {
@@ -87,7 +87,7 @@ TEST(ProfilePickerStage, RendersFixedAndPpsLines) {
     ProfilePickerStage stage(display, sink);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 }
 
 TEST(ProfilePickerStage, RendersMultiplePpsLines) {
@@ -115,7 +115,7 @@ TEST(ProfilePickerStage, RendersMultiplePpsLines) {
     ProfilePickerStage stage(display, sink);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 }
 
 TEST(ProfilePickerStage, EntryDrawsCursorAtFirstRow) {
@@ -141,7 +141,7 @@ TEST(ProfilePickerStage, EntryDrawsCursorAtFirstRow) {
     ProfilePickerStage stage(display, sink);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 }
 
 TEST(ProfilePickerStage, EncoderMovesCursorAndRerenders) {
@@ -161,7 +161,7 @@ TEST(ProfilePickerStage, EncoderMovesCursorAndRerenders) {
     ProfilePickerStage stage(display, sink);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 
     ::testing::Mock::VerifyAndClearExpectations(&display);
 
@@ -192,7 +192,7 @@ TEST(ProfilePickerStage, EncoderClampsAtTopAndBottom) {
     ProfilePickerStage stage(display, sink);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
     ::testing::Mock::VerifyAndClearExpectations(&display);
 
     EXPECT_CALL(display, clear()).Times(0);
@@ -224,12 +224,12 @@ TEST(ProfilePickerStage, EmptyListEncoderRotationTransitionsToNormal) {
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(normal);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 
     stage.on_event(conductor, EncoderEvent{1}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
     EXPECT_EQ(normal.active_pdo_index(), -1);
 }
@@ -254,13 +254,13 @@ TEST(ProfilePickerStage, LongPressCommitsPpsWhenCursorOnPps) {
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(normal);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 
     stage.on_event(conductor, EncoderEvent{1}, 0);
     stage.on_event(conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
     EXPECT_EQ(normal.active_pdo_index(), 1);
 }
@@ -281,13 +281,13 @@ TEST(ProfilePickerStage, LongPressCommitsPdoWhenCursorOnFixed) {
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(normal);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 
     // Cursor stays at row 0 (fixed) — no encoder rotation.
     stage.on_event(conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
     EXPECT_EQ(normal.active_pdo_index(), 0);
 }
@@ -303,7 +303,7 @@ TEST(ProfilePickerStage, EmptyListAutoTransitionsAfterTimeout) {
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(normal);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 
     // Arms the timeout on the first tick.
     stage.on_tick(conductor, 0);
@@ -316,7 +316,7 @@ TEST(ProfilePickerStage, EmptyListAutoTransitionsAfterTimeout) {
     // At/after the timeout, transition fires.
     stage.on_tick(conductor, PICKER_PASSTHROUGH_AUTO_MS);
     EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
     EXPECT_EQ(normal.active_pdo_index(), -1);
 }
@@ -332,7 +332,7 @@ TEST(ProfilePickerStage, NonEmptyListDoesNotAutoTransition) {
     ProfilePickerStage stage(display, sink);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 
     stage.on_tick(conductor, 0);
     stage.on_tick(conductor, PICKER_PASSTHROUGH_AUTO_MS * 10);
@@ -350,12 +350,12 @@ TEST(ProfilePickerStage, EmptyListAnyButtonTransitionsToNormal) {
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(normal);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 
     stage.on_event(conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
     EXPECT_EQ(normal.active_pdo_index(), -1);
 }
@@ -375,7 +375,7 @@ TEST(ProfilePickerStage, IgnoresRLongPressAndEncoderShortPress) {
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(normal);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 
     stage.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::LONG}, 0);
     stage.on_event(conductor, ButtonEvent{ButtonId::ENCODER, Gesture::SHORT}, 0);
@@ -399,12 +399,12 @@ TEST(ProfilePickerStage, LongPressLExitsToNormalWithoutChangingProfile) {
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(normal);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 
     stage.on_event(conductor, ButtonEvent{ButtonId::L, Gesture::LONG}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
     EXPECT_EQ(normal.active_pdo_index(), 7); // unchanged
 }
@@ -429,7 +429,7 @@ TEST(ProfilePickerStage, ClearsBeforeDrawingAndFlushesAfter) {
     ProfilePickerStage stage(display, sink);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 }
 
 TEST(ProfilePickerStage, CommitPromotesPendingCursorAndPreservesAcrossReentry) {
@@ -450,7 +450,7 @@ TEST(ProfilePickerStage, CommitPromotesPendingCursorAndPreservesAcrossReentry) {
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(normal);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 
     // Move cursor and commit — committed cursor follows pending only on commit.
     stage.on_event(conductor, EncoderEvent{2}, 0);
@@ -459,7 +459,7 @@ TEST(ProfilePickerStage, CommitPromotesPendingCursorAndPreservesAcrossReentry) {
     EXPECT_EQ(stage.cursor_index(), 2);
 
     // Re-enter — committed cursor must persist.
-    stage.on_enter(conductor);
+    stage.on_enter(conductor, 0);
     EXPECT_EQ(stage.cursor_index(), 2);
 }
 
@@ -480,7 +480,7 @@ TEST(ProfilePickerStage, ExitViaLDoesNotPromotePendingCursor) {
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(normal);
-    conductor.start<ProfilePickerStage>();
+    conductor.start<ProfilePickerStage>(0);
 
     stage.on_event(conductor, EncoderEvent{2}, 0);
     stage.on_event(conductor, ButtonEvent{ButtonId::L, Gesture::LONG}, 0);
@@ -500,12 +500,12 @@ TEST(NormalStage, LongPressLReturnsToProfilePicker) {
     conductor.register_stage(normal);
     conductor.register_stage(picker);
     normal.prepare(0);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 
     normal.on_event(conductor, ButtonEvent{ButtonId::L, Gesture::LONG}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
-    EXPECT_TRUE(conductor.apply_pending_transition());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
 }
 
@@ -521,7 +521,7 @@ TEST(NormalStage, IgnoresOtherButtonsAndShortPressOnL) {
     conductor.register_stage(normal);
     conductor.register_stage(picker);
     normal.prepare(0);
-    conductor.start<NormalStage>();
+    conductor.start<NormalStage>(0);
 
     normal.on_event(conductor, ButtonEvent{ButtonId::L, Gesture::SHORT}, 0);
     normal.on_event(conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);

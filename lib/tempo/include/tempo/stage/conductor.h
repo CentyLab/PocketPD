@@ -81,16 +81,16 @@ namespace tempo {
         }
 
         template <typename S>
-        void start() {
+        void start(uint32_t now_ms) {
             constexpr size_t idx = index_of<S>();
             m_current_idx = idx;
             m_current = lookup(idx);
-            m_current->on_enter(*this);
+            m_current->on_enter(*this, now_ms);
         }
 
         /**
-         * @brief Request a transition to stage S. on_enter(Conductor&) is called when the
-         * transition is applied.
+         * @brief Request a transition to stage S. on_enter(Conductor&, uint32_t) is called when
+         * the transition is applied.
          *
          * Optional payload-passing form: `request<S>(args...)` calls `S::prepare(args...)`
          * on the target slot immediately, then schedules the transition.
@@ -112,7 +112,7 @@ namespace tempo {
             return m_has_pending;
         }
 
-        bool apply_pending_transition() {
+        bool apply_pending_transition(uint32_t now_ms) {
             if (!m_has_pending) {
                 return false;
             }
@@ -122,10 +122,10 @@ namespace tempo {
 
             StageType* next = lookup(next_idx);
 
-            m_current->on_exit(*this);
+            m_current->on_exit(*this, now_ms);
             m_current_idx = next_idx;
             m_current = next;
-            m_current->on_enter(*this);
+            m_current->on_enter(*this, now_ms);
             return true;
         }
 
