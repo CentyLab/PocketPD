@@ -1,15 +1,6 @@
 /**
  * @file obtain_stage.h
- * @brief Stage that runs PD negotiation, learns the source PDO list, and
- * announces the result to the rest of the app via `PdReadyEvent`.
- *
- * After the announce, ObtainStage waits a short window then transitions to ProfilePicker so
- * the user can choose a profile. Short button press or encoder rotation jumps to ProfilePicker
- * immediately.
- *
- * Issue #33: ObtainStage must NOT issue an RDO request. The first request runs later
- * (NormalPpsStage / NormalPdoStage) once EEPROM has been consulted. Until then the AP33772 holds
- * whatever default profile the source negotiated at begin().
+ * @brief Stage that runs PD negotiation and learns PDO list
  */
 #pragma once
 
@@ -23,6 +14,7 @@
 
 #include "AP33772_debug.h"
 #include "v2/app.h"
+#include "v2/preferences_store.h"
 #include "v2/events.h"
 #include "v2/hal/pd_sink_controller.h"
 #include "v2/pocketpd.h"
@@ -34,7 +26,7 @@ namespace pocketpd {
                         public App::UsePublisher<ObtainStage> {
     private:
         PdSinkController& m_pd_sink;
-        bool m_pd_ready = false;
+        const PreferencesStore& m_prefs;
 
         tempo::IntervalTimer m_dump_timer{500};
         tempo::TimeoutTimer m_timeout;
@@ -48,27 +40,23 @@ namespace pocketpd {
     public:
         static constexpr const char* LOG_TAG = "Obtain";
 
-        explicit ObtainStage(PdSinkController& pd_sink) : m_pd_sink(pd_sink) {}
+        ObtainStage(PdSinkController& pd_sink, const PreferencesStore& prefs)
+            : m_pd_sink(pd_sink), m_prefs(prefs) {}
 
         const char* name() const override {
             return "OBTAIN";
         }
 
-        void on_enter(Conductor&, uint32_t now_ms) override {
+        void on_enter(Conductor& conductor, uint32_t now_ms) override {
             m_timeout.set(now_ms, OBTAIN_TO_PROFILE_PICKER_MS);
-            m_pd_ready = false;
 
             if (!m_pd_sink.begin()) {
                 log.error("PD negotiation failed");
-                return;
             }
 
-            m_pd_ready = true;
-            const auto pdo_n = static_cast<uint8_t>(m_pd_sink.pdo_count());
-            const auto pps_n = static_cast<uint8_t>(m_pd_sink.pps_count());
-            publish(PdReadyEvent{pdo_n, pps_n});
-
-            log.info("PD ready: {} PDO ({} PPS)", pdo_n, pps_n);
+            if (m_prefs.skip_picker_on_boot()) {
+                conductor.request<NormalStage>();
+            }
         }
 
         void on_tick(Conductor& conductor, uint32_t now_ms) override {
@@ -86,7 +74,7 @@ namespace pocketpd {
 
             auto handler = tempo::overloaded{
                 [&](const ButtonEvent& evt) {
-                    if (evt.gesture == Gesture::SHORT && m_pd_ready) {
+                    if (evt.gesture == Gesture::SHORT) {
                         conductor.request<ProfilePickerStage>();
                     }
                 },

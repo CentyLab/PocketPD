@@ -184,7 +184,7 @@ namespace pocketpd {
                     }
 
                     if (event.l_long()) {
-                        conductor.request<ProfilePickerStage>();
+                        conductor.request<MenuStage>();
                         return;
                     }
 

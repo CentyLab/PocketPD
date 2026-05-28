@@ -382,7 +382,7 @@ TEST(ProfilePickerStage, IgnoresRLongPressAndEncoderShortPress) {
     EXPECT_FALSE(conductor.has_pending());
 }
 
-TEST(ProfilePickerStage, LongPressLExitsToNormalWithoutChangingProfile) {
+TEST(ProfilePickerStage, LongPressLExitsToMenu) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(1));
@@ -390,23 +390,19 @@ TEST(ProfilePickerStage, LongPressLExitsToNormalWithoutChangingProfile) {
     EXPECT_CALL(sink, is_index_pps(::testing::_)).WillRepeatedly(Return(false));
     EXPECT_CALL(sink, pdo_max_voltage_mv(::testing::_)).WillRepeatedly(Return(5000));
     EXPECT_CALL(sink, pdo_max_current_ma(::testing::_)).WillRepeatedly(Return(3000));
-    EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
 
     ProfilePickerStage stage(display, sink);
-    NiceMock<MockOutputGate> normal_gate;
-    NormalStage normal(display, sink, normal_gate);
-    normal.prepare(7); // simulate prior session
+    MenuStage menu(display);
     TestConductor conductor;
     conductor.register_stage(stage);
-    conductor.register_stage(normal);
+    conductor.register_stage(menu);
     conductor.start<ProfilePickerStage>(0);
 
     stage.on_event(conductor, ButtonEvent{ButtonId::L, Gesture::LONG}, 0);
 
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition(0));
-    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
-    EXPECT_EQ(normal.active_pdo_index(), 7); // unchanged
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<MenuStage>());
 }
 
 TEST(ProfilePickerStage, ClearsBeforeDrawingAndFlushesAfter) {
@@ -488,17 +484,17 @@ TEST(ProfilePickerStage, ExitViaLDoesNotPromotePendingCursor) {
     EXPECT_EQ(stage.cursor_index(), 0); // committed cursor untouched by L exit
 }
 
-TEST(NormalStage, LongPressLReturnsToProfilePicker) {
+TEST(NormalStage, LongPressLReturnsToMenu) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     NiceMock<MockOutputGate> normal_gate;
     NormalStage normal(display, sink, normal_gate);
     EXPECT_CALL(sink, is_index_pps(::testing::_)).WillRepeatedly(Return(false));
     EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
-    ProfilePickerStage picker(display, sink);
+    MenuStage menu(display);
     TestConductor conductor;
     conductor.register_stage(normal);
-    conductor.register_stage(picker);
+    conductor.register_stage(menu);
     normal.prepare(0);
     conductor.start<NormalStage>(0);
 
@@ -506,7 +502,7 @@ TEST(NormalStage, LongPressLReturnsToProfilePicker) {
 
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition(0));
-    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<MenuStage>());
 }
 
 TEST(NormalStage, IgnoresOtherButtonsAndShortPressOnL) {
