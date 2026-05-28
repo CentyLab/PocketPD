@@ -13,6 +13,7 @@ Checks: "
   -cppcoreguidelines-pro-type-union-access,
   -cppcoreguidelines-pro-type-vararg,
   -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
   -modernize-use-trailing-return-type,
   -modernize-use-nodiscard
   "

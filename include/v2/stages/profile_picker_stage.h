@@ -14,6 +14,7 @@
 #include <tempo/core/time.h>
 #include <tempo/hardware/display.h>
 
+#include "menu_stage.h"
 #include "v2/app.h"
 #include "v2/events.h"
 #include "v2/hal/pd_sink_controller.h"
@@ -102,7 +103,7 @@ namespace pocketpd {
                 },
                 [&](const ButtonEvent& evt) {
                     if (evt.id == ButtonId::L && evt.gesture == Gesture::LONG) {
-                        conductor.request<NormalStage>();
+                        conductor.request<MenuStage>();
                         return;
                     }
 

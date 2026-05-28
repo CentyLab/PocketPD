@@ -1,26 +1,20 @@
 /**
  * GoogleTest suite for ObtainStage.
- *
- * Drives Conductor<...> with scripted MockPdSink and a real EventQueue /
- * QueuePublisher so PdReadyEvent payload can be inspected. Also covers the
- * input-driven exits (short button → resume, encoder → ProfilePicker SELECT,
- * timeout → ProfilePicker REVIEW).
  */
 #define VERSION "\"test\""
 
 #include <MockDisplay.h>
+#include <MockEeprom.h>
 #include <MockOutputGate.h>
 #include <MockPdSink.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <tempo/bus/event_queue.h>
-#include <tempo/bus/publisher.h>
 #include <tempo/stage/conductor.h>
 
-#include <variant>
-
 #include "v2/app.h"
+#include "v2/preferences_store.h"
 #include "v2/events.h"
+#include "v2/hal/eeprom.h"
 #include "v2/stages/boot_stage.h"
 #include "v2/stages/normal_stage.h"
 #include "v2/stages/obtain_stage.h"
@@ -31,107 +25,44 @@ using ::testing::NiceMock;
 using ::testing::Return;
 
 using TestConductor = App::Conductor;
-using TestQueue = tempo::EventQueue<Event, 8>;
-using TestPublisher = tempo::QueuePublisher<Event, 8>;
 
-namespace {
-
-    PdReadyEvent expect_pd_ready(TestQueue& q) {
-        Event e;
-        EXPECT_TRUE(q.pop(e));
-        const auto* ready = std::get_if<PdReadyEvent>(&e);
-        EXPECT_NE(ready, nullptr);
-        return ready ? *ready : PdReadyEvent{};
-    }
-
-} // namespace
-
-TEST(ObtainStage, OnEnterCallsBeginAndPublishesCount) {
+TEST(ObtainStage, OnEnterCallsBegin) {
     NiceMock<MockPdSink> sink;
-    TestQueue queue;
-    TestPublisher publisher(queue);
+    NiceMock<MockEeprom> mock_eeprom;
+    PreferencesStore default_prefs{mock_eeprom};
 
     EXPECT_CALL(sink, begin()).WillOnce(Return(true));
-    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(3));
-    EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(1));
 
-    ObtainStage stage(sink);
-    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
+    ObtainStage stage(sink, default_prefs);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ObtainStage>(0);
-
-    const auto ready = expect_pd_ready(queue);
-    EXPECT_EQ(ready.num_pdo, 3);
-    EXPECT_EQ(ready.pps_count, 1);
-}
-
-TEST(ObtainStage, MultiPpsChargerReportsBothPps) {
-    NiceMock<MockPdSink> sink;
-    TestQueue queue;
-    TestPublisher publisher(queue);
-
-    EXPECT_CALL(sink, begin()).WillOnce(Return(true));
-    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(5));
-    EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(2));
-
-    ObtainStage stage(sink);
-    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
-    TestConductor conductor;
-    conductor.register_stage(stage);
-    conductor.start<ObtainStage>(0);
-
-    const auto ready = expect_pd_ready(queue);
-    EXPECT_EQ(ready.num_pdo, 5);
-    EXPECT_EQ(ready.pps_count, 2);
-}
-
-TEST(ObtainStage, BeginFailureSuppressesPdReady) {
-    NiceMock<MockPdSink> sink;
-    TestQueue queue;
-    TestPublisher publisher(queue);
-
-    EXPECT_CALL(sink, begin()).WillOnce(Return(false));
-
-    ObtainStage stage(sink);
-    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
-    TestConductor conductor;
-    conductor.register_stage(stage);
-    conductor.start<ObtainStage>(0);
-
-    Event e;
-    EXPECT_FALSE(queue.pop(e));
 }
 
 TEST(ObtainStage, OnEnterIssuesNoRdoRequest) {
     // Issue #33: charger-dependent default voltage. Obtain must not pick a PDO.
     NiceMock<MockPdSink> sink;
-    TestQueue queue;
-    TestPublisher publisher(queue);
+    NiceMock<MockEeprom> mock_eeprom;
+    PreferencesStore default_prefs{mock_eeprom};
 
     EXPECT_CALL(sink, begin()).WillOnce(Return(true));
-    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
-    EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
     EXPECT_CALL(sink, set_pdo).Times(0);
     EXPECT_CALL(sink, set_pps_pdo).Times(0);
 
-    ObtainStage stage(sink);
-    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
+    ObtainStage stage(sink, default_prefs);
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.start<ObtainStage>(0);
 }
 
-TEST(ObtainStage, ShortButtonJumpsToProfilePickerAfterPdReady) {
+TEST(ObtainStage, ShortButtonJumpsToProfilePicker) {
     NiceMock<MockPdSink> sink;
-    TestQueue queue;
-    TestPublisher publisher(queue);
+    NiceMock<MockEeprom> mock_eeprom;
+    PreferencesStore default_prefs{mock_eeprom};
     EXPECT_CALL(sink, begin()).WillOnce(Return(true));
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
-    EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(1));
 
-    ObtainStage stage(sink);
-    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
+    ObtainStage stage(sink, default_prefs);
     NiceMock<MockDisplay> picker_display;
     ProfilePickerStage picker(picker_display, sink);
     TestConductor conductor;
@@ -146,32 +77,14 @@ TEST(ObtainStage, ShortButtonJumpsToProfilePickerAfterPdReady) {
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
 }
 
-TEST(ObtainStage, ShortButtonIgnoredWhenPdNotReady) {
-    NiceMock<MockPdSink> sink;
-    TestQueue queue;
-    TestPublisher publisher(queue);
-    EXPECT_CALL(sink, begin()).WillOnce(Return(false));
-
-    ObtainStage stage(sink);
-    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
-    TestConductor conductor;
-    conductor.register_stage(stage);
-    conductor.start<ObtainStage>(0);
-
-    stage.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::SHORT}, 0);
-    EXPECT_FALSE(conductor.has_pending());
-}
-
 TEST(ObtainStage, EncoderRotationJumpsToProfilePicker) {
     NiceMock<MockPdSink> sink;
-    TestQueue queue;
-    TestPublisher publisher(queue);
+    NiceMock<MockEeprom> mock_eeprom;
+    PreferencesStore default_prefs{mock_eeprom};
     EXPECT_CALL(sink, begin()).WillOnce(Return(true));
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
-    EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
 
-    ObtainStage stage(sink);
-    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
+    ObtainStage stage(sink, default_prefs);
     NiceMock<MockDisplay> picker_display;
     ProfilePickerStage picker(picker_display, sink);
     TestConductor conductor;
@@ -188,14 +101,12 @@ TEST(ObtainStage, EncoderRotationJumpsToProfilePicker) {
 
 TEST(ObtainStage, TimeoutTransitionsToProfilePicker) {
     NiceMock<MockPdSink> sink;
-    TestQueue queue;
-    TestPublisher publisher(queue);
+    NiceMock<MockEeprom> mock_eeprom;
+    PreferencesStore default_prefs{mock_eeprom};
     EXPECT_CALL(sink, begin()).WillOnce(Return(true));
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(0));
-    EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
 
-    ObtainStage stage(sink);
-    stage.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
+    ObtainStage stage(sink, default_prefs);
     NiceMock<MockDisplay> picker_display;
     ProfilePickerStage picker(picker_display, sink);
     TestConductor conductor;
@@ -216,16 +127,14 @@ TEST(ObtainStage, TimeoutTransitionsToProfilePicker) {
 TEST(BootStage, RequestsObtainAfterTimeout) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
-    TestQueue queue;
-    TestPublisher publisher(queue);
+    NiceMock<MockEeprom> mock_eeprom;
+    PreferencesStore default_prefs{mock_eeprom};
 
     EXPECT_CALL(sink, begin()).WillOnce(Return(true));
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(0));
-    EXPECT_CALL(sink, pps_count()).WillRepeatedly(Return(0));
 
     BootStage boot(display);
-    ObtainStage obtain(sink);
-    obtain.attach_publisher_INTERNAL_DO_NOT_USE(publisher);
+    ObtainStage obtain(sink, default_prefs);
     TestConductor conductor;
     conductor.register_stage(boot);
     conductor.register_stage(obtain);
@@ -242,6 +151,54 @@ TEST(BootStage, RequestsObtainAfterTimeout) {
 
     EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ObtainStage>());
+}
+
+TEST(ObtainStage, SkipPickerOnBootRequestsNormal) {
+    NiceMock<MockPdSink> sink;
+    NiceMock<MockEeprom> mock_eeprom;
+    PreferencesStore config{mock_eeprom, Preferences{.skip_picker_on_boot = true}};
+    NiceMock<MockDisplay> display;
+    NiceMock<MockOutputGate> gate;
+
+    EXPECT_CALL(sink, begin()).WillOnce(Return(true));
+    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
+    EXPECT_CALL(sink, is_index_pps(::testing::_)).WillRepeatedly(Return(false));
+    EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
+
+    ObtainStage stage(sink, config);
+    NormalStage normal(display, sink, gate);
+    TestConductor conductor;
+    conductor.register_stage(stage);
+    conductor.register_stage(normal);
+    conductor.start<ObtainStage>(0);
+
+    EXPECT_TRUE(conductor.has_pending());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
+}
+
+TEST(ObtainStage, SkipPickerDisabledFollowsNormalTimeoutPath) {
+    NiceMock<MockPdSink> sink;
+    NiceMock<MockEeprom> mock_eeprom;
+    PreferencesStore config{mock_eeprom};
+    NiceMock<MockDisplay> display;
+
+    EXPECT_CALL(sink, begin()).WillOnce(Return(true));
+    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
+
+    ObtainStage stage(sink, config);
+    ProfilePickerStage picker(display, sink);
+    TestConductor conductor;
+    conductor.register_stage(stage);
+    conductor.register_stage(picker);
+    conductor.start<ObtainStage>(0);
+
+    EXPECT_FALSE(conductor.has_pending());
+
+    conductor.tick(OBTAIN_TO_PROFILE_PICKER_MS);
+    EXPECT_TRUE(conductor.has_pending());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
 }
 
 int main(int argc, char** argv) {

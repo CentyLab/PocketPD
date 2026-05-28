@@ -6,10 +6,12 @@
 #include <tempo/tempo.h>
 
 #include "v2/app.h"
+#include "v2/preferences_store.h"
 #include "v2/hal/adc_supply_voltage_source.h"
 #include "v2/hal/ap33772_pd_sink.h"
 #include "v2/hal/ap33772_supply_voltage_source.h"
 #include "v2/hal/arduino_clock.h"
+#include "v2/hal/arduino_eeprom.h"
 #include "v2/hal/arduino_output_gate.h"
 #include "v2/hal/arduino_stream_reader.h"
 #include "v2/hal/arduino_stream_writer.h"
@@ -49,6 +51,9 @@ namespace pocketpd {
 
     ArduinoOutputGate output_gate{pin_output_Enable};
 
+    ArduinoEeprom eeprom;
+    PreferencesStore prefs{eeprom};
+
     EzButtonInput encoder_button{pin_encoder_SW};
     EzButtonInput r_button{pin_button_outputSW};
     EzButtonInput l_button{pin_button_selectVI};
@@ -57,10 +62,12 @@ namespace pocketpd {
     // —— Stages
 
     BootStage boot_stage(u8g2_display);
-    ObtainStage obtain_stage(pd_sink);
+    ObtainStage obtain_stage(pd_sink, prefs);
     ProfilePickerStage profile_picker_stage(u8g2_display, pd_sink);
     NormalStage normal_stage(u8g2_display, pd_sink, output_gate);
     EnergyStage energy_stage(u8g2_display, output_gate);
+    MenuStage menu_stage(u8g2_display);
+    SettingsStage settings_stage(u8g2_display, prefs);
 
     // —— Tasks
 
@@ -86,6 +93,11 @@ void setup() {
     supply_voltage_source.begin();
     u8g2_display.begin();
     output_gate.begin();
+    eeprom.begin();
+
+    if (!prefs.load()) {
+        Serial.println("[main] preferences load failed; defaults restored");
+    }
     encoder.begin();
 
     app.register_stage(boot_stage);
@@ -93,6 +105,8 @@ void setup() {
     app.register_stage(profile_picker_stage);
     app.register_stage(normal_stage);
     app.register_stage(energy_stage);
+    app.register_stage(menu_stage);
+    app.register_stage(settings_stage);
 
     app.add_task(button_task);
     app.add_task(encoder_task);

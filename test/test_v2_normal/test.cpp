@@ -166,7 +166,7 @@ TEST(NormalStage, RShortToggleEnablesAndDisablesOutput) {
     EXPECT_FALSE(enabled);
 }
 
-TEST(NormalStage, LLongRequestsProfilePicker) {
+TEST(NormalStage, LLongRequestsMenu) {
     NiceMock<MockDisplay> display;
     NiceMock<MockPdSink> sink;
     NiceMock<MockOutputGate> gate;
@@ -174,10 +174,10 @@ TEST(NormalStage, LLongRequestsProfilePicker) {
     EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
 
     NormalStage normal(display, sink, gate);
-    ProfilePickerStage picker(display, sink);
+    MenuStage menu(display);
     TestConductor conductor;
     conductor.register_stage(normal);
-    conductor.register_stage(picker);
+    conductor.register_stage(menu);
     normal.prepare(0);
     conductor.start<NormalStage>(0);
 
@@ -185,7 +185,7 @@ TEST(NormalStage, LLongRequestsProfilePicker) {
 
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition(0));
-    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<MenuStage>());
 }
 
 TEST(NormalStage, EncoderEventsIgnoredInPdoBranch) {
