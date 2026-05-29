@@ -58,6 +58,19 @@ namespace pocketpd {
             m_preferences.skip_picker_on_boot = v;
             m_dirty = true;
         }
+
+        bool voltage_comp_enabled() const {
+            return m_preferences.voltage_comp_enabled;
+        }
+
+        void set_voltage_comp_enabled(bool v) {
+            if (m_preferences.voltage_comp_enabled == v) {
+                return;
+            }
+
+            m_preferences.voltage_comp_enabled = v;
+            m_dirty = true;
+        }
     };
 
 } // namespace pocketpd

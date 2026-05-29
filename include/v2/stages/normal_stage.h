@@ -20,7 +20,9 @@
 
 namespace pocketpd {
 
-    class NormalStage : public App::Stage, public App::UseLog<NormalStage> {
+    class NormalStage : public App::Stage,
+                        public App::UseLog<NormalStage>,
+                        public App::UsePublisher<NormalStage> {
     private:
         using Display = tempo::Display;
         using IntervalTimer = tempo::IntervalTimer;
@@ -44,6 +46,8 @@ namespace pocketpd {
         bool m_blink_visible = true;
         
         bool m_locked = false;
+        int32_t m_comp_offset_mv = 0;
+        
         // After OFF->ON, the first INA226 read returns a stale conversion (latched while FET
         // was off; observed ~200 mV instead of true VBUS). Discard N load samples and hold the
         // seeded supply value until the sensor has a fresh conversion in hand.
@@ -71,6 +75,10 @@ namespace pocketpd {
 
         bool locked() const {
             return m_locked;
+        }
+
+        int32_t comp_offset_mv() const {
+            return m_comp_offset_mv;
         }
 
         const Mode& mode() const {
@@ -112,6 +120,7 @@ namespace pocketpd {
             int count = m_pd_sink.pdo_count();
             if (count == 0) {
                 m_mode = PassthroughMode{};
+                publish(PpsTargetEvent{-1, 0, 0});
                 draw();
                 return;
             }
@@ -202,10 +211,8 @@ namespace pocketpd {
                         return;
                     }
 
-                    if (!pps->on_encoder(event)) {
-                        const auto msg = "set_pps_pdo({}, {}, {}) failed";
-                        log.error(msg, m_active_pdo_index, pps->target_mv, pps->target_ma);
-                    }
+                    pps->on_encoder(event);
+                    publish(PpsTargetEvent{m_active_pdo_index, pps->target_mv, pps->target_ma});
                 },
                 [&](const SensorEvent& event) {
                     if (m_postenable_discard_left > 0) {
@@ -226,6 +233,9 @@ namespace pocketpd {
                         }
                     }
                 },
+                [&](const CompStateEvent& evt) {
+                    m_comp_offset_mv = evt.offset_mv;
+                },
                 [](const auto&) {},
             };
 
@@ -233,10 +243,6 @@ namespace pocketpd {
         }
 
     private:
-        /**
-         * @brief Enter (or re-enter) a PPS profile. Construct fresh state on profile change or
-         * mode switch; otherwise preserve the user's prior target edits and reissue.
-         */
         void enter_pps_profile() {
             bool same_profile = m_active_pdo_index == m_last_active_index;
             if (!same_profile) {
@@ -248,15 +254,10 @@ namespace pocketpd {
             }
 
             auto& pps = std::get<PPSMode>(m_mode);
-            if (!pps.apply()) {
-                const auto msg = "set_pps_pdo({}, {}, {}) failed";
-                log.error(msg, m_active_pdo_index, pps.target_mv, pps.target_ma);
-            }
+            pps.clamp();
+            publish(PpsTargetEvent{m_active_pdo_index, pps.target_mv, pps.target_ma});
         }
 
-        /**
-         * @brief Enter a fixed PDO profile. Trigger `set_pdo` on every entry.
-         */
         void enter_fixed_profile() {
             m_mode = FixedMode{
                 .pdo_max_mv = m_pd_sink.pdo_max_voltage_mv(m_active_pdo_index),
@@ -267,6 +268,7 @@ namespace pocketpd {
             if (!m_pd_sink.set_pdo(m_active_pdo_index)) {
                 log.error("set_pdo({}) failed", m_active_pdo_index);
             }
+            publish(PpsTargetEvent{-1, 0, 0});
         }
 
         NormalViewModel build_view_model() const {
@@ -279,6 +281,7 @@ namespace pocketpd {
                 .load_reading = m_load_reading,
                 .supply_reading = m_supply_reading,
                 .mode = m_mode,
+                .comp_offset_mv = m_comp_offset_mv,
             };
         }
 

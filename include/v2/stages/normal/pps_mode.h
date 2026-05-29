@@ -55,30 +55,16 @@ namespace pocketpd {
             }
         }
 
-        /**
-         * @brief Apply an encoder delta to the focused target and reissue.
-         *
-         * @return Result of the underlying `set_pps_pdo` call. `true` when the
-         * delta is zero (no reissue needed). `false` only on actual sink
-         * failure.
-         */
-        [[nodiscard]] bool on_encoder(const EncoderEvent& evt) {
+        void on_encoder(const EncoderEvent& evt) {
             if (evt.delta == 0) {
-                return true;
+                return;
             }
-
             apply_encoder_delta(-evt.delta);
-            return apply();
+            clamp_to_pdo();
         }
 
-        /**
-         * @brief Clamp the current target to PDO + step grid and push to sink.
-         *
-         * @return Result of `set_pps_pdo`. Stage log on `false`.
-         */
-        [[nodiscard]] bool apply() {
+        void clamp() {
             clamp_to_pdo();
-            return m_sink->set_pps_pdo(m_pdo_idx, target_mv, target_ma);
         }
 
         uint8_t cursor_index() const {

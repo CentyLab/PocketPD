@@ -47,8 +47,9 @@ namespace {
 
 TEST(SettingsStage, RendersOneRowWithUncheckedBox) {
     Harness h;
-    EXPECT_CALL(h.display, draw_text(0, 9, StrEq(">"))).Times(1);
-    EXPECT_CALL(h.display, draw_text(10, 9, StrEq("[ ] Skip picker"))).Times(1);
+    EXPECT_CALL(h.display, draw_text(_, _, _)).Times(::testing::AnyNumber());
+    EXPECT_CALL(h.display, draw_text(0, 12, StrEq(">"))).Times(1);
+    EXPECT_CALL(h.display, draw_text(10, 12, StrEq("[ ] Skip picker"))).Times(1);
     h.conductor.start<SettingsStage>(0);
 }
 
@@ -56,7 +57,7 @@ TEST(SettingsStage, RendersCheckedWhenSettingTrue) {
     Harness h;
     h.prefs.set_skip_picker_on_boot(true);
     EXPECT_CALL(h.display, draw_text(_, _, _)).Times(::testing::AnyNumber());
-    EXPECT_CALL(h.display, draw_text(10, 9, StrEq("[x] Skip picker"))).Times(1);
+    EXPECT_CALL(h.display, draw_text(10, 12, StrEq("[X] Skip picker"))).Times(1);
     h.conductor.start<SettingsStage>(0);
 }
 
@@ -111,6 +112,55 @@ TEST(SettingsStage, ExitWithoutTogglesDoesNotSave) {
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::L, Gesture::LONG}, 0);
     EXPECT_TRUE(h.conductor.apply_pending_transition(0));
     EXPECT_EQ(h.conductor.current_index(), TestConductor::index_of<MenuStage>());
+}
+
+TEST(SettingsStage, RendersVoltageCompRowBelowSkipPicker) {
+    Harness h;
+    EXPECT_CALL(h.display, draw_text(_, _, _)).Times(::testing::AnyNumber());
+    EXPECT_CALL(h.display, draw_text(10, 12, StrEq("[ ] Skip picker"))).Times(1);
+    EXPECT_CALL(h.display, draw_text(10, 24, StrEq("[ ] Voltage comp"))).Times(1);
+    h.conductor.start<SettingsStage>(0);
+}
+
+TEST(SettingsStage, EncoderMovesCursorToVoltageCompRow) {
+    Harness h;
+    h.conductor.start<SettingsStage>(0);
+    ::testing::Mock::VerifyAndClearExpectations(&h.display);
+
+    EXPECT_CALL(h.display, draw_text(_, _, _)).Times(::testing::AnyNumber());
+    EXPECT_CALL(h.display, draw_text(0, 24, StrEq(">"))).Times(1);
+    EXPECT_CALL(h.display, draw_text(0, 12, StrEq(">"))).Times(0);
+
+    h.stage.on_event(h.conductor, EncoderEvent{1}, 0);
+}
+
+TEST(SettingsStage, EncoderLongOnVoltageCompTogglesPreference) {
+    Harness h;
+    h.conductor.start<SettingsStage>(0);
+
+    h.stage.on_event(h.conductor, EncoderEvent{1}, 0);
+    h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
+
+    EXPECT_TRUE(h.prefs.voltage_comp_enabled());
+    EXPECT_TRUE(h.prefs.dirty());
+}
+
+TEST(SettingsStage, ExitFlushesVoltageCompToggle) {
+    Harness h;
+    h.conductor.start<SettingsStage>(0);
+
+    h.stage.on_event(h.conductor, EncoderEvent{1}, 0);
+    h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
+
+    EXPECT_CALL(h.eeprom, save(_))
+        .WillOnce([](const Preferences& s) {
+            EXPECT_TRUE(s.voltage_comp_enabled);
+            EXPECT_FALSE(s.skip_picker_on_boot);
+            return true;
+        });
+
+    h.stage.on_event(h.conductor, ButtonEvent{ButtonId::L, Gesture::LONG}, 0);
+    EXPECT_TRUE(h.conductor.apply_pending_transition(0));
 }
 
 int main(int argc, char** argv) {

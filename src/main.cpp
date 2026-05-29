@@ -24,6 +24,7 @@
 #include "v2/tasks/encoder_task.h"
 #include "v2/tasks/energy_task.h"
 #include "v2/tasks/sensor_task.h"
+#include "v2/tasks/pps_control_task.h"
 
 namespace pocketpd {
 
@@ -76,6 +77,7 @@ namespace pocketpd {
     SensorTask sensor_task{power_monitor, supply_voltage_source};
     EnergyTask energy_task{output_gate};
     CommandTask command_task{arduino_stream_reader, arduino_stream_writer};
+    PpsControlTask pps_control_task{prefs, output_gate, pd_sink};
 
 } // namespace pocketpd
 
@@ -113,6 +115,7 @@ void setup() {
     app.add_task(sensor_task);
     app.add_task(energy_task);
     app.add_task(command_task);
+    app.add_task(pps_control_task);
 
     app.start<BootStage>();
 }
