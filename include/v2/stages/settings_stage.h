@@ -5,7 +5,6 @@
  */
 #pragma once
 
-#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstdio>
@@ -15,8 +14,9 @@
 #include <tempo/hardware/display.h>
 
 #include "v2/app.h"
-#include "v2/preferences_store.h"
 #include "v2/events.h"
+#include "v2/preferences_store.h"
+#include "v2/ui/table_view.h"
 
 namespace pocketpd {
 
@@ -24,19 +24,27 @@ namespace pocketpd {
     private:
         using Display = tempo::Display;
 
-        enum class Item : uint8_t { SKIP_PICKER = 0, VOLTAGE_COMP = 1 };
-
-        static constexpr std::array<const char*, 2> ITEM_LABELS = {
-            "Skip picker",
-            "Voltage comp",
+        enum class Item : uint8_t {
+            SKIP_PICKER,
+            VOLTAGE_COMP,
         };
+
+        struct SettingItem {
+            Item item;
+            const char* label;
+        };
+
+        static constexpr std::array<SettingItem, 2> ITEMS = {{
+            {Item::SKIP_PICKER, "Skip picker"},
+            {Item::VOLTAGE_COMP, "Voltage comp"},
+        }};
 
         Display& m_display;
         PreferencesStore& m_prefs;
-        uint8_t m_cursor = 0;
+        TableView m_table{};
 
         int count() const {
-            return ITEM_LABELS.size();
+            return ITEMS.size();
         }
 
         bool value_at(Item item) const {
@@ -50,7 +58,7 @@ namespace pocketpd {
         }
 
         void toggle_current() {
-            switch (static_cast<Item>(m_cursor)) {
+            switch (ITEMS[m_table.cursor()].item) {
             case Item::SKIP_PICKER:
                 m_prefs.set_skip_picker_on_boot(!m_prefs.skip_picker_on_boot());
                 break;
@@ -63,35 +71,28 @@ namespace pocketpd {
         }
 
         void draw() {
-            m_display.clear();
-
-            std::array<char, 32> buffer{};
-            for (int i = 0; i < count(); ++i) {
-                const int y = 12 * (i + 1);
-                if (i == m_cursor) {
-                    m_display.draw_text(0, y, ">");
-                }
-
-                const char mark = value_at(static_cast<Item>(i)) ? 'X' : ' ';
-                std::snprintf(buffer.data(), buffer.size(), "[%c] %s", mark, ITEM_LABELS[i]);
-                m_display.draw_text(10, y, buffer.data());
+            std::array<std::array<char, 32>, ITEMS.size()> buffers{};
+            std::array<TableRow, ITEMS.size()> rows{};
+            for (size_t i = 0; i < ITEMS.size(); ++i) {
+                const char mark = value_at(ITEMS[i].item) ? 'X' : ' ';
+                std::snprintf(
+                    buffers[i].data(), buffers[i].size(), "[%c] %s", mark, ITEMS[i].label
+                );
+                rows[i].text = buffers[i].data();
             }
 
-            m_display.flush();
+            TableModel model;
+            model.rows = rows.data();
+            model.count = static_cast<uint8_t>(ITEMS.size());
+            m_table.render(m_display, model);
         }
 
     public:
-        static constexpr const char* LOG_TAG = "Settings";
-
         SettingsStage(Display& display, PreferencesStore& prefs)
             : m_display(display), m_prefs(prefs) {}
 
-        const char* name() const override {
-            return "SETTINGS";
-        }
-
         void on_enter(Conductor&, uint32_t) override {
-            m_cursor = 0;
+            m_table.reset();
             draw();
         }
 
@@ -104,12 +105,12 @@ namespace pocketpd {
         void on_event(Conductor& conductor, const Event& event, uint32_t) override {
             auto handler = tempo::overloaded{
                 [&](const EncoderEvent& evt) {
-                    if (evt.delta == 0) return;
-                    const int max_idx = count() - 1;
-                    int next = std::clamp(static_cast<int>(m_cursor) + evt.delta, 0, max_idx);
-                    if (next == m_cursor) return;
-                    m_cursor = static_cast<uint8_t>(next);
-                    draw();
+                    if (evt.delta == 0) {
+                        return;
+                    }
+                    if (m_table.move(evt.delta, static_cast<uint8_t>(count()))) {
+                        draw();
+                    }
                 },
                 [&](const ButtonEvent& evt) {
                     if (evt.id == ButtonId::L && evt.gesture == Gesture::LONG) {
