@@ -5,7 +5,6 @@
  */
 #pragma once
 
-#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <variant>
@@ -15,6 +14,7 @@
 
 #include "v2/app.h"
 #include "v2/events.h"
+#include "v2/ui/table_view.h"
 
 namespace pocketpd {
 
@@ -23,46 +23,44 @@ namespace pocketpd {
         using Display = tempo::Display;
 
         enum class Item : uint8_t {
-            PROFILE_PICKER = 0,
-            SETTINGS = 1,
+            PROFILE_PICKER,
+            SETTINGS,
         };
 
-        static constexpr std::array<const char*, 2> ITEM_LABELS = {
-            "Profile Picker",
-            "Settings",
+        struct MenuItem {
+            Item item;
+            const char* label;
         };
+
+        static constexpr std::array<MenuItem, 2> ITEMS = {{
+            {Item::PROFILE_PICKER, "Profile Picker"},
+            {Item::SETTINGS, "Settings"},
+        }};
 
         Display& m_display;
-        uint8_t m_cursor = 0;
+        TableView m_table;
 
         int count() const {
-            return ITEM_LABELS.size();
-        }
-
-        Item current_item() const {
-            return static_cast<Item>(m_cursor);
+            return ITEMS.size();
         }
 
         void draw() {
-            m_display.clear();
-            
-            for (int i = 0; i < count(); i++) {
-                const auto y = (12 * (i + 1));
-                if (i == m_cursor) {
-                    m_display.draw_text(0, y, ">");
-                }
-
-                m_display.draw_text(10, y, ITEM_LABELS[i]);
+            std::array<TableRow, ITEMS.size()> rows{};
+            for (size_t i = 0; i < ITEMS.size(); ++i) {
+                rows[i].text = ITEMS[i].label;
             }
 
-            m_display.flush();
+            TableModel model;
+            model.rows = rows.data();
+            model.count = static_cast<uint8_t>(ITEMS.size());
+            m_table.render(m_display, model);
         }
 
     public:
         explicit MenuStage(Display& display) : m_display(display) {}
 
         void on_enter(Conductor&, uint32_t) override {
-            m_cursor = 0;
+            m_table.reset();
             draw();
         }
 
@@ -72,15 +70,9 @@ namespace pocketpd {
                     if (evt.delta == 0) {
                         return;
                     }
-
-                    const int max_idx = count() - 1;
-                    int next = std::clamp(m_cursor + evt.delta, 0, max_idx);
-                    if (next == m_cursor) {
-                        return;
+                    if (m_table.move(evt.delta, static_cast<uint8_t>(count()))) {
+                        draw();
                     }
-
-                    m_cursor = next;
-                    draw();
                 },
                 [&](const ButtonEvent& evt) {
                     if (evt.id == ButtonId::L && evt.gesture == Gesture::LONG) {
@@ -88,10 +80,13 @@ namespace pocketpd {
                         return;
                     }
                     if (evt.id == ButtonId::ENCODER && evt.gesture == Gesture::LONG) {
-                        if (current_item() == Item::PROFILE_PICKER) {
+                        switch (ITEMS[m_table.cursor()].item) {
+                        case Item::PROFILE_PICKER:
                             conductor.request<ProfilePickerStage>();
-                        } else {
+                            break;
+                        case Item::SETTINGS:
                             conductor.request<SettingsStage>();
+                            break;
                         }
                     }
                 },
