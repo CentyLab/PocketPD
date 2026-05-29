@@ -124,6 +124,21 @@ namespace pocketpd {
         uint32_t total_seconds = 0;
     };
 
-    using Event = tempo::Events<PdReadyEvent, ButtonEvent, EncoderEvent, SensorEvent, EnergyEvent>;
+    /**
+     * @brief Active PPS target. `pdo_index = -1` means no PPS profile is active.
+     */
+    struct PpsTargetEvent {
+        int pdo_index = -1;
+        int target_mv = 0;
+        int target_ma = 0;
+    };
+
+    struct CompStateEvent {
+        int32_t offset_mv = 0;
+    };
+
+    using Event = tempo::Events<
+        PdReadyEvent, ButtonEvent, EncoderEvent, SensorEvent, EnergyEvent,
+        PpsTargetEvent, CompStateEvent>;
 
 } // namespace pocketpd

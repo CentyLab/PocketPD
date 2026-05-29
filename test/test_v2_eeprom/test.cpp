@@ -47,6 +47,26 @@ TEST(EepromCodec, CrcCorruptionFailsDecode) {
     EXPECT_FALSE(decode_preferences(buf.data(), out));
 }
 
+TEST(EepromCodec, VoltageCompFieldRoundTrips) {
+    std::array<uint8_t, EEPROM_PREFERENCES_BYTES> buf{};
+
+    Preferences in{
+        .skip_picker_on_boot = false,
+        .voltage_comp_enabled = true,
+    };
+    encode_preferences(in, buf.data());
+
+    Preferences out{};
+    EXPECT_TRUE(decode_preferences(buf.data(), out));
+    EXPECT_FALSE(out.skip_picker_on_boot);
+    EXPECT_TRUE(out.voltage_comp_enabled);
+}
+
+TEST(EepromCodec, DefaultsHaveVoltageCompOff) {
+    Preferences p{};
+    EXPECT_FALSE(p.voltage_comp_enabled);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

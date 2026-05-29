@@ -31,6 +31,7 @@ namespace pocketpd {
         LoadReading load_reading{};
         SupplyReading supply_reading{};
         Mode mode = PassthroughMode{};
+        int32_t comp_offset_mv = 0;
     };
 
     class NormalView {
@@ -148,6 +149,11 @@ namespace pocketpd {
             std::snprintf(buf.data(), buf.size(), "%ld mV", static_cast<long>(mode.target_mv));
             auto w = d.text_width(buf.data());
             d.draw_text(static_cast<uint8_t>(TARGET_RIGHT_X - w), V_TARGET_Y, buf.data());
+
+            if (vm.comp_offset_mv > 0) {
+                std::snprintf(buf.data(), buf.size(), "+%d", vm.comp_offset_mv);
+                d.draw_text(TARGET_RIGHT_X + 2, V_TARGET_Y, buf.data());
+            }
 
             std::snprintf(buf.data(), buf.size(), "%ld mA", static_cast<long>(mode.target_ma));
             w = d.text_width(buf.data());
