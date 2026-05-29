@@ -25,7 +25,6 @@ namespace pocketpd {
         static constexpr int STEP_MV = PPS_VOLTAGE_STEP_MV;
         static constexpr int DEAD_BAND_MV = 20;
         static constexpr int MAX_COMP_MV = 500;
-        static constexpr uint32_t MIN_CURRENT_MA = 100;
 
         const PreferencesStore& m_prefs;
         OutputGate& m_gate;
@@ -38,10 +37,9 @@ namespace pocketpd {
 
         LoadReading m_load{};
         bool m_load_init = false;
-        bool m_was_enabled = false;
 
     public:
-        static constexpr uint32_t PERIOD_MS = 250;
+        static constexpr uint32_t PERIOD_MS = 125;
         static constexpr const char* LOG_TAG = "PpsCtrl";
 
         PpsControlTask(const PreferencesStore& prefs, OutputGate& gate, PdSinkController& sink)
@@ -72,6 +70,7 @@ namespace pocketpd {
                         publish(CompStateEvent{0});
                     }
                 }
+
                 write_request();
                 return;
             }
@@ -84,21 +83,21 @@ namespace pocketpd {
 
         void on_tick(uint32_t) override {
             if (!m_prefs.voltage_comp_enabled()) {
-                if (m_was_enabled && m_pdo_index >= 0 && m_comp_offset_mv != 0) {
-                    m_comp_offset_mv = 0;
-                    if (write_request()) {
-                        publish(CompStateEvent{0});
-                    }
-                }
-                m_was_enabled = false;
+                clear_offset();
                 return;
             }
-            m_was_enabled = true;
 
-            if (m_pdo_index < 0 || !m_gate.is_enabled() || !m_load_init) {
+            if (m_pdo_index < 0) {
                 return;
             }
-            if (m_load.current_ma < MIN_CURRENT_MA) {
+
+            // Output off: user may swap cable or load, so the learned offset is stale.
+            if (!m_gate.is_enabled()) {
+                clear_offset();
+                return;
+            }
+
+            if (!m_load_init) {
                 return;
             }
 
@@ -114,6 +113,7 @@ namespace pocketpd {
                 const int headroom = std::max(0, pdo_max - m_target_mv);
                 max_offset = std::min(MAX_COMP_MV, headroom);
             }
+
             const int new_offset = std::clamp(m_comp_offset_mv + delta, 0, max_offset);
             if (new_offset == m_comp_offset_mv) {
                 return;
@@ -129,18 +129,32 @@ namespace pocketpd {
         }
 
     private:
+        void clear_offset() {
+            if (m_comp_offset_mv == 0) {
+                return;
+            }
+
+            m_comp_offset_mv = 0;
+            if (write_request()) {
+                publish(CompStateEvent{0});
+            }
+        }
+
         bool write_request() {
             if (m_pdo_index < 0) {
                 return false;
             }
+
             const int offset = m_prefs.voltage_comp_enabled() ? m_comp_offset_mv : 0;
             const int request_mv = m_target_mv + offset;
             if (!m_sink.set_pps_pdo(m_pdo_index, request_mv, m_target_ma)) {
                 log.error(
                     "ppsctrl set_pps_pdo({}, {}, {}) failed", m_pdo_index, request_mv, m_target_ma
                 );
+
                 return false;
             }
+
             return true;
         }
     };

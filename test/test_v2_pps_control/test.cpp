@@ -161,19 +161,7 @@ TEST(PpsControlTaskTick, NegativeErrorStepsDown) {
     EXPECT_EQ(h.task.comp_offset_mv(), 80);
 }
 
-TEST(PpsControlTaskTick, LowCurrentHoldsOffset) {
-    Harness h;
-    h.prefs.set_voltage_comp_enabled(true);
-    EXPECT_CALL(h.gate, is_enabled()).WillRepeatedly(Return(true));
-    EXPECT_CALL(h.sink, set_pps_pdo(0, 5000, 1000)).Times(1).WillOnce(Return(true));
-
-    h.task.on_event(PpsTargetEvent{0, 5000, 1000}, 0);
-    h.task.on_event(SensorEvent{load_with(4800, 50), {}}, 1);
-    h.task.on_tick(PpsControlTask::PERIOD_MS);
-    EXPECT_EQ(h.task.comp_offset_mv(), 0);
-}
-
-TEST(PpsControlTaskTick, OutputOffSuppressesAndPreservesOffset) {
+TEST(PpsControlTaskTick, OutputOffResetsOffset) {
     Harness h;
     h.prefs.set_voltage_comp_enabled(true);
 
@@ -189,10 +177,17 @@ TEST(PpsControlTaskTick, OutputOffSuppressesAndPreservesOffset) {
     h.task.on_tick(2 * PpsControlTask::PERIOD_MS);
     EXPECT_EQ(h.task.comp_offset_mv(), 40);
 
+    // Output off: the learned offset is stale, so drop it and rewrite the bare target.
+    ::testing::Mock::VerifyAndClearExpectations(&h.sink);
+    EXPECT_CALL(h.sink, set_pps_pdo(0, 5000, 1000)).Times(1).WillOnce(Return(true));
+    h.task.on_tick(3 * PpsControlTask::PERIOD_MS);
+    EXPECT_EQ(h.task.comp_offset_mv(), 0);
+
+    // Already zeroed — no further writes while output stays off.
     ::testing::Mock::VerifyAndClearExpectations(&h.sink);
     EXPECT_CALL(h.sink, set_pps_pdo).Times(0);
-    h.task.on_tick(3 * PpsControlTask::PERIOD_MS);
-    EXPECT_EQ(h.task.comp_offset_mv(), 40);
+    h.task.on_tick(4 * PpsControlTask::PERIOD_MS);
+    EXPECT_EQ(h.task.comp_offset_mv(), 0);
 }
 
 TEST(PpsControlTaskTick, SaturatesAtMaxComp) {
