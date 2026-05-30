@@ -91,7 +91,7 @@ namespace pocketpd {
                         return;
                     }
                     if (event.r_long()) {
-                        conductor.request<NormalStage>(m_active_pdo_index);
+                        conductor.pop();
                     }
                 },
                 [&](const SensorEvent& event) {

@@ -223,8 +223,10 @@ TEST(EnergyStage, RLongReturnsToNormalStageWithStoredProfile) {
     conductor.register_stage(normal);
     conductor.register_stage(energy);
 
-    energy.prepare(3);
-    conductor.start<EnergyStage>(0);
+    normal.prepare(3);
+    conductor.start<NormalStage>(0);
+    conductor.push<EnergyStage>(3);
+    conductor.apply_pending_transition(0);
     energy.on_event(conductor, ButtonEvent{ButtonId::R, Gesture::LONG}, 0);
 
     EXPECT_TRUE(conductor.has_pending());

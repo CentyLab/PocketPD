@@ -40,7 +40,7 @@ namespace pocketpd {
                 return; // empty-PDO fallback: long-press is a no-op
             }
             m_cursor = m_pending_cursor;
-            conductor.request<NormalStage>(static_cast<int8_t>(m_cursor));
+            conductor.reset_root<NormalStage>(static_cast<int8_t>(m_cursor));
         }
 
     public:
@@ -74,7 +74,7 @@ namespace pocketpd {
 
         void on_tick(Conductor& conductor, uint32_t now_ms) override {
             if (m_passthrough_timeout.reached(now_ms)) {
-                conductor.request<NormalStage>(static_cast<int8_t>(-1));
+                conductor.reset_root<NormalStage>(static_cast<int8_t>(-1));
             }
         }
 
@@ -82,8 +82,8 @@ namespace pocketpd {
             // Passthrough-only screen: any user input drops to NormalStage in passthrough.
             if (power_source_type() == PowerSourceType::NON_PD) {
                 auto pass_handler = tempo::overloaded{
-                    [&](const ButtonEvent&) { conductor.request<NormalStage>(-1); },
-                    [&](const EncoderEvent& evt) { conductor.request<NormalStage>(-1); },
+                    [&](const ButtonEvent&) { conductor.reset_root<NormalStage>(-1); },
+                    [&](const EncoderEvent& evt) { conductor.reset_root<NormalStage>(-1); },
                     [](const auto&) {},
                 };
                 std::visit(pass_handler, event);
@@ -103,7 +103,7 @@ namespace pocketpd {
                 },
                 [&](const ButtonEvent& evt) {
                     if (evt.id == ButtonId::L && evt.gesture == Gesture::LONG) {
-                        conductor.request<MenuStage>();
+                        conductor.pop();
                         return;
                     }
 

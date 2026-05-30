@@ -41,7 +41,7 @@ namespace pocketpd {
 
         void on_tick(Conductor& conductor, uint32_t now_ms) override {
             if (m_timeout.reached(now_ms)) {
-                conductor.request<ObtainStage>();
+                conductor.replace<ObtainStage>();
             }
         }
     };

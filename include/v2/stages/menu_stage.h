@@ -76,16 +76,16 @@ namespace pocketpd {
                 },
                 [&](const ButtonEvent& evt) {
                     if (evt.id == ButtonId::L && evt.gesture == Gesture::LONG) {
-                        conductor.request<NormalStage>();
+                        conductor.pop();
                         return;
                     }
                     if (evt.id == ButtonId::ENCODER && evt.gesture == Gesture::LONG) {
                         switch (ITEMS[m_table.cursor()].item) {
                         case Item::PROFILE_PICKER:
-                            conductor.request<ProfilePickerStage>();
+                            conductor.push<ProfilePickerStage>();
                             break;
                         case Item::SETTINGS:
-                            conductor.request<SettingsStage>();
+                            conductor.push<SettingsStage>();
                             break;
                         }
                     }

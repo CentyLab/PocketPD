@@ -188,12 +188,12 @@ namespace pocketpd {
                     }
 
                     if (event.r_long()) {
-                        conductor.request<EnergyStage>(m_active_pdo_index);
+                        conductor.push<EnergyStage>(m_active_pdo_index);
                         return;
                     }
 
                     if (event.l_long()) {
-                        conductor.request<MenuStage>();
+                        conductor.push<MenuStage>();
                         return;
                     }
 

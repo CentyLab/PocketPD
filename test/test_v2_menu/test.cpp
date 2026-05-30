@@ -116,7 +116,9 @@ TEST(MenuStage, LLongReturnsToNormalStage) {
     Harness h;
     EXPECT_CALL(h.sink, is_index_pps(_)).WillRepeatedly(Return(false));
     EXPECT_CALL(h.sink, set_pdo(_)).WillRepeatedly(Return(true));
-    h.conductor.start<MenuStage>(0);
+    h.conductor.start<NormalStage>(0);
+    h.conductor.push<MenuStage>();
+    h.conductor.apply_pending_transition(0);
 
     h.menu.on_event(h.conductor, ButtonEvent{ButtonId::L, Gesture::LONG}, 0);
 

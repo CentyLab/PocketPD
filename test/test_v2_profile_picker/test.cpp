@@ -396,7 +396,9 @@ TEST(ProfilePickerStage, LongPressLExitsToMenu) {
     TestConductor conductor;
     conductor.register_stage(stage);
     conductor.register_stage(menu);
-    conductor.start<ProfilePickerStage>(0);
+    conductor.start<MenuStage>(0);
+    conductor.push<ProfilePickerStage>();
+    conductor.apply_pending_transition(0);
 
     stage.on_event(conductor, ButtonEvent{ButtonId::L, Gesture::LONG}, 0);
 

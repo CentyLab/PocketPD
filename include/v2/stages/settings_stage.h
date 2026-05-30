@@ -114,7 +114,7 @@ namespace pocketpd {
                 },
                 [&](const ButtonEvent& evt) {
                     if (evt.id == ButtonId::L && evt.gesture == Gesture::LONG) {
-                        conductor.request<MenuStage>();
+                        conductor.pop();
                         return;
                     }
                     if (evt.id == ButtonId::ENCODER && evt.gesture == Gesture::LONG) {
