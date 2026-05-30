@@ -18,7 +18,7 @@ namespace tempo {
      *
      * Stage identity = type. Each Stage S has a slot index equal to its position in the
      * Stages... type list. Use register_stage<S>(stage) to bind a slot to a Stage instance,
-     * and request<S>() to schedule a transition.
+     * and the navigation ops (push/pop/replace/reset_root/reset_path) to move between stages.
      *
      * Up to 32 stages (mirrors StageMask).
      *
@@ -50,6 +50,33 @@ namespace tempo {
 
         bool m_has_pending = false;
         size_t m_pending_idx = 0;
+
+        std::array<size_t, 8> m_nav{};
+        size_t m_nav_depth = 0;
+
+        // —— Low-level transition primitives (navigation goes through the public ops)
+
+        template <typename S, typename... Args>
+        void request(Args&&... args) {
+            constexpr size_t idx = index_of<S>();
+            m_pending_idx = idx;
+            m_has_pending = true;
+
+            if constexpr (sizeof...(Args) > 0) {
+                if (auto* slot = m_slots[idx]) {
+                    static_cast<S*>(slot)->prepare(std::forward<Args>(args)...);
+                }
+            }
+        }
+
+        template <size_t... Is>
+        void request_index_impl(size_t idx, std::index_sequence<Is...>) {
+            ((idx == Is ? request<type_at_t<Is, Stages...>>() : void()), ...);
+        }
+
+        void request_index(size_t idx) {
+            request_index_impl(idx, std::make_index_sequence<STAGE_COUNT>{});
+        }
 
         StageType* lookup(size_t idx) const {
             if (idx >= STAGE_COUNT) {
@@ -83,29 +110,58 @@ namespace tempo {
         template <typename S>
         void start(uint32_t now_ms) {
             constexpr size_t idx = index_of<S>();
+            m_nav[0] = idx;
+            m_nav_depth = 1;
             m_current_idx = idx;
             m_current = lookup(idx);
             m_current->on_enter(*this, now_ms);
         }
 
-        /**
-         * @brief Request a transition to stage S. on_enter(Conductor&, uint32_t) is called when
-         * the transition is applied.
-         *
-         * Optional payload-passing form: `request<S>(args...)` calls `S::prepare(args...)`
-         * on the target slot immediately, then schedules the transition.
-         */
+        /** @brief Push S onto the stack. No-op if S is already the top. */
         template <typename S, typename... Args>
-        void request(Args&&... args) {
-            constexpr size_t idx = index_of<S>();
-            m_pending_idx = idx;
-            m_has_pending = true;
-
-            if constexpr (sizeof...(Args) > 0) {
-                if (auto* slot = m_slots[idx]) {
-                    static_cast<S*>(slot)->prepare(std::forward<Args>(args)...);
-                }
+        void push(Args&&... args) {
+            if (m_nav_depth && m_nav[m_nav_depth - 1] == index_of<S>()) {
+                return;
             }
+            if (m_nav_depth < m_nav.size()) {
+                m_nav[m_nav_depth++] = index_of<S>();
+            }
+            request<S>(std::forward<Args>(args)...);
+        }
+
+        /** @brief Pop the top, returning to the stage below. No-op at the root. */
+        void pop() {
+            if (m_nav_depth > 1) {
+                request_index(m_nav[--m_nav_depth - 1]);
+            }
+        }
+
+        /** @brief Replace the top with S. */
+        template <typename S, typename... Args>
+        void replace(Args&&... args) {
+            if (m_nav_depth == 0) {
+                return; // no current top to replace
+            }
+            m_nav[m_nav_depth - 1] = index_of<S>();
+            request<S>(std::forward<Args>(args)...);
+        }
+
+        /** @brief Reset the stack to `[S]`. */
+        template <typename S, typename... Args>
+        void reset_root(Args&&... args) {
+            m_nav[0] = index_of<S>();
+            m_nav_depth = 1;
+            request<S>(std::forward<Args>(args)...);
+        }
+
+        /** @brief Reset the stack to `Path...` and enter its top (lower stages get no on_enter). */
+        template <typename... Path>
+        void reset_path() {
+            static_assert(sizeof...(Path) > 0, "reset_path needs at least one stage");
+            static_assert(sizeof...(Path) <= 8, "path deeper than the nav stack");
+            m_nav_depth = 0;
+            ((m_nav[m_nav_depth++] = index_of<Path>()), ...);
+            request_index(m_nav[m_nav_depth - 1]);
         }
 
         bool has_pending() const {

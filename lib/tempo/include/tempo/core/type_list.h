@@ -29,4 +29,17 @@ namespace tempo {
     template <typename T, typename... Ts>
     constexpr inline size_t type_index_v = type_index<T, Ts...>::value;
 
+    // —— Compile-time type at index I in Ts... (reverse of type_index)
+
+    template <size_t I, typename T, typename... Ts>
+    struct type_at : type_at<I - 1, Ts...> {};
+
+    template <typename T, typename... Ts>
+    struct type_at<0, T, Ts...> {
+        using type = T;
+    };
+
+    template <size_t I, typename... Ts>
+    using type_at_t = typename type_at<I, Ts...>::type;
+
 } // namespace tempo

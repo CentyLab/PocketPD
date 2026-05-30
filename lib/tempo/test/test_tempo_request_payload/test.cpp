@@ -1,9 +1,9 @@
 /**
- * GoogleTest suite for `Conductor::request<S>(Args...)` payload-passing transitions.
+ * GoogleTest suite for payload-passing navigation.
  *
- * Verifies the payload form forwards arguments to `S::prepare(...)` immediately
- * (before the transition is applied) and that stages without prepare still
- * accept the zero-arg `request<S>()` form unchanged.
+ * `push`/`replace` forward their args to `S::prepare(...)` immediately (before the
+ * transition is applied), and stages without prepare accept the zero-arg forms unchanged.
+ * `push` rejects re-entering the current stage, so same-stage re-entry uses `replace`.
  */
 #include <gtest/gtest.h>
 #include <tempo/bus/event.h>
@@ -58,7 +58,7 @@ namespace {
 
 } // namespace
 
-TEST(RequestPayload, RequestWithoutArgsLeavesStageDefaults) {
+TEST(Payload, PushWithoutArgsLeavesStageDefaults) {
     StageWithPayload payload;
     PlainStage plain;
     TestConductor c;
@@ -66,7 +66,7 @@ TEST(RequestPayload, RequestWithoutArgsLeavesStageDefaults) {
     c.register_stage(plain);
     c.start<PlainStage>(0);
 
-    c.request<StageWithPayload>();
+    c.push<StageWithPayload>();
     EXPECT_EQ(payload.prepare_call_count, 0);
 
     c.apply_pending_transition(0);
@@ -74,7 +74,7 @@ TEST(RequestPayload, RequestWithoutArgsLeavesStageDefaults) {
     EXPECT_EQ(payload.mode_seen_in_on_enter, Mode::REVIEW);
 }
 
-TEST(RequestPayload, RequestWithArgCallsPrepareImmediately) {
+TEST(Payload, PushWithArgCallsPrepareImmediately) {
     StageWithPayload payload;
     PlainStage plain;
     TestConductor c;
@@ -82,7 +82,7 @@ TEST(RequestPayload, RequestWithArgCallsPrepareImmediately) {
     c.register_stage(plain);
     c.start<PlainStage>(0);
 
-    c.request<StageWithPayload>(Mode::SELECT);
+    c.push<StageWithPayload>(Mode::SELECT);
 
     // prepare runs at request time, before apply.
     EXPECT_EQ(payload.prepare_call_count, 1);
@@ -94,7 +94,7 @@ TEST(RequestPayload, RequestWithArgCallsPrepareImmediately) {
     EXPECT_EQ(payload.mode_seen_in_on_enter, Mode::SELECT);
 }
 
-TEST(RequestPayload, LatestRequestWins) {
+TEST(Payload, LatestPayloadWins) {
     StageWithPayload payload;
     PlainStage plain;
     TestConductor c;
@@ -102,15 +102,15 @@ TEST(RequestPayload, LatestRequestWins) {
     c.register_stage(plain);
     c.start<PlainStage>(0);
 
-    c.request<StageWithPayload>(Mode::REVIEW);
-    c.request<StageWithPayload>(Mode::SELECT);
+    c.replace<StageWithPayload>(Mode::REVIEW);
+    c.replace<StageWithPayload>(Mode::SELECT);
     EXPECT_EQ(payload.prepare_call_count, 2);
 
     c.apply_pending_transition(0);
     EXPECT_EQ(payload.mode_seen_in_on_enter, Mode::SELECT);
 }
 
-TEST(RequestPayload, PlainStageStillTransitions) {
+TEST(Payload, PlainStageStillTransitions) {
     StageWithPayload payload;
     PlainStage plain;
     TestConductor c;
@@ -118,12 +118,12 @@ TEST(RequestPayload, PlainStageStillTransitions) {
     c.register_stage(plain);
     c.start<StageWithPayload>(0);
 
-    c.request<PlainStage>();
+    c.push<PlainStage>();
     c.apply_pending_transition(0);
     EXPECT_EQ(plain.on_enter_count, 1);
 }
 
-TEST(RequestPayload, SameStageRequestReFiresLifecycleWithNewPayload) {
+TEST(Payload, SameStageReplaceReFiresLifecycleWithNewPayload) {
     StageWithPayload payload;
     PlainStage plain;
     TestConductor c;
@@ -135,8 +135,8 @@ TEST(RequestPayload, SameStageRequestReFiresLifecycleWithNewPayload) {
     EXPECT_EQ(payload.on_enter_count, 1);
     EXPECT_EQ(payload.mode_seen_in_on_enter, Mode::REVIEW);
 
-    // Same-stage request with a different payload should re-fire on_enter.
-    c.request<StageWithPayload>(Mode::SELECT);
+    // Same-stage replace with a different payload re-fires on_enter.
+    c.replace<StageWithPayload>(Mode::SELECT);
     EXPECT_TRUE(c.apply_pending_transition(0));
     EXPECT_EQ(payload.on_enter_count, 2);
     EXPECT_EQ(payload.mode_seen_in_on_enter, Mode::SELECT);
