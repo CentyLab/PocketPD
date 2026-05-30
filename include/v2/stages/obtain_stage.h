@@ -55,7 +55,7 @@ namespace pocketpd {
             }
 
             if (m_prefs.skip_picker_on_boot()) {
-                conductor.request<NormalStage>();
+                conductor.replace<NormalStage>();
             }
         }
 
@@ -66,7 +66,7 @@ namespace pocketpd {
             }
 
             if (m_timeout.reached(now_ms)) {
-                conductor.request<ProfilePickerStage>();
+                conductor.reset_path<NormalStage, MenuStage, ProfilePickerStage>();
             }
         }
 
@@ -75,12 +75,12 @@ namespace pocketpd {
             auto handler = tempo::overloaded{
                 [&](const ButtonEvent& evt) {
                     if (evt.gesture == Gesture::SHORT) {
-                        conductor.request<ProfilePickerStage>();
+                        conductor.reset_path<NormalStage, MenuStage, ProfilePickerStage>();
                     }
                 },
                 [&](const EncoderEvent& evt) {
                     if (evt.delta != 0) {
-                        conductor.request<ProfilePickerStage>();
+                        conductor.reset_path<NormalStage, MenuStage, ProfilePickerStage>();
                     }
                 },
                 [](const auto&) {

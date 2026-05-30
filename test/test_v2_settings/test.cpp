@@ -74,7 +74,9 @@ TEST(SettingsStage, EncoderLongTogglesInRamWithoutSaving) {
 
 TEST(SettingsStage, ExitFlushesPendingToggleToEeprom) {
     Harness h;
-    h.conductor.start<SettingsStage>(0);
+    h.conductor.start<MenuStage>(0);
+    h.conductor.push<SettingsStage>();
+    h.conductor.apply_pending_transition(0);
 
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
 
@@ -90,7 +92,9 @@ TEST(SettingsStage, ExitFlushesPendingToggleToEeprom) {
 
 TEST(SettingsStage, MultipleTogglesCollapseToSingleSaveOnExit) {
     Harness h;
-    h.conductor.start<SettingsStage>(0);
+    h.conductor.start<MenuStage>(0);
+    h.conductor.push<SettingsStage>();
+    h.conductor.apply_pending_transition(0);
 
     EXPECT_CALL(h.eeprom, save(_)).Times(1).WillOnce(Return(true));
 
@@ -105,7 +109,9 @@ TEST(SettingsStage, MultipleTogglesCollapseToSingleSaveOnExit) {
 
 TEST(SettingsStage, ExitWithoutTogglesDoesNotSave) {
     Harness h;
-    h.conductor.start<SettingsStage>(0);
+    h.conductor.start<MenuStage>(0);
+    h.conductor.push<SettingsStage>();
+    h.conductor.apply_pending_transition(0);
 
     EXPECT_CALL(h.eeprom, save(_)).Times(0);
 
@@ -147,7 +153,9 @@ TEST(SettingsStage, EncoderLongOnVoltageCompTogglesPreference) {
 
 TEST(SettingsStage, ExitFlushesVoltageCompToggle) {
     Harness h;
-    h.conductor.start<SettingsStage>(0);
+    h.conductor.start<MenuStage>(0);
+    h.conductor.push<SettingsStage>();
+    h.conductor.apply_pending_transition(0);
 
     h.stage.on_event(h.conductor, EncoderEvent{1}, 0);
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
