@@ -89,7 +89,7 @@ TEST(StageEvents, DispatchAfterTransitionReachesNewActiveStage) {
     c.register_stage(b);
     c.start<StageA>(0);
 
-    c.request<StageB>();
+    c.push<StageB>();
     c.apply_pending_transition(0);
 
     c.dispatch_event(TestEvent{Ping{1}}, 2000);
