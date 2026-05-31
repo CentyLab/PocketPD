@@ -19,9 +19,6 @@
 
 namespace pocketpd {
 
-    /**
-     * @brief Frozen snapshot of everything NormalView needs to draw one frame.
-     */
     struct NormalViewModel {
         int8_t active_pdo_index = -1;
         bool output_enabled = false;
@@ -36,6 +33,7 @@ namespace pocketpd {
 
     class NormalView {
     private:
+        static constexpr uint8_t SCREEN_WIDTH = 128;
         static constexpr uint8_t V_MEASURED_Y = 14;
         static constexpr uint8_t A_MEASURED_Y = 48;
         static constexpr uint8_t V_TARGET_Y = 28;
@@ -165,12 +163,14 @@ namespace pocketpd {
         }
 
         static void draw_output_indicator(tempo::Display& d, const NormalViewModel& vm) {
-            const char* state = vm.output_enabled ? "ON" : "OFF";
+            const char* output_state = vm.output_enabled ? "ON" : "OFF";
+            const auto output_x = SCREEN_WIDTH - d.text_width(output_state);
+
             if (vm.locked) {
-                d.draw_text(OUTPUT_LABEL_X, 8, state);
+                d.draw_text(output_x - PADLOCK_W - 12, 8, output_state);
                 d.draw_xbm(PADLOCK_X, PADLOCK_Y, PADLOCK_W, PADLOCK_H, bitmap::PADLOCK.data());
             } else {
-                d.draw_text(PADLOCK_X - 6, 8, state);
+                d.draw_text(output_x, 8, output_state);
             }
 
             if (vm.output_enabled) {
