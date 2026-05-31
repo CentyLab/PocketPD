@@ -24,7 +24,7 @@ PocketPD turns any PPS-capable USB-C charger into a pocket-sized bench supply. D
 - [Quick start](#quick-start)
 - [Controls](#controls)
 - [Operating manual](#operating-manual)
-- [Fire under the hood](#firmware-under-the-hood)
+- [Firmware under the hood](#firmware-under-the-hood)
 - [Firmware compatibility](#firmware-compatibility)
 - [Build from source](#build-from-source)
 - [Flash new firmware](#flash-new-firmware)
