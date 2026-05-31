@@ -7,8 +7,10 @@
 
 
 <p align="center" width="100%">
-    <img width="78%" src="media/showcase-2026-05-15.jpg">
+    <img width="80%" src="media/pocketpd_limited.png">
 </p>
+
+> This is what the "Limited" HW1.0 looks like. But we had to move away from this design because of diffculty during mass production.
 
 PocketPD turns any PPS-capable USB-C charger into a pocket-sized bench supply. Dial in a voltage and current with the knob, switch the output on, and watch live volts, amps, watts, and energy on the OLED. The whole thing runs from one knob and two buttons.
 
@@ -157,12 +159,6 @@ pio test -e native
 The main difference between HW1.0 and later boards is the sense resistor, which got updated from 10 mOhm to 5 mOhm and changes the current reading scale.
 
 HW1.0 and HW1.1 also lack the V_SENSE voltage divider, so on those boards the firmware reads source-side voltage from the AP33772 instead of a dedicated ADC channel. The v2 build picks the right source automatically per board.
-
-This is what the "Limited" HW1.0 looks like. While it looks cool, we had to move away from this design because of diffculty during mass production.
-
-<p align="center" width="100%">
-    <img width="78%" src="media/pocketpd_limited.jpg">
-</p>
 
 ## Build from source
 
