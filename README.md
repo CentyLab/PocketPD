@@ -10,9 +10,9 @@
     <img width="80%" src="media/pocketpd_limited.png">
 </p>
 
-> This is what the "Limited" HW1.0 looks like. But we had to move away from this design because of diffculty during mass production.
+> This is what the "Limited" HW1.0 looks like. But we had to move away from this design because of difficulty during mass production.
 
-PocketPD turns any PPS-capable USB-C charger into a pocket-sized bench supply. Dial in a voltage and current with the knob, switch the output on, and watch live volts, amps, watts, and energy on the OLED. The whole thing runs from one knob and two buttons.
+PocketPD turns any PPS-capable USB-C charger into a pocket-sized bench power supply. It offers simple controls via a rotary encoder knob and two buttons, while the OLED display shows live readings of voltage, current, power, energy, and more!
 
 
 ## Links
@@ -38,27 +38,27 @@ For the full history, see the [release notes](https://github.com/CentyLab/Pocket
 
 ## Feature
 
-PocketPD detects and display a full PDO (Fixed and PPS) PD profiles. When using with PPS-capable chargers, PocketPD provides adjustable voltage and current controls.
+PocketPD detects and displays the full set of PDO (Fixed and PPS) PD profiles. When used with PPS-capable chargers, it provides adjustable voltage and current controls.
 
 
 - ✅ **PPS Control** — Set voltage in 20 mV steps and current in 50 mA steps. Push the knob to cycle the step size between coarse, medium, and fine.
-- ✅ **Non-PD Source Passthrough** — PocketPD also works with non-PD source to provide live monitoring.
-- ✅ **Live Readings.** — Voltage, current, and power
+- ✅ **Non-PD Source Passthrough** — PocketPD also works with non-PD sources to provide live monitoring.
+- ✅ **Live Readings** — Voltage, current, and power
 - ✅ **Energy Screen** — Running watt-hours, amp-hours, power, and time.
 - ✅ **Cable Compensation** — Holds your set voltage at the load instead of the terminals by raising the PPS request to cancel the drop across the cable.
-- ✅ **Input Locking** — Freeze the controls by holding both L and R button.
+- ✅ **Input Locking** — Freeze the controls by holding both the L and R buttons.
 
 ## Quick start
 
 1. Plug a USB-C charger into PocketPD.
-2. When the profile picker appears, rotate the knob to the PD profile you would like to use, then push-and-hold the knob to commit. Pick a `PPS` profile for an adjustable V and A.
-3. If PPS profile is selected, in operating screen, tap the L (left) button to switch between voltage or current adjustment, push the knob to set the step size, then rotate to set the desired value.
+2. When the profile picker appears, rotate the knob to the PD profile you would like to use, then push and hold the knob to commit. Pick a `PPS` profile for adjustable voltage and current.
+3. If a PPS profile is selected, on the operating screen, tap the L (left) button to switch between voltage and current adjustment, push the knob to set the step size, then rotate to set the desired value.
 4. Tap the right button to toggle the output on/off.
 5. Hold the right button any time to see watt-hours, amp-hours, and elapsed time.
 
 ## Controls
 
-PocketPD features 3 control buttons: **rotary encoder (knob)**, **left button (L)**, and **right button (R)**. Both short-press and long-press are supported. They are context-aware and what they all do depends on where you are in the PocketPD. We encourage users to playaround as we keep adding more features.
+PocketPD features 3 control buttons: a **rotary encoder (knob)**, a **left button (L)**, and a **right button (R)**. Both short-press and long-press are supported. They are context-aware, so what they do depends on where you are in PocketPD. We encourage users to play around as we keep adding more features.
 
 On the operating screen:
 
@@ -72,7 +72,7 @@ On the operating screen:
 | R | Hold | Open the energy screen |
 | L + R | Hold | Lock or unlock the screen |
 
-Inside the menu, profile picker, and settings, the knob drives navigation: rotate to move the cursor, push to choose, and hold L button to go back.
+Inside the menu, profile picker, and settings, the knob drives navigation: rotate to move the cursor, push to choose, and hold the L button to go back.
 
 ## Operating manual
 
@@ -84,13 +84,13 @@ During boot, PocketPD shows its splash screen with the firmware version while it
     <img width="78%" src="media/screen_boot_.jpg">
 </p>
 
-Once negotiation finishes, the profile picker lists all the published PDO profiles from the charger. Fixed profiles for example will show `PDO 5V 3A`, and PPS profiles show their adjustable range, like `PPS 3.3~21.0V 5A`.
+Once negotiation finishes, the profile picker lists all the published PDO profiles from the charger. Fixed profiles, for example, will show `PDO 5V 3A`, and PPS profiles show their adjustable range, like `PPS 3.3~21.0V 5A`.
 
 <p align="center" width="100%">
     <img width="78%" src="media/screen_menu_.jpg">
 </p>
 
-Rotate the knob to highlight a profile, then push and hold to commit. PocketPD will navigate into the operating screen. Note that charger with no PPS profile still works but adjust power supply feature will be missing.
+Rotate the knob to highlight a profile, then push and hold to commit. PocketPD will navigate into the operating screen. Note that a charger with no PPS profile still works, but the adjustable power supply feature will be missing.
 
 <p align="center" width="100%">
     <img width="78%" src="media/screen_menu_nonpps_.jpg">
@@ -119,7 +119,7 @@ Fixed and passthrough profiles have nothing to adjust, so the knob and the left 
 
 ### Energy screen
 
-Hold the R button to open the energy screen. It shows power, live voltage and current, the elapsed time, and the watt-hours and amp-hours. Hold the R button it again to go back. The energy counter accumulates only while the output is on.
+Hold the R button to open the energy screen. It shows power, live voltage and current, the elapsed time, and the watt-hours and amp-hours. Hold the R button again to go back. The energy counter accumulates only while the output is on.
 
 
 <p align="center" width="100%">
@@ -165,7 +165,7 @@ HW1.0 and HW1.1 also lack the V_SENSE voltage divider, so on those boards the fi
 - Install [PlatformIO CLI](https://docs.platformio.org/en/latest/core/installation/index.html)
 - Before PlatformIO pulls the pico-sdk, Windows users should follow [Important steps for Windows users, before installing](https://arduino-pico.readthedocs.io/en/latest/platformio.html#important-steps-for-windows-users-before-installing).
 - Next, run `make build-all` to build `.uf2` files for all supported HW versions
-- The firmware will be located in `dist` folder
+- The firmware will be located in the `dist` folder
 
 ## Flash new firmware
 
