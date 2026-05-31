@@ -24,11 +24,10 @@ PocketPD turns any PPS-capable USB-C charger into a pocket-sized bench supply. D
 - [Quick start](#quick-start)
 - [Controls](#controls)
 - [Operating manual](#operating-manual)
-- [Under the hood](#under-the-hood)
+- [Fire under the hood](#firmware-under-the-hood)
 - [Firmware compatibility](#firmware-compatibility)
 - [Build from source](#build-from-source)
 - [Flash new firmware](#flash-new-firmware)
-- [Links](#links)
 
 
 ## What's new
@@ -210,11 +209,6 @@ For Linux users:
 ### Step 3: Flash `.uf2` file onto the drive
 
 The device reboots into the new firmware on its own. Detailed guide: [How to upload new firmware to PocketPD](https://github.com/CentyLab/PocketPD/wiki/How-to-upload-new-firmware-to-PocketPD).
-
-## Links
-
-- [PocketPD Project on Hackaday](https://hackaday.io/project/194295-pocketpd-usb-c-portable-bench-power-supply)
-- [PocketPD Hardware on GitHub](https://github.com/CentyLab/PocketPD_HW)
 
 ## Acknowledgement
 
