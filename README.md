@@ -154,7 +154,7 @@ pio test -e native
 
 | Firmware Version | Hardware 1.0 <br> (Limited) | Hardware 1.1 | Hardware 1.2 | Hardware 1.3 <br> (CrowdSupply) |
 | ------------------ | ------------------------ | -------------- | -------------- | ---------------------------- |
-| `Release 2.0.1`  | x                      | x            | x            | x                          |
+| `Release 2.1.0`  | x                      | x            | x            | x                          |
 
 The main difference between HW1.0 and later boards is the sense resistor, which got updated from 10 mOhm to 5 mOhm and changes the current reading scale.
 
@@ -171,11 +171,13 @@ HW1.0 and HW1.1 also lack the V_SENSE voltage divider, so on those boards the fi
 
 ### Step 1: Grab the `.uf2`
 
-Download firmware for your board from [PocketPD's releases](https://github.com/CentyLab/PocketPD/releases). For HW1.3, use `PocketPD_HW1_3-v2.0.1.uf2`.
+Download firmware for your board from [PocketPD's releases](https://github.com/CentyLab/PocketPD/releases). For HW1.3, use `PocketPD_HW1_3-v2.1.0.uf2`.
 
 ### Step 2: Mount PocketPD as a drive on your computer.
 
-For macOS users:
+**IMPORTANT: If PocketPD doesn't show up as drive, connect it through any USB Hub. Both USB2 or USB3 hub will work. [See Issue #23](https://github.com/CentyLab/PocketPD/issues/23)**
+
+__For macOS__
 
 - Method 1 (easy):
   - Short the BOOT pads on the back with tweezers on `HW1.0`, or hold the BOOT button on `HW1.1+`.
@@ -184,7 +186,7 @@ For macOS users:
   - Connect PocketPD over USB. No drive appears.
   - Open any serial monitor at 1200 baud. PocketPD should pop up as the `RPI-RP2` drive.
 
-For Windows users:
+__For Windows__
 
 - Method 1 (easy):
   - Short the BOOT pads on the back with tweezers on `HW1.0`, or hold the BOOT button on `HW1.1+`.
@@ -193,7 +195,7 @@ For Windows users:
   - Connect PocketPD over USB. No drive appears.
   - Open [Putty](https://www.putty.org/) on the serial port at 1200 baud. PocketPD should pop up as the `RPI-RP2` drive.
 
-For Linux users:
+__For Linux__
 
 - Method 1 (easy):
   - Short the BOOT pads on the back with tweezers on `HW1.0`, or hold the BOOT button on `HW1.1+`.
