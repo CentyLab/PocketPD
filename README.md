@@ -1,176 +1,221 @@
-[![PlatformIO CI](https://github.com/braamBeresford/PocketPD/actions/workflows/main.yml/badge.svg)](https://github.com/braamBeresford/PocketPD/actions/workflows/main.yml)
-## Description
+# PocketPD
 
-PocketPD turns any PPS-capable USB-C charger into a pocket-sized bench power supply, with a rotary encoder and two interface buttons for precise V/I control and monitoring.
+[![PlatformIO CI](https://github.com/CentyLab/PocketPD/actions/workflows/main.yml/badge.svg)](https://github.com/CentyLab/PocketPD/actions/workflows/main.yml)
+![Platform](https://img.shields.io/badge/MCU-RP2040-blue)
+![Framework](https://img.shields.io/badge/framework-Arduino--Pico-teal)
+[![Releases](https://img.shields.io/github/v/release/CentyLab/PocketPD?label=firmware)](https://github.com/CentyLab/PocketPD/releases)
 
-As the DIY community has grown, there are multiple ways to implement control features like adjusting parameters via Wifi, Bluetooth, or touch screen. We want to keep the design language simple, just physical knobs and buttons to control. This will give the system higher reliability when you need it to work.
+
+<p align="center" width="100%">
+    <img width="78%" src="media/showcase-2026-05-15.jpg">
+</p>
+
+PocketPD turns any PPS-capable USB-C charger into a pocket-sized bench supply. Dial in a voltage and current with the knob, switch the output on, and watch live volts, amps, watts, and energy on the OLED. The whole thing runs from one knob and two buttons.
+
 
 ## Links
-
 * [PocketPD Project - Hackaday](https://hackaday.io/project/194295-pocketpd-usb-c-portable-bench-power-supply)
 * [PocketPD Hardware - GitHub](https://github.com/CentyLab/PocketPD_HW)
 
-## Operational manual
+## Contents
 
-### Boot up sequence
-
-System will display the flashed firmware version.
-
-<p align="center" width="100%">
-    <img width="80%" src="media/screen_boot_.jpg">
-</p>
-
-The system will then display the available profile from the charger. Please note that **PPS profile is needed** for PocketPD to fully function as a bench power supply. If your charger doesn't support pps, you will get a profile like [this](#profile-example-for-non-pps-charger)
-
-<p align="center" width="100%">
-    <img width="80%" src="media/screen_menu_.jpg">
-</p>
-After 3 seconds, the system will enter operating mode. If PPS mode exist, the system will request 5V @ 1A
-
-<p align="center" width="100%">
-    <img width="80%" src="media/screen_pps_.jpg">
-</p>
-
-If the bootup profile is not what you want, hold the Volt/Amp button (left button) for 3 seconds to enter MENU screen and select your desired profile.
+- [What's new](#whats-new)
+- [Feature](#feature)
+- [Quick start](#quick-start)
+- [Controls](#controls)
+- [Operating manual](#operating-manual)
+- [Under the hood](#under-the-hood)
+- [Firmware compatibility](#firmware-compatibility)
+- [Build from source](#build-from-source)
+- [Flash new firmware](#flash-new-firmware)
+- [Links](#links)
 
 
-### Skip boot screen
+## What's new
 
-When the device is at boot screen:
+For the full history, see the [release notes](https://github.com/CentyLab/PocketPD/releases).
 
-+ Press any BUTTON, to skip to NORMAL state (operational screen)
-+ Rotate ENCODER, to skip to MENU state (select power profile)
-+ Turning the encoder to select profile
-+ Long press encoder to activate profile
+## Feature
 
-<p align="center" width="100%">
-<video src="https://github.com/user-attachments/assets/563d36e5-1c92-49e6-aa88-c873a20ddf1d" width="80%" controls></video>
-</p>
+PocketPD detects and display a full PDO (Fixed and PPS) PD profiles. When using with PPS-capable chargers, PocketPD provides adjustable voltage and current controls.
 
-### Normal operation
 
-+ Turning the encoder to increase/decrease voltage/current
-+ Short press encoder to change increment from fine to coarse
-+ Short press Volt/Amp button to switch between adjusting Voltage or Current
-+ Long press Volt/Amp button to enter MENU screen
-+ Short press On/Off button to enable output
-+ Long press On/Off button to enter ENERGY screen
+- ✅ **PPS Control** — Set voltage in 20 mV steps and current in 50 mA steps. Push the knob to cycle the step size between coarse, medium, and fine.
+- ✅ **Non-PD Source Passthrough** — PocketPD also works with non-PD source to provide live monitoring.
+- ✅ **Live Readings.** — Voltage, current, and power
+- ✅ **Energy Screen** — Running watt-hours, amp-hours, power, and time.
+- ✅ **Cable Compensation** — Holds your set voltage at the load instead of the terminals by raising the PPS request to cancel the drop across the cable.
+- ✅ **Input Locking** — Freeze the controls by holding both L and R button.
 
-<p align="center" width="100%">
-<video src="https://github.com/user-attachments/assets/1aa5be08-7ff9-443c-b3c7-ea3d54f766d1" width="80%" controls></video>
-</p>
+## Quick start
 
-<p align="center" width="100%">
-<video src="https://github.com/user-attachments/assets/d8f55b10-d94f-4dc2-9a7f-f5e726f47ec9" width="80%" controls></video>
-</p>
+1. Plug a USB-C charger into PocketPD.
+2. When the profile picker appears, rotate the knob to the PD profile you would like to use, then push-and-hold the knob to commit. Pick a `PPS` profile for an adjustable V and A.
+3. If PPS profile is selected, in operating screen, tap the L (left) button to switch between voltage or current adjustment, push the knob to set the step size, then rotate to set the desired value.
+4. Tap the right button to toggle the output on/off.
+5. Hold the right button any time to see watt-hours, amp-hours, and elapsed time.
 
-<p align="center" width="100%">
-<video src="https://github.com/user-attachments/assets/7a1174bd-7ffe-4ea3-8e91-18dc4e83c6fd" width="80%" controls></video>
-</p>
+## Controls
 
-### Menu page
-<p align="center" width="100%">
-    <img width="80%" src="media/screen_menu_.jpg">
-</p>
+PocketPD features 3 control buttons: **rotary encoder (knob)**, **left button (L)**, and **right button (R)**. Both short-press and long-press are supported. They are context-aware and what they all do depends on where you are in the PocketPD. We encourage users to playaround as we keep adding more features.
 
-### Energy page
-<p align="center" width="100%">
-    <img width="80%" src="media/screen_energy_.jpg">
-</p>
+On the operating screen:
 
-### Example fixed 15V @ 3A profile
+| Control | Action | What it does |
+| --- | --- | --- |
+| Knob | Rotate | Adjust the value you're editing (PPS only) |
+| Knob | Tap | Cycle the step size, coarse to fine (PPS only) |
+| L | Tap | Switch between editing volts and amps (PPS only) |
+| L  | Hold | Open the menu |
+| R | Tap | Turn the output on or off |
+| R | Hold | Open the energy screen |
+| L + R | Hold | Lock or unlock the screen |
+
+Inside the menu, profile picker, and settings, the knob drives navigation: rotate to move the cursor, push to choose, and hold L button to go back.
+
+## Operating manual
+
+### Boot and profile pick
+
+During boot, PocketPD shows its splash screen with the firmware version while it negotiates with the charger.
 
 <p align="center" width="100%">
-    <img width="80%" src="media/screen_fix_.jpg">
+    <img width="78%" src="media/screen_boot_.jpg">
 </p>
-<br>
 
-### Profile example for non PPS charger
-
-If your charger doesn't support PPS profile, PocketPD will directly boot into the first 5V PDO profile. Your menu will look like this:
+Once negotiation finishes, the profile picker lists all the published PDO profiles from the charger. Fixed profiles for example will show `PDO 5V 3A`, and PPS profiles show their adjustable range, like `PPS 3.3~21.0V 5A`.
 
 <p align="center" width="100%">
-    <img width="80%" src="media/screen_menu_nonpps_.jpg">
+    <img width="78%" src="media/screen_menu_.jpg">
 </p>
 
-## Compile the code
+Rotate the knob to highlight a profile, then push and hold to commit. PocketPD will navigate into the operating screen. Note that charger with no PPS profile still works but adjust power supply feature will be missing.
 
-+ You will need [VSCode](https://code.visualstudio.com/download) with [Platform IO extension](https://docs.platformio.org/en/latest/integration/ide/vscode.html#installation).
-+ Before letting Platform IO pulling the pico-sdk files. Follow [Important steps for Windows users, before installing](https://arduino-pico.readthedocs.io/en/latest/platformio.html#important-steps-for-windows-users-before-installing)
-  Else you will encounter:
+<p align="center" width="100%">
+    <img width="78%" src="media/screen_menu_nonpps_.jpg">
+</p>
+
+### Operating screen
+
+__PPS__
+
+The big numbers are the live measurements. On a PPS profile, the target voltage and current are located under each reading, with a small underscore cursor marking whether voltage or current is being adjusted.
+
+<p align="center" width="100%">
+    <img width="78%" src="media/screen_pps_.jpg">
+</p>
+
+Tap the right button to switch the output on and off. On a PPS profile, tap the left button to move between volts and amps, push the knob to cycle the step size (volts: 1 V / 100 mV / 20 mV, amps: 1 A / 100 mA / 50 mA), then rotate to set the value.
+
+__Fixed__
+
+Fixed and passthrough profiles have nothing to adjust, so the knob and the left button's tap do nothing there. A fixed profile only shows its rated voltage and current.
+
+<p align="center" width="100%">
+    <img width="78%" src="media/screen_fix_.jpg">
+</p>
+
+
+### Energy screen
+
+Hold the R button to open the energy screen. It shows power, live voltage and current, the elapsed time, and the watt-hours and amp-hours. Hold the R button it again to go back. The energy counter accumulates only while the output is on.
+
+
+<p align="center" width="100%">
+    <img width="78%" src="media/screen_energy_.jpg">
+</p>
+
+
+### Menu and settings
+
+Hold the left button to open the menu.
+
+- **Skip picker:** When true, PocketPD boots straight to the operating screen using the first profile 5V as default instead of stopping at the picker.
+- **Voltage comp:** When true, PocketPD watches the load-side voltage and raises the PPS request in 20 mV steps, up to 500 mV, to cancel the drop across the cable and connectors. It runs only while the output is on and a PPS profile is active, and it resets whenever the output is off or you change profiles.
+
+### Non-PD sources
+
+Plug in a charger with no USB-PD profiles and PocketPD shows `Non-PD Source`, then activates Passthrough Mode on its own after a few seconds. It meters the voltage and current flowing through to your load.
+
+## Firmware under the hood
+
+v2 is a rewrite of the original monolithic firmware. It runs on `tempo`, a small cooperative scheduler and typed event bus built for this project (it lives in `lib/tempo/` with its own native tests).
+
+The UI is a stack of stages, one per screen: boot, PD negotiation, profile picker, operating, energy, menu, and settings. Periodic tasks run alongside the stages and talk to them over the event bus.
+
+Hardware sits behind interfaces, one each for the PD sink, the power monitor, the display, the output switch, and the supply-voltage source. That split lets the AP33772 and INA226 drivers and the stage logic build and run as unit tests on a host machine:
 
 ```
-VCSBaseException: VCS: Could not process command ['git', 'clone', '--recursive', 'https://github.com/earlephilhower/arduino-pico.git', 'C:\\Users\\keylo\\.platformio\\.cache\\tmp\\pkg-installing-iypaogfn']
+pio test -e native
 ```
 
-+ Go to PlatformIO extension -> select the env matching your hardware (`HW1_0` or `HW1_3`) -> General -> Build
-+ Output of the build process will be in `.pio/build/HW1_0/` or `.pio/build/HW1_3/` depending on the selected env
-
-## Firmware compability
-
+## Firmware compatibility
 
 | Firmware Version | Hardware 1.0 <br> (Limited) | Hardware 1.1 | Hardware 1.2 | Hardware 1.3 <br> (CrowdSupply) |
 | ------------------ | ------------------------ | -------------- | -------------- | ---------------------------- |
-| `Release 0.8.0`  | x                      |              |              |                            |
-| `Release 0.9.0`  | x                      |              |              |                            |
-| `Release 0.9.5`  | x                      |              |              |                            |
-| `Release 0.9.7`  | x                      | x            | x            | x                          |
-| `Release 0.9.9`  | x                      | x            | x            | x                          |
-| `Release 1.0.0`  | x                      | x            | x            | x                          |
+| `Release 2.0.1`  | x                      | x            | x            | x                          |
 
-The main difference between HW1.0 and later versions is the change in sense resistor, from 10mOhm to 5mOhm, which changes the current reading scale. Changes from HW1.0+ are mainly connector and component rearrangement.
+The main difference between HW1.0 and later boards is the sense resistor, which got updated from 10 mOhm to 5 mOhm and changes the current reading scale.
 
-This is what our "Limited" version HW1.0 looks like. We had to move away from this design due to the difficulty for mass production.
+HW1.0 and HW1.1 also lack the V_SENSE voltage divider, so on those boards the firmware reads source-side voltage from the AP33772 instead of a dedicated ADC channel. The v2 build picks the right source automatically per board.
+
+This is what the "Limited" HW1.0 looks like. While it looks cool, we had to move away from this design because of diffculty during mass production.
 
 <p align="center" width="100%">
-    <img width="80%" src="media/pocketpd_limited.jpg">
+    <img width="78%" src="media/pocketpd_limited.jpg">
 </p>
 
+## Build from source
 
-## How to flash new firmware
+- Install [PlatformIO CLI](https://docs.platformio.org/en/latest/core/installation/index.html)
+- Before PlatformIO pulls the pico-sdk, Windows users should follow [Important steps for Windows users, before installing](https://arduino-pico.readthedocs.io/en/latest/platformio.html#important-steps-for-windows-users-before-installing).
+- Next, run `make build-all` to build `.uf2` files for all supported HW versions
+- The firmware will be located in `dist` folder
 
-Note: Firmware at and before `0.9.5` is only for `PocketPD HW1.0`
+## Flash new firmware
 
-Step 1: Select the correct hardware version from [PocketPD's Firmware Releases](https://github.com/CentyLab/PocketPD/releases)
+### Step 1: Grab the `.uf2`
 
-+ HW1.0: Also known as "Limited edition". Download `firmware_xx_HW1.0.uf2`
-+ HW1.1+: Our standard production version. Download `firmware_xx_HW1.1.uf2`
+Download firmware for your board from [PocketPD's releases](https://github.com/CentyLab/PocketPD/releases). For HW1.3, use `PocketPD_HW1_3-v2.0.1.uf2`.
 
-Step 2: Mount PocketPD as a drive in your computer
+### Step 2: Mount PocketPD as a drive on your computer.
 
 For macOS users:
 
-+ Method 1: (Easy)
-  + Short the BOOT pads at the back of the device with a tweezer in `HW1.0` or hold the BOOT button in `HW1.1`.
-  + Use a USB-A -> USB-C adapter, then use a USB-A -> USB-C cable to connect PocketPD to computer. PocketPD should pop up as `RPI-RP2` drive.
-+ Method 2: (Intermediate)
-  + Use a USB-A -> USB-C adapter, then use a USB-A -> USB-C cable to connect PocketPD to computer. No drive will popup.
-  + Use any serial monitor, and start a Serial port with 1200 Baudrate. PocketPD should pop up as `RPI-RP2` drive.
+- Method 1 (easy):
+  - Short the BOOT pads on the back with tweezers on `HW1.0`, or hold the BOOT button on `HW1.1+`.
+  - Use a USB-A → USB-C adapter and cable to connect PocketPD to the computer. It should pop up as the `RPI-RP2` drive.
+- Method 2 (intermediate):
+  - Connect PocketPD over USB. No drive appears.
+  - Open any serial monitor at 1200 baud. PocketPD should pop up as the `RPI-RP2` drive.
 
 For Windows users:
 
-+ Method 1: (Easy)
-  + Short the BOOT pads at the back of the device with a tweezer in `HW1.0` or hold the BOOT button in `HW1.1`.
-  + Use any USB cable to connect PocketPD to computer. PocketPD should pop up as `RPI-RP2` drive.
-+ Method 2: (Intermediate)
-  + Use any USB cable to connect PocketPD to computer. No drive will pop-up.
-  + Open [Putty](https://www.putty.org/) and open a Serial port with 1200 Baudrate. PocketPD should pop up as `RPI-RP2` drive.
+- Method 1 (easy):
+  - Short the BOOT pads on the back with tweezers on `HW1.0`, or hold the BOOT button on `HW1.1+`.
+  - Connect PocketPD over USB. It should pop up as the `RPI-RP2` drive.
+- Method 2 (intermediate):
+  - Connect PocketPD over USB. No drive appears.
+  - Open [Putty](https://www.putty.org/) on the serial port at 1200 baud. PocketPD should pop up as the `RPI-RP2` drive.
 
 For Linux users:
 
-+ Method 1: (Easy)
-  + Short the BOOT pads at the back of the device with a tweezer in `HW1.0` or hold the BOOT button in `HW1.1`.
-  + Use any USB cable to connect PocketPD to computer. PocketPD enumerates as a USB mass storage device (label `RPI-RP2`).
-  + Most desktop environments auto-mount it. Otherwise locate it (e.g. `lsblk`) and mount manually: `sudo mount /dev/sdX1 /mnt`.
-+ Method 2: (Intermediate)
-  + Use any USB cable to connect PocketPD to computer. No drive will pop-up.
-  + Open a serial port at 1200 Baudrate (e.g. `picocom -b 1200 /dev/ttyACM0` then exit, or `stty -F /dev/ttyACM0 1200`). PocketPD should re-enumerate as the `RPI-RP2` mass storage device. Note: the port closes immediately after the baud change, so some tools may report an error — this is expected.
+- Method 1 (easy):
+  - Short the BOOT pads on the back with tweezers on `HW1.0`, or hold the BOOT button on `HW1.1+`.
+  - Connect PocketPD over USB. It enumerates as a USB mass storage device labelled `RPI-RP2`. Most desktops auto-mount it. If yours doesn't, find it (e.g. `lsblk`) and mount it manually: `sudo mount /dev/sdX1 /mnt`.
+- Method 2 (intermediate):
+  - Connect PocketPD over USB. No drive appears.
+  - Open the serial port at 1200 baud (e.g. `picocom -b 1200 /dev/ttyACM0` then exit, or `stty -F /dev/ttyACM0 1200`). PocketPD re-enumerates as the `RPI-RP2` drive. The port closes right after the baud change, so some tools report an error, which is expected.
 
-Step 3: Drag and drop the `.uf2` file into the drive
+### Step 3: Flash `.uf2` file onto the drive
 
-If you build the firmware directly from VSCode, the `.uf2` file will be in `.pio/build/HW1_0/` or `.pio/build/HW1_3/` depending on the selected PlatformIO env
+The device reboots into the new firmware on its own. Detailed guide: [How to upload new firmware to PocketPD](https://github.com/CentyLab/PocketPD/wiki/How-to-upload-new-firmware-to-PocketPD).
 
-Detail guide [How to upload new firmware to PocketPD](https://github.com/CentyLab/PocketPD/wiki/How-to-upload-new-firmware-to-PocketPD)
+## Links
+
+- [PocketPD Project on Hackaday](https://hackaday.io/project/194295-pocketpd-usb-c-portable-bench-power-supply)
+- [PocketPD Hardware on GitHub](https://github.com/CentyLab/PocketPD_HW)
 
 ## Acknowledgement
-We would like to thank many of our users for submitting feature requests and test feedback over the years. Special thanks to our firmware contributors for making this project better every single commit!
+
+Thanks to the many users who sent feature requests and test feedback over the years, and to our firmware contributors for making this project better with every commit.
