@@ -3,7 +3,7 @@
 [![PlatformIO CI](https://github.com/CentyLab/PocketPD/actions/workflows/main.yml/badge.svg)](https://github.com/CentyLab/PocketPD/actions/workflows/main.yml)
 ![Platform](https://img.shields.io/badge/MCU-RP2040-blue)
 ![Framework](https://img.shields.io/badge/framework-Arduino--Pico-teal)
-[![Releases](https://img.shields.io/github/v/release/CentyLab/PocketPD?label=firmware)](https://github.com/CentyLab/PocketPD/releases)
+[![Releases](https://img.shields.io/github/v/release/CentyLab/PocketPD)](https://github.com/CentyLab/PocketPD/releases)
 
 
 <p align="center" width="100%">
