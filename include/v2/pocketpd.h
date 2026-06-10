@@ -35,8 +35,7 @@ namespace pocketpd {
     /**
      * @brief Encoder increment tables (mV / mA).
      *
-     * Short-press encoder cycles the active index. Mirrors v1
-     * voltageIncrement[3] / currentIncrement[3] in StateMachine.
+     * Short-press encoder cycles the active index.
      */
     constexpr std::array<uint16_t, 3> VOLTAGE_INCREMENTS_MV = {1000, 100, 20};
     constexpr std::array<uint16_t, 3> CURRENT_INCREMENTS_MA = {1000, 100, 50};
