@@ -1,4 +1,4 @@
-.PHONY: test test-root test-tempo build-v1 build-v2 build-hw1_0 build-hw1_1 build-hw1_3 build-all clean dist-clean
+.PHONY: test test-root test-tempo build-v2 build-hw1_0 build-hw1_1 build-hw1_3 build-all clean dist-clean
 
 .DEFAULT_GOAL := test
 
@@ -24,10 +24,6 @@ test-root:
 
 test-tempo:
 	pio test -e native -d lib/tempo
-
-build-v1:
-	pio run -e HW1_3
-	$(call copy_uf2,HW1_3,1.0.0)
 
 build-v2:
 	pio run -e HW1_3_V2
