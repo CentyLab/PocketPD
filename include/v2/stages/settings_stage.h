@@ -52,30 +52,33 @@ namespace pocketpd {
         }
 
         bool value_at(Item item) const {
+            const Preferences prefs = m_prefs.get();
             switch (item) {
             case Item::SKIP_PICKER:
-                return m_prefs.skip_picker_on_boot();
+                return prefs.skip_picker_on_boot;
             case Item::VOLTAGE_COMP:
-                return m_prefs.voltage_comp_enabled();
+                return prefs.voltage_comp_enabled;
             case Item::FLIP_DISPLAY:
-                return m_prefs.flip_display();
+                return prefs.flip_display;
             }
             return false;
         }
 
         void toggle_current() {
+            Preferences prefs = m_prefs.get();
             switch (ITEMS[m_table.cursor()].item) {
             case Item::SKIP_PICKER:
-                m_prefs.set_skip_picker_on_boot(!m_prefs.skip_picker_on_boot());
+                prefs.skip_picker_on_boot = !prefs.skip_picker_on_boot;
                 break;
             case Item::VOLTAGE_COMP:
-                m_prefs.set_voltage_comp_enabled(!m_prefs.voltage_comp_enabled());
+                prefs.voltage_comp_enabled = !prefs.voltage_comp_enabled;
                 break;
             case Item::FLIP_DISPLAY:
-                m_prefs.set_flip_display(!m_prefs.flip_display());
-                m_orientation.set_flipped(m_prefs.flip_display());
+                prefs.flip_display = !prefs.flip_display;
+                m_orientation.set_flipped(prefs.flip_display);
                 break;
             }
+            m_prefs.set(prefs);
 
             draw();
         }

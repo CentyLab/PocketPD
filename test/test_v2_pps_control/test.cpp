@@ -67,7 +67,7 @@ TEST(PpsControlTask, WritesBareTargetOnPpsTargetWhenDisabled) {
 
 TEST(PpsControlTask, WritesBareTargetOnPpsTargetWhenEnabledButOffsetIsZero) {
     Harness h;
-    h.prefs.set_voltage_comp_enabled(true);
+    h.prefs.set({.voltage_comp_enabled = true});
     EXPECT_CALL(h.sink, set_pps_pdo(0, 5000, 1000)).Times(1).WillOnce(Return(true));
 
     h.task.on_event(PpsTargetEvent{0, 5000, 1000}, 0);
@@ -75,7 +75,7 @@ TEST(PpsControlTask, WritesBareTargetOnPpsTargetWhenEnabledButOffsetIsZero) {
 
 TEST(PpsControlTask, ReissuesWithOffsetOnSamePdoTargetChange) {
     Harness h;
-    h.prefs.set_voltage_comp_enabled(true);
+    h.prefs.set({.voltage_comp_enabled = true});
     EXPECT_CALL(h.gate, is_enabled()).WillRepeatedly(Return(true));
 
     // Build offset = 60 via ticks.
@@ -96,7 +96,7 @@ TEST(PpsControlTask, ReissuesWithOffsetOnSamePdoTargetChange) {
 
 TEST(PpsControlTask, NewPdoResetsOffsetAndWritesBareTarget) {
     Harness h;
-    h.prefs.set_voltage_comp_enabled(true);
+    h.prefs.set({.voltage_comp_enabled = true});
     EXPECT_CALL(h.gate, is_enabled()).WillRepeatedly(Return(true));
 
     EXPECT_CALL(h.sink, set_pps_pdo).WillRepeatedly(Return(true));
@@ -116,7 +116,7 @@ TEST(PpsControlTask, NewPdoResetsOffsetAndWritesBareTarget) {
 
 TEST(PpsControlTaskTick, StepsUpOncePerTickWhenErrorPositive) {
     Harness h;
-    h.prefs.set_voltage_comp_enabled(true);
+    h.prefs.set({.voltage_comp_enabled = true});
     EXPECT_CALL(h.gate, is_enabled()).WillRepeatedly(Return(true));
 
     ::testing::InSequence seq;
@@ -131,7 +131,7 @@ TEST(PpsControlTaskTick, StepsUpOncePerTickWhenErrorPositive) {
 
 TEST(PpsControlTaskTick, DeadBandSuppressesUpdates) {
     Harness h;
-    h.prefs.set_voltage_comp_enabled(true);
+    h.prefs.set({.voltage_comp_enabled = true});
     EXPECT_CALL(h.gate, is_enabled()).WillRepeatedly(Return(true));
     EXPECT_CALL(h.sink, set_pps_pdo(0, 5000, 1000)).Times(1).WillOnce(Return(true));
 
@@ -143,7 +143,7 @@ TEST(PpsControlTaskTick, DeadBandSuppressesUpdates) {
 
 TEST(PpsControlTaskTick, NegativeErrorStepsDown) {
     Harness h;
-    h.prefs.set_voltage_comp_enabled(true);
+    h.prefs.set({.voltage_comp_enabled = true});
     EXPECT_CALL(h.gate, is_enabled()).WillRepeatedly(Return(true));
 
     EXPECT_CALL(h.sink, set_pps_pdo).WillRepeatedly(Return(true));
@@ -163,7 +163,7 @@ TEST(PpsControlTaskTick, NegativeErrorStepsDown) {
 
 TEST(PpsControlTaskTick, OutputOffResetsOffset) {
     Harness h;
-    h.prefs.set_voltage_comp_enabled(true);
+    h.prefs.set({.voltage_comp_enabled = true});
 
     EXPECT_CALL(h.gate, is_enabled())
         .WillOnce(Return(true))
@@ -192,7 +192,7 @@ TEST(PpsControlTaskTick, OutputOffResetsOffset) {
 
 TEST(PpsControlTaskTick, SaturatesAtMaxComp) {
     Harness h;
-    h.prefs.set_voltage_comp_enabled(true);
+    h.prefs.set({.voltage_comp_enabled = true});
     EXPECT_CALL(h.gate, is_enabled()).WillRepeatedly(Return(true));
     EXPECT_CALL(h.sink, set_pps_pdo).WillRepeatedly(Return(true));
 
@@ -212,7 +212,7 @@ TEST(PpsControlTaskTick, SaturatesAtMaxComp) {
 
 TEST(PpsControlTaskTick, FailedSinkOnTickHoldsOffsetForRetry) {
     Harness h;
-    h.prefs.set_voltage_comp_enabled(true);
+    h.prefs.set({.voltage_comp_enabled = true});
     EXPECT_CALL(h.gate, is_enabled()).WillRepeatedly(Return(true));
 
     {
@@ -233,7 +233,7 @@ TEST(PpsControlTaskTick, FailedSinkOnTickHoldsOffsetForRetry) {
 
 TEST(PpsControlTaskTick, PreferenceFlipOffEmitsCleanupAndZeroes) {
     Harness h;
-    h.prefs.set_voltage_comp_enabled(true);
+    h.prefs.set({.voltage_comp_enabled = true});
     EXPECT_CALL(h.gate, is_enabled()).WillRepeatedly(Return(true));
 
     EXPECT_CALL(h.sink, set_pps_pdo).Times(3).WillRepeatedly(Return(true));
@@ -243,7 +243,7 @@ TEST(PpsControlTaskTick, PreferenceFlipOffEmitsCleanupAndZeroes) {
     h.task.on_tick(2 * PpsControlTask::PERIOD_MS);
     EXPECT_EQ(h.task.comp_offset_mv(), 40);
 
-    h.prefs.set_voltage_comp_enabled(false);
+    h.prefs.set({.voltage_comp_enabled = false});
     ::testing::Mock::VerifyAndClearExpectations(&h.sink);
     EXPECT_CALL(h.sink, set_pps_pdo(0, 5000, 1000)).Times(1).WillOnce(Return(true));
 
@@ -257,7 +257,7 @@ TEST(PpsControlTaskTick, PreferenceFlipOffEmitsCleanupAndZeroes) {
 
 TEST(PpsControlTaskTick, ClampsRequestToPdoMax) {
     Harness h;
-    h.prefs.set_voltage_comp_enabled(true);
+    h.prefs.set({.voltage_comp_enabled = true});
     EXPECT_CALL(h.gate, is_enabled()).WillRepeatedly(Return(true));
     EXPECT_CALL(h.sink, pdo_max_voltage_mv(0)).WillRepeatedly(Return(5000));
 
@@ -272,7 +272,7 @@ TEST(PpsControlTaskTick, ClampsRequestToPdoMax) {
 
 TEST(PpsControlTaskTick, PartialPdoClampStopsAtCeiling) {
     Harness h;
-    h.prefs.set_voltage_comp_enabled(true);
+    h.prefs.set({.voltage_comp_enabled = true});
     EXPECT_CALL(h.gate, is_enabled()).WillRepeatedly(Return(true));
     EXPECT_CALL(h.sink, pdo_max_voltage_mv(0)).WillRepeatedly(Return(5010));
 

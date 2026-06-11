@@ -45,7 +45,7 @@ namespace pocketpd {
          * sits on the user's right. Swap L/R at publish time; ENCODER and L_R are symmetric.
          */
         ButtonId published_id(ButtonId id) const {
-            if (!m_prefs.flip_display()) {
+            if (!m_prefs.get().flip_display) {
                 return id;
             }
             switch (id) {

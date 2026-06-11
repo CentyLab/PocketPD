@@ -82,7 +82,7 @@ namespace pocketpd {
         }
 
         void on_tick(uint32_t) override {
-            if (!m_prefs.voltage_comp_enabled()) {
+            if (!m_prefs.get().voltage_comp_enabled) {
                 clear_offset();
                 return;
             }
@@ -145,7 +145,7 @@ namespace pocketpd {
                 return false;
             }
 
-            const int offset = m_prefs.voltage_comp_enabled() ? m_comp_offset_mv : 0;
+            const int offset = m_prefs.get().voltage_comp_enabled ? m_comp_offset_mv : 0;
             const int request_mv = m_target_mv + offset;
             if (!m_sink.set_pps_pdo(m_pdo_index, request_mv, m_target_ma)) {
                 log.error(

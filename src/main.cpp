@@ -100,7 +100,7 @@ void setup() {
     if (!prefs.load()) {
         Serial.println("[main] preferences load failed; defaults restored");
     }
-    u8g2_display.set_flipped(prefs.flip_display());
+    u8g2_display.set_flipped(prefs.get().flip_display);
     encoder.begin();
 
     app.register_stage(boot_stage);

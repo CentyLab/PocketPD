@@ -187,7 +187,7 @@ TEST(ButtonTask, FlipDisplaySwapsPublishedLR) {
     ButtonTask task(encoder, l, r, prefs);
     task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
 
-    prefs.set_flip_display(true);
+    prefs.set({.flip_display = true});
 
     l.set_held(true);
     task.poll(0);
@@ -217,7 +217,7 @@ TEST(ButtonTask, FlipDisplayLeavesEncoderAndComboAlone) {
     ButtonTask task(encoder, l, r, prefs);
     task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
 
-    prefs.set_flip_display(true);
+    prefs.set({.flip_display = true});
 
     encoder.set_held(true);
     task.poll(0);

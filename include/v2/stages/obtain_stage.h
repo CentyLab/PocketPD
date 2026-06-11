@@ -54,7 +54,7 @@ namespace pocketpd {
                 log.error("PD negotiation failed");
             }
 
-            if (m_prefs.skip_picker_on_boot()) {
+            if (m_prefs.get().skip_picker_on_boot) {
                 conductor.replace<NormalStage>();
             }
         }

@@ -44,44 +44,16 @@ namespace pocketpd {
             return m_dirty;
         }
 
-        // —— Per-field accessors
-
-        bool skip_picker_on_boot() const {
-            return m_preferences.skip_picker_on_boot;
+        Preferences get() const {
+            return m_preferences;
         }
 
-        void set_skip_picker_on_boot(bool v) {
-            if (m_preferences.skip_picker_on_boot == v) {
+        void set(const Preferences& v) {
+            if (m_preferences == v) {
                 return;
             }
 
-            m_preferences.skip_picker_on_boot = v;
-            m_dirty = true;
-        }
-
-        bool voltage_comp_enabled() const {
-            return m_preferences.voltage_comp_enabled;
-        }
-
-        void set_voltage_comp_enabled(bool v) {
-            if (m_preferences.voltage_comp_enabled == v) {
-                return;
-            }
-
-            m_preferences.voltage_comp_enabled = v;
-            m_dirty = true;
-        }
-
-        bool flip_display() const {
-            return m_preferences.flip_display;
-        }
-
-        void set_flip_display(bool v) {
-            if (m_preferences.flip_display == v) {
-                return;
-            }
-
-            m_preferences.flip_display = v;
+            m_preferences = v;
             m_dirty = true;
         }
     };
