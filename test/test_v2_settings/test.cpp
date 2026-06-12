@@ -1,6 +1,7 @@
 #define VERSION "\"test\""
 
 #include <MockDisplay.h>
+#include <MockDisplayOrientation.h>
 #include <MockEeprom.h>
 #include <MockOutputGate.h>
 #include <MockPdSink.h>
@@ -28,8 +29,9 @@ namespace {
         NiceMock<MockPdSink> sink;
         NiceMock<MockOutputGate> gate;
         NiceMock<MockEeprom> eeprom;
+        FakeDisplayOrientation orientation;
         PreferencesStore prefs{eeprom};
-        SettingsStage stage{display, prefs};
+        SettingsStage stage{display, orientation, prefs};
         MenuStage menu{display};
         ProfilePickerStage picker{display, sink};
         NormalStage normal{display, sink, gate};
@@ -169,6 +171,50 @@ TEST(SettingsStage, ExitFlushesVoltageCompToggle) {
 
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::L, Gesture::LONG}, 0);
     EXPECT_TRUE(h.conductor.apply_pending_transition(0));
+}
+
+TEST(SettingsStage, RendersFlipDisplayRowBelowVoltageComp) {
+    Harness h;
+    EXPECT_CALL(h.display, draw_text(_, _, _)).Times(::testing::AnyNumber());
+    EXPECT_CALL(h.display, draw_text(10, 36, StrEq("[ ] Flip display"))).Times(1);
+    h.conductor.start<SettingsStage>(0);
+}
+
+TEST(SettingsStage, EncoderLongOnFlipDisplayTogglesPreferenceAndApplies) {
+    Harness h;
+    h.conductor.start<SettingsStage>(0);
+
+    h.stage.on_event(h.conductor, EncoderEvent{1}, 0);
+    h.stage.on_event(h.conductor, EncoderEvent{1}, 0);
+    h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
+
+    EXPECT_TRUE(h.prefs.flip_display());
+    EXPECT_TRUE(h.prefs.dirty());
+    EXPECT_TRUE(h.orientation.flipped());
+    EXPECT_EQ(h.orientation.call_count(), 1);
+}
+
+TEST(SettingsStage, FlipDisplayToggleTwiceRestoresOrientation) {
+    Harness h;
+    h.conductor.start<SettingsStage>(0);
+
+    h.stage.on_event(h.conductor, EncoderEvent{1}, 0);
+    h.stage.on_event(h.conductor, EncoderEvent{1}, 0);
+    h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
+    h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
+
+    EXPECT_FALSE(h.prefs.flip_display());
+    EXPECT_FALSE(h.orientation.flipped());
+    EXPECT_EQ(h.orientation.call_count(), 2);
+}
+
+TEST(SettingsStage, TogglingOtherItemsDoesNotTouchOrientation) {
+    Harness h;
+    h.conductor.start<SettingsStage>(0);
+
+    h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
+
+    EXPECT_EQ(h.orientation.call_count(), 0);
 }
 
 int main(int argc, char** argv) {

@@ -15,6 +15,7 @@
 
 #include "v2/app.h"
 #include "v2/events.h"
+#include "v2/hal/display_orientation.h"
 #include "v2/preferences_store.h"
 #include "v2/ui/table_view.h"
 
@@ -27,6 +28,7 @@ namespace pocketpd {
         enum class Item : uint8_t {
             SKIP_PICKER,
             VOLTAGE_COMP,
+            FLIP_DISPLAY,
         };
 
         struct SettingItem {
@@ -34,12 +36,14 @@ namespace pocketpd {
             const char* label;
         };
 
-        static constexpr std::array<SettingItem, 2> ITEMS = {{
+        static constexpr std::array<SettingItem, 3> ITEMS = {{
             {Item::SKIP_PICKER, "Skip picker"},
             {Item::VOLTAGE_COMP, "Voltage comp"},
+            {Item::FLIP_DISPLAY, "Flip display"},
         }};
 
         Display& m_display;
+        DisplayOrientation& m_orientation;
         PreferencesStore& m_prefs;
         TableView m_table{};
 
@@ -53,6 +57,8 @@ namespace pocketpd {
                 return m_prefs.skip_picker_on_boot();
             case Item::VOLTAGE_COMP:
                 return m_prefs.voltage_comp_enabled();
+            case Item::FLIP_DISPLAY:
+                return m_prefs.flip_display();
             }
             return false;
         }
@@ -64,6 +70,10 @@ namespace pocketpd {
                 break;
             case Item::VOLTAGE_COMP:
                 m_prefs.set_voltage_comp_enabled(!m_prefs.voltage_comp_enabled());
+                break;
+            case Item::FLIP_DISPLAY:
+                m_prefs.set_flip_display(!m_prefs.flip_display());
+                m_orientation.set_flipped(m_prefs.flip_display());
                 break;
             }
 
@@ -88,8 +98,8 @@ namespace pocketpd {
         }
 
     public:
-        SettingsStage(Display& display, PreferencesStore& prefs)
-            : m_display(display), m_prefs(prefs) {}
+        SettingsStage(Display& display, DisplayOrientation& orientation, PreferencesStore& prefs)
+            : m_display(display), m_orientation(orientation), m_prefs(prefs) {}
 
         void on_enter(Conductor&, uint32_t) override {
             m_table.reset();

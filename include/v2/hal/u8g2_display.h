@@ -11,9 +11,11 @@
 #include "clib/u8g2.h"
 #include <U8g2lib.h>
 
+#include "v2/hal/display_orientation.h"
+
 namespace pocketpd {
 
-    class U8g2Display : public tempo::Display {
+    class U8g2Display : public tempo::Display, public DisplayOrientation {
     private:
         U8G2_SSD1306_128X64_NONAME_F_HW_I2C m_u8g2{U8G2_R0, U8X8_PIN_NONE};
 
@@ -70,6 +72,10 @@ namespace pocketpd {
 
         void draw_box(uint8_t x, uint8_t y, uint8_t w, uint8_t h) override {
             m_u8g2.drawBox(x, y, w, h);
+        }
+
+        void set_flipped(bool flipped) override {
+            m_u8g2.setDisplayRotation(flipped ? U8G2_R2 : U8G2_R0);
         }
     };
 

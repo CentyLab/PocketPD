@@ -15,6 +15,7 @@
 #include "v2/input/button_gesture.h"
 #include "v2/input/two_buttons_gesture.h"
 #include "v2/pocketpd.h"
+#include "v2/preferences_store.h"
 
 namespace pocketpd {
 
@@ -32,11 +33,30 @@ namespace pocketpd {
         
         std::array<DetectorRef, 3> m_detector_refs;
         TwoButtonsGestureDetector m_combo_detector;
+        const PreferencesStore& m_prefs;
 
         static constexpr uint32_t POLL_PERIOD_MS = 5;
         static constexpr size_t IDX_ENCODER = 0;
         static constexpr size_t IDX_L = 1;
         static constexpr size_t IDX_R = 2;
+
+        /**
+         * @brief Flipped display means the unit is held upside down, so the physical L button
+         * sits on the user's right. Swap L/R at publish time; ENCODER and L_R are symmetric.
+         */
+        ButtonId published_id(ButtonId id) const {
+            if (!m_prefs.flip_display()) {
+                return id;
+            }
+            switch (id) {
+            case ButtonId::L:
+                return ButtonId::R;
+            case ButtonId::R:
+                return ButtonId::L;
+            default:
+                return id;
+            }
+        }
 
     public:
         static constexpr const char* LOG_TAG = "ButtonTask";
@@ -45,6 +65,7 @@ namespace pocketpd {
             tempo::ButtonInput& btn_encoder,
             tempo::ButtonInput& btn_l,
             tempo::ButtonInput& btn_r,
+            const PreferencesStore& prefs,
             ButtonGestureConfig gesture_config = {}
         )
             : App::BackgroundTask(POLL_PERIOD_MS),
@@ -65,7 +86,8 @@ namespace pocketpd {
                       ButtonGestureDetector{gesture_config},
                   },
               },
-              m_combo_detector(gesture_config) {}
+              m_combo_detector(gesture_config),
+              m_prefs(prefs) {}
 
         const char* name() const override {
             return "ButtonTask";
@@ -117,7 +139,7 @@ namespace pocketpd {
                 const uint32_t duration = ref.detector.duration(now_ms);
                 const char* msg = "button={} gesture={} hold_duration={}";
                 log.debug(msg, to_string(ref.id), to_string(gesture.value()), duration);
-                publish(ButtonEvent{ref.id, gesture.value()});
+                publish(ButtonEvent{published_id(ref.id), gesture.value()});
             }
         }
 
