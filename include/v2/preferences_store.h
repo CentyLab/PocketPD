@@ -71,6 +71,19 @@ namespace pocketpd {
             m_preferences.voltage_comp_enabled = v;
             m_dirty = true;
         }
+
+        bool flip_display() const {
+            return m_preferences.flip_display;
+        }
+
+        void set_flip_display(bool v) {
+            if (m_preferences.flip_display == v) {
+                return;
+            }
+
+            m_preferences.flip_display = v;
+            m_dirty = true;
+        }
     };
 
 } // namespace pocketpd

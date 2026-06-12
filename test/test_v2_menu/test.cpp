@@ -1,6 +1,7 @@
 #define VERSION "\"test\""
 
 #include <MockDisplay.h>
+#include <MockDisplayOrientation.h>
 #include <MockEeprom.h>
 #include <MockOutputGate.h>
 #include <MockPdSink.h>
@@ -28,10 +29,11 @@ namespace {
         NiceMock<MockPdSink> sink;
         NiceMock<MockOutputGate> gate;
         NiceMock<MockEeprom> eeprom;
+        FakeDisplayOrientation orientation;
         PreferencesStore prefs{eeprom};
         MenuStage menu{display};
         ProfilePickerStage picker{display, sink};
-        SettingsStage settings_stage{display, prefs};
+        SettingsStage settings_stage{display, orientation, prefs};
         NormalStage normal{display, sink, gate};
         TestConductor conductor;
 

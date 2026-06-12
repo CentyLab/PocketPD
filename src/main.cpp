@@ -68,11 +68,11 @@ namespace pocketpd {
     NormalStage normal_stage(u8g2_display, pd_sink, output_gate);
     EnergyStage energy_stage(u8g2_display, output_gate);
     MenuStage menu_stage(u8g2_display);
-    SettingsStage settings_stage(u8g2_display, prefs);
+    SettingsStage settings_stage(u8g2_display, u8g2_display, prefs);
 
     // —— Tasks
 
-    ButtonTask button_task(encoder_button, l_button, r_button);
+    ButtonTask button_task(encoder_button, l_button, r_button, prefs);
     EncoderTask encoder_task(encoder);
     SensorTask sensor_task{power_monitor, supply_voltage_source};
     EnergyTask energy_task{output_gate};
@@ -100,6 +100,7 @@ void setup() {
     if (!prefs.load()) {
         Serial.println("[main] preferences load failed; defaults restored");
     }
+    u8g2_display.set_flipped(prefs.flip_display());
     encoder.begin();
 
     app.register_stage(boot_stage);

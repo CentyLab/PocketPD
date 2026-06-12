@@ -21,9 +21,10 @@ namespace pocketpd {
     struct Preferences {
         bool skip_picker_on_boot = false;
         bool voltage_comp_enabled = false;
+        bool flip_display = false;
     };
 
-    static constexpr uint8_t PREFERENCES_LAYOUT_VERSION = 2;
+    static constexpr uint8_t PREFERENCES_LAYOUT_VERSION = 3;
     static constexpr size_t SIZE = sizeof(Preferences);
     static constexpr size_t EEPROM_PREFERENCES_BYTES = 1 + SIZE + 1;
 

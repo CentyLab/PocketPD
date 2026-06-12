@@ -67,6 +67,26 @@ TEST(EepromCodec, DefaultsHaveVoltageCompOff) {
     EXPECT_FALSE(p.voltage_comp_enabled);
 }
 
+TEST(EepromCodec, FlipDisplayFieldRoundTrips) {
+    std::array<uint8_t, EEPROM_PREFERENCES_BYTES> buf{};
+
+    Preferences in{
+        .skip_picker_on_boot = false,
+        .voltage_comp_enabled = false,
+        .flip_display = true,
+    };
+    encode_preferences(in, buf.data());
+
+    Preferences out{};
+    EXPECT_TRUE(decode_preferences(buf.data(), out));
+    EXPECT_TRUE(out.flip_display);
+}
+
+TEST(EepromCodec, DefaultsHaveFlipDisplayOff) {
+    Preferences p{};
+    EXPECT_FALSE(p.flip_display);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
