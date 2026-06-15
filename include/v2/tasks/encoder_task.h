@@ -21,7 +21,7 @@ namespace pocketpd {
         tempo::EncoderInput& m_input;
         int m_last_position = 0;
 
-        static constexpr int POLL_PERIOD_MS = 5;
+        static constexpr int POLL_PERIOD_MS = 25;
 
     public:
         static constexpr const char* LOG_TAG = "EncoderTask";
