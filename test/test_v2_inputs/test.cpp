@@ -244,7 +244,9 @@ TEST(EncoderTask, OnStartLatchesBaselineWithoutEvent) {
     FakeEncoderInput enc;
     TestQueue q;
     TestPublisher pub(q);
-    EncoderTask task(enc);
+    ::testing::NiceMock<MockEeprom> eeprom;
+    PreferencesStore prefs{eeprom};
+    EncoderTask task(enc, prefs);
     task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
 
     enc.set_position(42);
@@ -259,7 +261,9 @@ TEST(EncoderTask, NonZeroDeltaPublishes) {
     FakeEncoderInput enc;
     TestQueue q;
     TestPublisher pub(q);
-    EncoderTask task(enc);
+    ::testing::NiceMock<MockEeprom> eeprom;
+    PreferencesStore prefs{eeprom};
+    EncoderTask task(enc, prefs);
     task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
     task.on_start();
 
@@ -275,7 +279,9 @@ TEST(EncoderTask, NoChangeMeansNoEvent) {
     FakeEncoderInput enc;
     TestQueue q;
     TestPublisher pub(q);
-    EncoderTask task(enc);
+    ::testing::NiceMock<MockEeprom> eeprom;
+    PreferencesStore prefs{eeprom};
+    EncoderTask task(enc, prefs);
     task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
     task.on_start();
     task.poll();
@@ -288,11 +294,33 @@ TEST(EncoderTask, NegativeDelta) {
     FakeEncoderInput enc;
     TestQueue q;
     TestPublisher pub(q);
-    EncoderTask task(enc);
+    ::testing::NiceMock<MockEeprom> eeprom;
+    PreferencesStore prefs{eeprom};
+    EncoderTask task(enc, prefs);
     task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
     enc.set_position(5);
     task.on_start();
     enc.set_position(2);
+    task.poll();
+
+    const auto* ev = pop_as<EncoderEvent>(q);
+    ASSERT_NE(ev, nullptr);
+    EXPECT_EQ(ev->delta, -3);
+}
+
+TEST(EncoderTask, FlipDisplayNegatesDelta) {
+    FakeEncoderInput enc;
+    TestQueue q;
+    TestPublisher pub(q);
+    ::testing::NiceMock<MockEeprom> eeprom;
+    PreferencesStore prefs{eeprom};
+    EncoderTask task(enc, prefs);
+    task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
+
+    prefs.set({.flip_display = true});
+
+    task.on_start();
+    enc.set_position(3);
     task.poll();
 
     const auto* ev = pop_as<EncoderEvent>(q);

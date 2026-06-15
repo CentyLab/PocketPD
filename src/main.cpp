@@ -73,7 +73,7 @@ namespace pocketpd {
     // —— Tasks
 
     ButtonTask button_task(encoder_button, l_button, r_button, prefs);
-    EncoderTask encoder_task(encoder);
+    EncoderTask encoder_task(encoder, prefs);
     SensorTask sensor_task{power_monitor, supply_voltage_source};
     EnergyTask energy_task{output_gate};
     CommandTask command_task{arduino_stream_reader, arduino_stream_writer};

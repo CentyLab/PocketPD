@@ -11,6 +11,7 @@
 
 #include "v2/app.h"
 #include "v2/events.h"
+#include "v2/preferences_store.h"
 
 namespace pocketpd {
 
@@ -19,6 +20,7 @@ namespace pocketpd {
                         public App::UsePublisher<EncoderTask> {
     private:
         tempo::EncoderInput& m_input;
+        const PreferencesStore& m_prefs;
         int m_last_position = 0;
 
         static constexpr int POLL_PERIOD_MS = 25;
@@ -26,8 +28,8 @@ namespace pocketpd {
     public:
         static constexpr const char* LOG_TAG = "EncoderTask";
 
-        explicit EncoderTask(tempo::EncoderInput& input)
-            : App::BackgroundTask(POLL_PERIOD_MS), m_input(input) {}
+        EncoderTask(tempo::EncoderInput& input, const PreferencesStore& prefs)
+            : App::BackgroundTask(POLL_PERIOD_MS), m_input(input), m_prefs(prefs) {}
 
         const char* name() const override {
             return "EncoderTask";
@@ -39,8 +41,12 @@ namespace pocketpd {
 
         void poll() {
             const int pos = m_input.position();
-            const int delta = pos - m_last_position;
+            int delta = pos - m_last_position;
             if (delta != 0) {
+                // Flipped display turns the knob around with the unit, so CW now reads as CCW.
+                if (m_prefs.get().flip_display) {
+                    delta = -delta;
+                }
                 publish(EncoderEvent{delta});
                 m_last_position = pos;
             }
