@@ -154,7 +154,7 @@ pio test -e native
 
 | Firmware Version | Hardware 1.0 <br> (Limited) | Hardware 1.1 | Hardware 1.2 | Hardware 1.3 <br> (CrowdSupply) |
 | ------------------ | ------------------------ | -------------- | -------------- | ---------------------------- |
-| `Release 2.1.0`  | x                      | x            | x            | x                          |
+| `Release 2.2.0`  | x                      | x            | x            | x                          |
 
 The main difference between HW1.0 and later boards is the sense resistor, which got updated from 10 mOhm to 5 mOhm and changes the current reading scale.
 
