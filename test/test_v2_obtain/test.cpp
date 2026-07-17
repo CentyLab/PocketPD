@@ -12,9 +12,9 @@
 #include <tempo/stage/conductor.h>
 
 #include "v2/app.h"
-#include "v2/preferences_store.h"
 #include "v2/events.h"
 #include "v2/hal/eeprom.h"
+#include "v2/preferences_store.h"
 #include "v2/stages/boot_stage.h"
 #include "v2/stages/normal_stage.h"
 #include "v2/stages/obtain_stage.h"
@@ -153,15 +153,23 @@ TEST(BootStage, RequestsObtainAfterTimeout) {
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ObtainStage>());
 }
 
-TEST(ObtainStage, SkipPickerOnBootRequestsNormal) {
+TEST(ObtainStage, RememberedProfileResolvesToNormal) {
     NiceMock<MockPdSink> sink;
     NiceMock<MockEeprom> mock_eeprom;
-    PreferencesStore config{mock_eeprom, Preferences{.skip_picker_on_boot = true}};
+    PreferencesStore config{
+        mock_eeprom,
+        Preferences{
+            .restore_last_profile_enabled = true,
+            .last_profile = {.is_pps = false, .voltage_mv = 9000, .pdo_index = 1},
+        }
+    };
     NiceMock<MockDisplay> display;
     NiceMock<MockOutputGate> gate;
 
     EXPECT_CALL(sink, begin()).WillOnce(Return(true));
     EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
+    EXPECT_CALL(sink, is_index_fixed(::testing::_)).WillRepeatedly(Return(true));
+    EXPECT_CALL(sink, pdo_max_voltage_mv(::testing::_)).WillRepeatedly(Return(9000));
     EXPECT_CALL(sink, is_index_pps(::testing::_)).WillRepeatedly(Return(false));
     EXPECT_CALL(sink, set_pdo).WillRepeatedly(Return(true));
 
@@ -175,6 +183,38 @@ TEST(ObtainStage, SkipPickerOnBootRequestsNormal) {
     EXPECT_TRUE(conductor.has_pending());
     EXPECT_TRUE(conductor.apply_pending_transition(0));
     EXPECT_EQ(conductor.current_index(), TestConductor::index_of<NormalStage>());
+}
+
+TEST(ObtainStage, RememberOnButNoMatchFallsToPicker) {
+    NiceMock<MockPdSink> sink;
+    NiceMock<MockEeprom> mock_eeprom;
+    PreferencesStore config{
+        mock_eeprom,
+        Preferences{
+            .restore_last_profile_enabled = true,
+            .last_profile = {.is_pps = false, .voltage_mv = 9000},
+        }
+    };
+    NiceMock<MockDisplay> display;
+
+    EXPECT_CALL(sink, begin()).WillOnce(Return(true));
+    EXPECT_CALL(sink, pdo_count()).WillRepeatedly(Return(2));
+    EXPECT_CALL(sink, is_index_fixed(::testing::_)).WillRepeatedly(Return(true));
+    EXPECT_CALL(sink, pdo_max_voltage_mv(::testing::_)).WillRepeatedly(Return(20000));
+
+    ObtainStage stage(sink, config);
+    ProfilePickerStage picker(display, sink);
+    TestConductor conductor;
+    conductor.register_stage(stage);
+    conductor.register_stage(picker);
+    conductor.start<ObtainStage>(0);
+
+    EXPECT_FALSE(conductor.has_pending());
+
+    conductor.tick(OBTAIN_TO_PROFILE_PICKER_MS);
+    EXPECT_TRUE(conductor.has_pending());
+    EXPECT_TRUE(conductor.apply_pending_transition(0));
+    EXPECT_EQ(conductor.current_index(), TestConductor::index_of<ProfilePickerStage>());
 }
 
 TEST(ObtainStage, SkipPickerDisabledFollowsNormalTimeoutPath) {

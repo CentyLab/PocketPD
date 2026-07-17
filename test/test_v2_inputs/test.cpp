@@ -7,6 +7,8 @@
  */
 #define VERSION "\"test\""
 
+#include <variant>
+
 #include <MockButtonInput.h>
 #include <MockEeprom.h>
 #include <MockEncoderInput.h>
@@ -14,8 +16,6 @@
 #include <gtest/gtest.h>
 #include <tempo/bus/event_queue.h>
 #include <tempo/bus/publisher.h>
-
-#include <variant>
 
 #include "v2/events.h"
 #include "v2/input/button_gesture.h"
@@ -187,7 +187,7 @@ TEST(ButtonTask, FlipDisplaySwapsPublishedLR) {
     ButtonTask task(encoder, l, r, prefs);
     task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
 
-    prefs.set({.flip_display = true});
+    prefs.set({.flip_display_enabled = true});
 
     l.set_held(true);
     task.poll(0);
@@ -217,7 +217,7 @@ TEST(ButtonTask, FlipDisplayLeavesEncoderAndComboAlone) {
     ButtonTask task(encoder, l, r, prefs);
     task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
 
-    prefs.set({.flip_display = true});
+    prefs.set({.flip_display_enabled = true});
 
     encoder.set_held(true);
     task.poll(0);
@@ -317,7 +317,7 @@ TEST(EncoderTask, FlipDisplayNegatesDelta) {
     EncoderTask task(enc, prefs);
     task.attach_publisher_INTERNAL_DO_NOT_USE(pub);
 
-    prefs.set({.flip_display = true});
+    prefs.set({.flip_display_enabled = true});
 
     task.on_start();
     enc.set_position(3);
@@ -515,7 +515,7 @@ TEST(TwoButtonsGestureDetector, AbortedPersistsWhileOneHeld) {
 TEST(TwoButtonsGestureDetector, AbortClearsOnlyAfterBothReleased) {
     TwoButtonsGestureDetector d;
     d.update(0, true, true);
-    d.update(100, true, false);  // latched (aborted)
+    d.update(100, true, false); // latched (aborted)
     d.update(110, true, false);
     EXPECT_TRUE(d.is_active());
 
@@ -530,7 +530,7 @@ TEST(TwoButtonsGestureDetector, AbortClearsOnlyAfterBothReleased) {
 TEST(TwoButtonsGestureDetector, FiredPersistsWhileOneHeld) {
     TwoButtonsGestureDetector d;
     d.update(0, true, true);
-    d.update(kDefaultCfg.long_press_ms, true, true);  // fired → LATCHED
+    d.update(kDefaultCfg.long_press_ms, true, true); // fired → LATCHED
     d.update(kDefaultCfg.long_press_ms + 50, true, false);
     EXPECT_TRUE(d.is_active());
 }
@@ -547,7 +547,7 @@ TEST(TwoButtonsGestureDetector, SecondPressArmsAtSecondPressTime) {
     // L pressed at t=0, R pressed at t=80; chord timer should start at t=80
     // and fire at t=80 + long_press_ms.
     TwoButtonsGestureDetector d;
-    d.update(0, true, false);   // only L held
+    d.update(0, true, false); // only L held
     d.update(80, true, true);
     EXPECT_TRUE(d.is_active());
 

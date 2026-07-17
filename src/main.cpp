@@ -6,7 +6,6 @@
 #include <tempo/tempo.h>
 
 #include "v2/app.h"
-#include "v2/preferences_store.h"
 #include "v2/hal/adc_supply_voltage_source.h"
 #include "v2/hal/ap33772_pd_sink.h"
 #include "v2/hal/ap33772_supply_voltage_source.h"
@@ -19,12 +18,14 @@
 #include "v2/hal/ina226_power_monitor.h"
 #include "v2/hal/rotary_encoder_input.h"
 #include "v2/hal/u8g2_display.h"
+#include "v2/preferences_store.h"
 #include "v2/tasks/button_task.h"
 #include "v2/tasks/command_task.h"
 #include "v2/tasks/encoder_task.h"
 #include "v2/tasks/energy_task.h"
-#include "v2/tasks/sensor_task.h"
 #include "v2/tasks/pps_control_task.h"
+#include "v2/tasks/preference_task.h"
+#include "v2/tasks/sensor_task.h"
 
 namespace pocketpd {
 
@@ -78,6 +79,7 @@ namespace pocketpd {
     EnergyTask energy_task{output_gate};
     CommandTask command_task{arduino_stream_reader, arduino_stream_writer};
     PpsControlTask pps_control_task{prefs, output_gate, pd_sink};
+    PreferenceTask preference_task{prefs};
 
 } // namespace pocketpd
 
@@ -100,7 +102,7 @@ void setup() {
     if (!prefs.load()) {
         Serial.println("[main] preferences load failed; defaults restored");
     }
-    u8g2_display.set_flipped(prefs.get().flip_display);
+    u8g2_display.set_flipped(prefs.get().flip_display_enabled);
     encoder.begin();
 
     app.register_stage(boot_stage);
@@ -117,6 +119,7 @@ void setup() {
     app.add_task(energy_task);
     app.add_task(command_task);
     app.add_task(pps_control_task);
+    app.add_task(preference_task);
 
     app.start<BootStage>();
 }

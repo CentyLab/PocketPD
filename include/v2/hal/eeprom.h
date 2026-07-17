@@ -18,23 +18,40 @@
 
 namespace pocketpd {
 
+    struct LastProfile {
+        bool is_pps = false;
+        uint16_t voltage_mv = 0;
+        uint16_t current_ma = 0;
+        uint8_t pdo_index = 0;
+    };
+
+    inline bool operator==(const LastProfile& a, const LastProfile& b) {
+        return a.is_pps == b.is_pps && a.voltage_mv == b.voltage_mv &&
+               a.current_ma == b.current_ma && a.pdo_index == b.pdo_index;
+    }
+
+    inline bool operator!=(const LastProfile& a, const LastProfile& b) {
+        return !(a == b);
+    }
+
     struct Preferences {
-        bool skip_picker_on_boot = false;
-        bool voltage_comp_enabled = false;
-        bool flip_display = false;
+        bool restore_last_profile_enabled = false;
+        bool voltage_compensate_enabled = false;
+        bool flip_display_enabled = false;
+        LastProfile last_profile;
     };
 
     inline bool operator==(const Preferences& a, const Preferences& b) {
-        return a.skip_picker_on_boot == b.skip_picker_on_boot &&
-               a.voltage_comp_enabled == b.voltage_comp_enabled &&
-               a.flip_display == b.flip_display;
+        return a.restore_last_profile_enabled == b.restore_last_profile_enabled &&
+               a.voltage_compensate_enabled == b.voltage_compensate_enabled &&
+               a.flip_display_enabled == b.flip_display_enabled && a.last_profile == b.last_profile;
     }
 
     inline bool operator!=(const Preferences& a, const Preferences& b) {
         return !(a == b);
     }
 
-    static constexpr uint8_t PREFERENCES_LAYOUT_VERSION = 3;
+    static constexpr uint8_t PREFERENCES_LAYOUT_VERSION = 4;
     static constexpr size_t SIZE = sizeof(Preferences);
     static constexpr size_t EEPROM_PREFERENCES_BYTES = 1 + SIZE + 1;
 
@@ -49,7 +66,6 @@ namespace pocketpd {
         }
         return crc;
     }
-
 
     inline void encode_preferences(const Preferences& payload, uint8_t* out) {
         out[0] = PREFERENCES_LAYOUT_VERSION;

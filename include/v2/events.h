@@ -77,7 +77,7 @@ namespace pocketpd {
         uint32_t vbus_mv = 0;
         uint32_t current_ma = 0;
 
-        LoadReading ema(const LoadReading& sample ) const {
+        LoadReading ema(const LoadReading& sample) const {
             return {
                 .timestamp_ms = sample.timestamp_ms,
                 .vbus_mv = Filter::ema(vbus_mv, sample.vbus_mv, LOAD_EMA_DEN, SNAP_MV),
@@ -137,8 +137,25 @@ namespace pocketpd {
         int32_t offset_mv = 0;
     };
 
+    /**
+     * @brief Current output profile after any change. `pdo_index = -1` means no
+     * profile (passthrough). PreferenceTask records it as the last-used profile.
+     */
+    struct ActiveProfileEvent {
+        bool is_pps = false;
+        int pdo_index = -1;
+        int mv = 0;
+        int ma = 0;
+    };
+
     using Event = tempo::Events<
-        PdReadyEvent, ButtonEvent, EncoderEvent, SensorEvent, EnergyEvent,
-        PpsTargetEvent, CompStateEvent>;
+        PdReadyEvent,
+        ButtonEvent,
+        EncoderEvent,
+        SensorEvent,
+        EnergyEvent,
+        PpsTargetEvent,
+        CompStateEvent,
+        ActiveProfileEvent>;
 
 } // namespace pocketpd

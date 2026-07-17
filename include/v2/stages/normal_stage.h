@@ -38,19 +38,21 @@ namespace pocketpd {
 
         int8_t m_active_pdo_index = -1;
         int8_t m_last_active_index = -1;
+        int32_t m_restore_mv = -1;
+        int32_t m_restore_ma = -1;
+
         Mode m_mode;
-        
+
         IntervalTimer m_render_interval{40};
         uint8_t m_arrow_frame = 0;
         uint32_t m_last_draw_ms = 0;
         bool m_blink_visible = true;
-        
+
         bool m_locked = false;
         int32_t m_comp_offset_mv = 0;
-        
-        // After OFF->ON, the first INA226 read returns a stale conversion (latched while FET
-        // was off; observed ~200 mV instead of true VBUS). Discard N load samples and hold the
-        // seeded supply value until the sensor has a fresh conversion in hand.
+
+        // After OFF->ON, the first INA226 read returns a stale conversion so we discard N load
+        // samples and hold the seeded supply value until the sensor is fresh.
         uint8_t m_postenable_discard_left = 0;
         static constexpr uint8_t POSTENABLE_DISCARD_SAMPLES = 2;
 
@@ -110,8 +112,10 @@ namespace pocketpd {
             return p ? p->current_idx : 0;
         }
 
-        void prepare(int8_t pdo_index = -1) {
+        void prepare(int8_t pdo_index = -1, int32_t restore_mv = -1, int32_t restore_ma = -1) {
             m_active_pdo_index = pdo_index;
+            m_restore_mv = restore_mv;
+            m_restore_ma = restore_ma;
         }
 
         void on_enter(Conductor&, uint32_t) override {
@@ -141,6 +145,8 @@ namespace pocketpd {
                 enter_fixed_profile();
             }
 
+            m_restore_mv = -1;
+            m_restore_ma = -1;
             m_last_active_index = m_active_pdo_index;
             draw();
         }
@@ -213,6 +219,14 @@ namespace pocketpd {
 
                     pps->on_encoder(event);
                     publish(PpsTargetEvent{m_active_pdo_index, pps->target_mv, pps->target_ma});
+                    publish(
+                        ActiveProfileEvent{
+                            true,
+                            m_active_pdo_index,
+                            pps->target_mv,
+                            pps->target_ma,
+                        }
+                    );
                 },
                 [&](const SensorEvent& event) {
                     if (m_postenable_discard_left > 0) {
@@ -233,9 +247,7 @@ namespace pocketpd {
                         }
                     }
                 },
-                [&](const CompStateEvent& evt) {
-                    m_comp_offset_mv = evt.offset_mv;
-                },
+                [&](const CompStateEvent& evt) { m_comp_offset_mv = evt.offset_mv; },
                 [](const auto&) {},
             };
 
@@ -247,6 +259,10 @@ namespace pocketpd {
             bool same_profile = m_active_pdo_index == m_last_active_index;
             if (!same_profile) {
                 PPSMode pps{m_pd_sink, m_active_pdo_index};
+                if (m_restore_mv >= 0) {
+                    pps.target_mv = m_restore_mv;
+                    pps.target_ma = m_restore_ma;
+                }
                 m_mode = pps;
 
                 const auto msg = "Entered PPS profile pdo_index={} target_mv={} target_ma={}";
@@ -256,11 +272,13 @@ namespace pocketpd {
             auto& pps = std::get<PPSMode>(m_mode);
             pps.clamp();
             publish(PpsTargetEvent{m_active_pdo_index, pps.target_mv, pps.target_ma});
+            publish(ActiveProfileEvent{true, m_active_pdo_index, pps.target_mv, pps.target_ma});
         }
 
         void enter_fixed_profile() {
+            const int nominal_mv = m_pd_sink.pdo_max_voltage_mv(m_active_pdo_index);
             m_mode = FixedMode{
-                .pdo_max_mv = m_pd_sink.pdo_max_voltage_mv(m_active_pdo_index),
+                .pdo_max_mv = nominal_mv,
                 .pdo_max_ma = m_pd_sink.pdo_max_current_ma(m_active_pdo_index),
             };
 
@@ -269,6 +287,7 @@ namespace pocketpd {
                 log.error("set_pdo({}) failed", m_active_pdo_index);
             }
             publish(PpsTargetEvent{-1, 0, 0});
+            publish(ActiveProfileEvent{false, m_active_pdo_index, nominal_mv, 0});
         }
 
         NormalViewModel build_view_model() const {

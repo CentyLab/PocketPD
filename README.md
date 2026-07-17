@@ -131,8 +131,8 @@ Hold the R button to open the energy screen. It shows power, live voltage and cu
 
 Hold the left button to open the menu.
 
-- **Skip picker:** When true, PocketPD boots straight to the operating screen using the first profile 5V as default instead of stopping at the picker.
-- **Voltage comp:** When true, PocketPD watches the load-side voltage and raises the PPS request in 20 mV steps, up to 500 mV, to cancel the drop across the cable and connectors. It runs only while the output is on and a PPS profile is active, and it resets whenever the output is off or you change profiles.
+- **Restore profile:** When enabled, PocketPD saves the last profile plus its voltage/current and, on boot, restores them and jumps straight to the operating screen. When switching to another charger, PocketPD defaults to profile picker if the voltage/current fall outside of last profile range.
+- **Voltage comp:** When enabled, PocketPD watches the load-side voltage and raises the PPS request in 20 mV steps, up to 500 mV, to cancel the drop across the cable and connectors. It runs only while the output is on and a PPS profile is active, and it resets whenever the output is off or you change profiles.
 
 ### Non-PD sources
 

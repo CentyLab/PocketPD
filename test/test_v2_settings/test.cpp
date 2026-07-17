@@ -10,15 +10,15 @@
 #include <tempo/stage/conductor.h>
 
 #include "v2/app.h"
-#include "v2/preferences_store.h"
 #include "v2/events.h"
 #include "v2/hal/eeprom.h"
+#include "v2/preferences_store.h"
 
 using namespace pocketpd;
+using ::testing::_;
 using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::StrEq;
-using ::testing::_;
 
 using TestConductor = App::Conductor;
 
@@ -51,15 +51,15 @@ TEST(SettingsStage, RendersOneRowWithUncheckedBox) {
     Harness h;
     EXPECT_CALL(h.display, draw_text(_, _, _)).Times(::testing::AnyNumber());
     EXPECT_CALL(h.display, draw_text(0, 12, StrEq(">"))).Times(1);
-    EXPECT_CALL(h.display, draw_text(10, 12, StrEq("[ ] Skip picker"))).Times(1);
+    EXPECT_CALL(h.display, draw_text(10, 12, StrEq("[ ] Restore profile"))).Times(1);
     h.conductor.start<SettingsStage>(0);
 }
 
 TEST(SettingsStage, RendersCheckedWhenSettingTrue) {
     Harness h;
-    h.prefs.set({.skip_picker_on_boot = true});
+    h.prefs.set({.restore_last_profile_enabled = true});
     EXPECT_CALL(h.display, draw_text(_, _, _)).Times(::testing::AnyNumber());
-    EXPECT_CALL(h.display, draw_text(10, 12, StrEq("[X] Skip picker"))).Times(1);
+    EXPECT_CALL(h.display, draw_text(10, 12, StrEq("[X] Restore profile"))).Times(1);
     h.conductor.start<SettingsStage>(0);
 }
 
@@ -70,7 +70,7 @@ TEST(SettingsStage, EncoderLongTogglesInRamWithoutSaving) {
     EXPECT_CALL(h.eeprom, save(_)).Times(0);
 
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
-    EXPECT_TRUE(h.prefs.get().skip_picker_on_boot);
+    EXPECT_TRUE(h.prefs.get().restore_last_profile_enabled);
     EXPECT_TRUE(h.prefs.dirty());
 }
 
@@ -82,11 +82,10 @@ TEST(SettingsStage, ExitFlushesPendingToggleToEeprom) {
 
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
 
-    EXPECT_CALL(h.eeprom, save(_))
-        .WillOnce([](const Preferences& s) {
-            EXPECT_TRUE(s.skip_picker_on_boot);
-            return true;
-        });
+    EXPECT_CALL(h.eeprom, save(_)).WillOnce([](const Preferences& s) {
+        EXPECT_TRUE(s.restore_last_profile_enabled);
+        return true;
+    });
 
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::L, Gesture::LONG}, 0);
     EXPECT_TRUE(h.conductor.apply_pending_transition(0));
@@ -103,7 +102,7 @@ TEST(SettingsStage, MultipleTogglesCollapseToSingleSaveOnExit) {
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
-    EXPECT_TRUE(h.prefs.get().skip_picker_on_boot);
+    EXPECT_TRUE(h.prefs.get().restore_last_profile_enabled);
 
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::L, Gesture::LONG}, 0);
     EXPECT_TRUE(h.conductor.apply_pending_transition(0));
@@ -125,7 +124,7 @@ TEST(SettingsStage, ExitWithoutTogglesDoesNotSave) {
 TEST(SettingsStage, RendersVoltageCompRowBelowSkipPicker) {
     Harness h;
     EXPECT_CALL(h.display, draw_text(_, _, _)).Times(::testing::AnyNumber());
-    EXPECT_CALL(h.display, draw_text(10, 12, StrEq("[ ] Skip picker"))).Times(1);
+    EXPECT_CALL(h.display, draw_text(10, 12, StrEq("[ ] Restore profile"))).Times(1);
     EXPECT_CALL(h.display, draw_text(10, 24, StrEq("[ ] Voltage comp"))).Times(1);
     h.conductor.start<SettingsStage>(0);
 }
@@ -149,7 +148,7 @@ TEST(SettingsStage, EncoderLongOnVoltageCompTogglesPreference) {
     h.stage.on_event(h.conductor, EncoderEvent{1}, 0);
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
 
-    EXPECT_TRUE(h.prefs.get().voltage_comp_enabled);
+    EXPECT_TRUE(h.prefs.get().voltage_compensate_enabled);
     EXPECT_TRUE(h.prefs.dirty());
 }
 
@@ -162,12 +161,11 @@ TEST(SettingsStage, ExitFlushesVoltageCompToggle) {
     h.stage.on_event(h.conductor, EncoderEvent{1}, 0);
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
 
-    EXPECT_CALL(h.eeprom, save(_))
-        .WillOnce([](const Preferences& s) {
-            EXPECT_TRUE(s.voltage_comp_enabled);
-            EXPECT_FALSE(s.skip_picker_on_boot);
-            return true;
-        });
+    EXPECT_CALL(h.eeprom, save(_)).WillOnce([](const Preferences& s) {
+        EXPECT_TRUE(s.voltage_compensate_enabled);
+        EXPECT_FALSE(s.restore_last_profile_enabled);
+        return true;
+    });
 
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::L, Gesture::LONG}, 0);
     EXPECT_TRUE(h.conductor.apply_pending_transition(0));
@@ -188,7 +186,7 @@ TEST(SettingsStage, EncoderLongOnFlipDisplayTogglesPreferenceAndApplies) {
     h.stage.on_event(h.conductor, EncoderEvent{1}, 0);
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
 
-    EXPECT_TRUE(h.prefs.get().flip_display);
+    EXPECT_TRUE(h.prefs.get().flip_display_enabled);
     EXPECT_TRUE(h.prefs.dirty());
     EXPECT_TRUE(h.orientation.flipped());
     EXPECT_EQ(h.orientation.call_count(), 1);
@@ -203,7 +201,7 @@ TEST(SettingsStage, FlipDisplayToggleTwiceRestoresOrientation) {
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
     h.stage.on_event(h.conductor, ButtonEvent{ButtonId::ENCODER, Gesture::LONG}, 0);
 
-    EXPECT_FALSE(h.prefs.get().flip_display);
+    EXPECT_FALSE(h.prefs.get().flip_display_enabled);
     EXPECT_FALSE(h.orientation.flipped());
     EXPECT_EQ(h.orientation.call_count(), 2);
 }

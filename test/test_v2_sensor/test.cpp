@@ -6,14 +6,14 @@
  */
 #define VERSION "\"test\""
 
+#include <variant>
+
 #include <MockPowerMonitor.h>
 #include <MockSupplyVoltageSource.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <tempo/bus/event_queue.h>
 #include <tempo/bus/publisher.h>
-
-#include <variant>
 
 #include "v2/app.h"
 #include "v2/events.h"

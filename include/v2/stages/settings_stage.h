@@ -26,8 +26,8 @@ namespace pocketpd {
         using Display = tempo::Display;
 
         enum class Item : uint8_t {
-            SKIP_PICKER,
-            VOLTAGE_COMP,
+            RESTORE_PROFILE,
+            VOLTAGE_COMPENSATE,
             FLIP_DISPLAY,
         };
 
@@ -37,8 +37,8 @@ namespace pocketpd {
         };
 
         static constexpr std::array<SettingItem, 3> ITEMS = {{
-            {Item::SKIP_PICKER, "Skip picker"},
-            {Item::VOLTAGE_COMP, "Voltage comp"},
+            {Item::RESTORE_PROFILE, "Restore profile"},
+            {Item::VOLTAGE_COMPENSATE, "Voltage comp"},
             {Item::FLIP_DISPLAY, "Flip display"},
         }};
 
@@ -54,12 +54,12 @@ namespace pocketpd {
         bool value_at(Item item) const {
             const Preferences prefs = m_prefs.get();
             switch (item) {
-            case Item::SKIP_PICKER:
-                return prefs.skip_picker_on_boot;
-            case Item::VOLTAGE_COMP:
-                return prefs.voltage_comp_enabled;
+            case Item::RESTORE_PROFILE:
+                return prefs.restore_last_profile_enabled;
+            case Item::VOLTAGE_COMPENSATE:
+                return prefs.voltage_compensate_enabled;
             case Item::FLIP_DISPLAY:
-                return prefs.flip_display;
+                return prefs.flip_display_enabled;
             }
             return false;
         }
@@ -67,15 +67,15 @@ namespace pocketpd {
         void toggle_current() {
             Preferences prefs = m_prefs.get();
             switch (ITEMS[m_table.cursor()].item) {
-            case Item::SKIP_PICKER:
-                prefs.skip_picker_on_boot = !prefs.skip_picker_on_boot;
+            case Item::RESTORE_PROFILE:
+                prefs.restore_last_profile_enabled = !prefs.restore_last_profile_enabled;
                 break;
-            case Item::VOLTAGE_COMP:
-                prefs.voltage_comp_enabled = !prefs.voltage_comp_enabled;
+            case Item::VOLTAGE_COMPENSATE:
+                prefs.voltage_compensate_enabled = !prefs.voltage_compensate_enabled;
                 break;
             case Item::FLIP_DISPLAY:
-                prefs.flip_display = !prefs.flip_display;
-                m_orientation.set_flipped(prefs.flip_display);
+                prefs.flip_display_enabled = !prefs.flip_display_enabled;
+                m_orientation.set_flipped(prefs.flip_display_enabled);
                 break;
             }
             m_prefs.set(prefs);
