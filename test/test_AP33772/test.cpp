@@ -6,13 +6,12 @@
  * Uses GMock MockI2CDevice (scripted reads + EXPECT_CALL assertions on writes)
  * and a no-op delay function (no real sleep).
  */
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
-
 #include <vector>
 
-#include <MockI2CDevice.h>
 #include <AP33772.h>
+#include <MockI2CDevice.h>
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 using namespace ap33772;
 using ::testing::_;
@@ -250,9 +249,9 @@ TEST_F(AP33772Test, FailedPPSRequestDoesNotMutateActiveState) {
     // Second write: PPS RDO fails. State must stay on PDO 0 / fixed.
     // Third write: set_current rebuilds for active=PDO 0 (fixed RDO).
     EXPECT_CALL(m_i2c_device, write_bytes(reg::RDO, _, 4))
-        .WillOnce(Return(true))   // set_pdo(0)
-        .WillOnce(Return(false))  // set_pps_pdo(1, ...) fails
-        .WillOnce(Return(true));  // set_current(...) — must use fixed path
+        .WillOnce(Return(true))  // set_pdo(0)
+        .WillOnce(Return(false)) // set_pps_pdo(1, ...) fails
+        .WillOnce(Return(true)); // set_current(...) — must use fixed path
 
     AP33772 ap(m_i2c_device, noop_delay);
     EXPECT_TRUE(ap.begin());

@@ -347,11 +347,14 @@ TEST(EnergyView, LockedRendersPadlock) {
     EXPECT_CALL(
         display,
         draw_xbm(
-            EnergyView::PADLOCK_X, EnergyView::PADLOCK_Y,
-            EnergyView::PADLOCK_W, EnergyView::PADLOCK_H,
+            EnergyView::PADLOCK_X,
+            EnergyView::PADLOCK_Y,
+            EnergyView::PADLOCK_W,
+            EnergyView::PADLOCK_H,
             bitmap::PADLOCK.data()
         )
-    ).Times(1);
+    )
+        .Times(1);
 
     EnergyViewModel vm{};
     vm.output_enabled = false;
@@ -367,7 +370,8 @@ TEST(EnergyView, UnlockedDoesNotDrawPadlock) {
     EXPECT_CALL(
         display,
         draw_xbm(_, _, EnergyView::PADLOCK_W, EnergyView::PADLOCK_H, bitmap::PADLOCK.data())
-    ).Times(0);
+    )
+        .Times(0);
 
     EnergyViewModel vm{};
     vm.output_enabled = false;

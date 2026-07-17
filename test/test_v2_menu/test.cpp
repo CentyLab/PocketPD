@@ -10,15 +10,15 @@
 #include <tempo/stage/conductor.h>
 
 #include "v2/app.h"
-#include "v2/preferences_store.h"
 #include "v2/events.h"
+#include "v2/preferences_store.h"
 
 using namespace pocketpd;
+using ::testing::_;
 using ::testing::InSequence;
 using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::StrEq;
-using ::testing::_;
 
 using TestConductor = App::Conductor;
 

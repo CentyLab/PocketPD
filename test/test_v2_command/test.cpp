@@ -10,14 +10,14 @@
  */
 #define VERSION "\"test\""
 
+#include <cstdint>
+#include <string>
+
 #include <MockStreamReader.h>
 #include <MockStreamWriter.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <tempo/core/time.h>
-
-#include <cstdint>
-#include <string>
 
 #include "v2/app.h"
 #include "v2/tasks/command_task.h"
