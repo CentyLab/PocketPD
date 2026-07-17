@@ -44,7 +44,7 @@ namespace pocketpd {
             int delta = pos - m_last_position;
             if (delta != 0) {
                 // Flipped display turns the knob around with the unit, so CW now reads as CCW.
-                if (m_prefs.get().flip_display) {
+                if (m_prefs.get().flip_display_enabled) {
                     delta = -delta;
                 }
                 publish(EncoderEvent{delta});

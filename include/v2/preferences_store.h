@@ -35,7 +35,7 @@ namespace pocketpd {
             if (!m_eeprom.save(m_preferences)) {
                 return false;
             }
-            
+
             m_dirty = false;
             return true;
         }
