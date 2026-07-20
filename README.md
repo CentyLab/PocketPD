@@ -153,8 +153,8 @@ pio test -e native
 ## Firmware compatibility
 
 | Firmware Version | Hardware 1.0 <br> (Limited) | Hardware 1.1 | Hardware 1.2 | Hardware 1.3 <br> (CrowdSupply) |
-| ------------------ | ------------------------ | -------------- | -------------- | ---------------------------- |
-| `Release 2.2.0`  | x                      | x            | x            | x                          |
+| :--------------- | :-------------------------: | :----------: | :----------: | :-----------------------------: |
+| `Release 2.3.0`  | ✅ | ✅ | ✅ | ✅ |
 
 The main difference between HW1.0 and later boards is the sense resistor, which got updated from 10 mOhm to 5 mOhm and changes the current reading scale.
 
@@ -179,28 +179,28 @@ Download firmware for your board from [PocketPD's releases](https://github.com/C
 
 __For macOS__
 
-- Method 1 (easy):
+- Method 1:
   - Short the BOOT pads on the back with tweezers on `HW1.0`, or hold the BOOT button on `HW1.1+`.
   - Use a USB-A → USB-C adapter and cable to connect PocketPD to the computer. It should pop up as the `RPI-RP2` drive.
-- Method 2 (intermediate):
+- Method 2:
   - Connect PocketPD over USB. No drive appears.
   - Open any serial monitor at 1200 baud. PocketPD should pop up as the `RPI-RP2` drive.
 
 __For Windows__
 
-- Method 1 (easy):
+- Method 1:
   - Short the BOOT pads on the back with tweezers on `HW1.0`, or hold the BOOT button on `HW1.1+`.
   - Connect PocketPD over USB. It should pop up as the `RPI-RP2` drive.
-- Method 2 (intermediate):
+- Method 2:
   - Connect PocketPD over USB. No drive appears.
   - Open [Putty](https://www.putty.org/) on the serial port at 1200 baud. PocketPD should pop up as the `RPI-RP2` drive.
 
 __For Linux__
 
-- Method 1 (easy):
+- Method 1:
   - Short the BOOT pads on the back with tweezers on `HW1.0`, or hold the BOOT button on `HW1.1+`.
   - Connect PocketPD over USB. It enumerates as a USB mass storage device labelled `RPI-RP2`. Most desktops auto-mount it. If yours doesn't, find it (e.g. `lsblk`) and mount it manually: `sudo mount /dev/sdX1 /mnt`.
-- Method 2 (intermediate):
+- Method 2:
   - Connect PocketPD over USB. No drive appears.
   - Open the serial port at 1200 baud (e.g. `picocom -b 1200 /dev/ttyACM0` then exit, or `stty -F /dev/ttyACM0 1200`). PocketPD re-enumerates as the `RPI-RP2` drive. The port closes right after the baud change, so some tools report an error, which is expected.
 
